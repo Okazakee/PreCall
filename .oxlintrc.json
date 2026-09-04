@@ -1,0 +1,11 @@
+{
+  "$schema": "https://oxc.rs/schema/oxlint.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "typescript/no-useless-empty-export": "off",
+    "unicorn/require-module-specifiers": "off"
+  }
+}
