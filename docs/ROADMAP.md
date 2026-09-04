@@ -128,19 +128,23 @@ The result composition preserves valid intake when AI enrichment is unavailable.
 
 ## Phase 6 — Default renderer
 
-Implement deterministic:
+**Status: complete**
 
-- HTML;
-- plain text;
-- successful brief;
-- fallback brief.
+Implemented:
 
-Tests:
+- internal `RenderedBrief` with `html` and `text`;
+- synchronous, pure, deterministic rendering from `PreCallResult`;
+- fixed semantic section order for successful analysis;
+- explicit unavailable-analysis presentation for `no_input`, `adapter_error`, and `invalid_output`;
+- omission of empty optional analysis sections;
+- output-visible source projection from normalized fields in definition order;
+- positive `includeInOutput === true` allowlisting;
+- HTML escaping and safe multiline handling for client and AI strings;
+- no direct rendering of `request.original`, provenance, or policy metadata.
 
-- client/AI escaping;
-- empty-section behavior;
-- output privacy;
-- clarity/uncertainty presentation.
+The renderer is internal and does not call AI, perform I/O, or provide email packaging. Output-private fields are omitted from direct source presentation; free-form AI output can still contain derived information from fields deliberately sent to AI.
+
+**Milestone:** reusable `PreCallResult` now renders as a deterministic internal HTML/plain-text brief, including safe unavailable fallback output.
 
 ## Phase 7 — Raw attachment
 

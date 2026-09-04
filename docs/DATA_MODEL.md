@@ -349,6 +349,21 @@ type PreCallResult = {
 
 The result contains no `AnalysisInput`, provider/model data, metadata, processing status, issues, delivery state, or renderer output. `RequestSnapshot` owns independent copies of the authoritative source and normalized fields; future rendering must apply `includeInOutput` rather than serializing `request.original` directly.
 
+## 22. Deterministic presentation output
+
+The internal `src/presentation/render.ts` module consumes `PreCallResult` without calling AI or performing I/O:
+
+```ts
+type RenderedBrief = {
+  html: string
+  text: string
+}
+```
+
+`renderPreCallResult()` returns deterministic HTML and plain text with the same fixed section order. It omits empty optional analysis sections and renders direct submitted information only from normalized fields with `includeInOutput === true`. It never serializes `request.original`, provenance arrays, or policy metadata. Client and AI strings are escaped for HTML, and unavailable analysis receives safe fallback wording.
+
+`includeInOutput=false` guarantees direct field omission from the default renderer. It does not guarantee that free-form AI analysis lacks derived information when that field was deliberately sent to AI.
+
 ## 22. Delivery remains separate
 
 A delivery result should not become part of the core domain result.

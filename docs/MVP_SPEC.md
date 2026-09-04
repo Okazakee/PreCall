@@ -145,11 +145,16 @@ It is not an email payload.
 
 ### 8. Render deterministically
 
-The default email renderer consumes `PreCallResult`.
+The internal default renderer consumes `PreCallResult` synchronously and returns:
 
-It does not call AI.
+```ts
+type RenderedBrief = {
+  html: string
+  text: string
+}
+```
 
-AI and client text are escaped before insertion into HTML.
+It does not call AI or perform I/O. Successful and unavailable analysis branches use a fixed semantic order, omit empty optional sections, project direct source presentation from normalized fields with `includeInOutput === true`, and escape AI/client strings before HTML insertion.
 
 ### 9. Email as first destination
 
@@ -167,11 +172,13 @@ Working setting:
 
 The attachment is derived from preserved source data, not reconstructed from analysis.
 
-Fields with `includeInOutput=false` must not appear in:
+For direct renderer and attachment source projections, fields with `includeInOutput=false` must not appear in:
 
 - HTML brief;
 - plain-text brief;
 - raw email attachment.
+
+This direct omission does not guarantee semantic non-disclosure from free-form AI analysis when the same field was deliberately sent to AI.
 
 A fixed library-controlled filename such as `submission.json` is preferred.
 
@@ -300,9 +307,8 @@ The unavailable reason is stored on `analysis.reason`. Raw provider errors and m
 
 ### Caller cancellation
 
-An explicitly aborted operation propagates cancellation before invocation or during processing. It returns no `PreCallResult` and is not converted into unavailable analysis.
+The deterministic default renderer now renders successful and unavailable analysis as HTML/plain text. Email delivery remains a future stage.
 
-The current result composition does not yet render a fallback or deliver email.
 
 ## Email behavior
 

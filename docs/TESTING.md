@@ -79,8 +79,9 @@ At minimum:
 - `sendToAI=false` fields never reach the adapter;
 - sensitive fields default to no AI when not explicitly overridden;
 - explicit `sendToAI=true` can override when configured intentionally;
-- `includeInOutput=false` fields are absent from rendered output;
+- `includeInOutput=false` fields are absent from direct rendered source output;
 - `includeInOutput=false` fields are absent from the raw email attachment;
+- direct output allowlisting does not claim semantic redaction of AI free text;
 - privacy filtering never depends on model behavior.
 
 ## Prompt-injection fixture
@@ -136,7 +137,7 @@ Tests are deterministic and use no network, credentials, provider SDK, model cal
 
 ## Core result composition tests
 
-Phase 6 adds deterministic coverage for:
+Phase 6 composition adds deterministic coverage for:
 
 - minimal `{ request, analysis }` result shape;
 - successful analysis composition;
@@ -150,19 +151,29 @@ Phase 6 adds deterministic coverage for:
 - explicit sensitive-field AI override;
 - caller abort before and during processing;
 - hostile and prototype-sensitive nested values;
-- absence of intermediate `AnalysisInput`, provider metadata, processing state, and delivery state.
+- absence of intermediate `AnalysisInput`, provider metadata, processing state, issues, and delivery state.
 
 No renderer, delivery, provider, or public API behavior is asserted in this phase.
 
 ## Rendering tests
 
-- successful result renders HTML;
-- successful result renders plain text;
-- fallback result renders clearly;
-- empty optional sections are omitted appropriately;
-- client HTML-like text is escaped;
-- AI HTML-like text is escaped;
-- hidden output fields are absent.
+The deterministic renderer tests must prove:
+
+- successful results render the same semantic order as HTML and plain text;
+- unavailable `no_input`, `adapter_error`, and `invalid_output` branches render safely;
+- roadmap and confidence remain when optional analysis arrays are empty;
+- empty optional sections and undefined optional details are omitted;
+- facts/inferences remain distinct without rendering provenance keys;
+- normalized source order is preserved;
+- direct source output uses only `includeInOutput === true`;
+- `request.original`, hidden keys/labels/descriptions/values, and policy metadata do not leak;
+- sensitive but output-visible fields still render;
+- client and AI strings escape `&`, `<`, `>`, `"`, and `'` exactly once;
+- multiline text normalizes CRLF/CR safely;
+- structured arrays, objects, booleans, null, numbers, Unicode, `-0`, and prototype-sensitive keys remain readable data;
+- rendering is deterministic, synchronous, I/O-free, and non-mutating.
+
+Tests use manual valid `PreCallResult` fixtures and no network, provider, email, or Markdown parser.
 
 ## Raw attachment tests
 

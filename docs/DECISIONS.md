@@ -230,6 +230,30 @@ Caller mutation during asynchronous AI execution must not cause the preserved re
 
 The internal result contains only `request` and `analysis`. Provider metadata, IDs, timestamps, generic issues, processing state, and delivery state are deferred until a concrete stage needs them.
 
+### D-069 — Default presentation is deterministic
+
+**Status:** Settled
+
+The renderer consumes `PreCallResult` without triggering another AI operation, provider call, or I/O, and returns deterministic HTML and plain text.
+
+### D-070 — Default renderer uses positive output allowlisting
+
+**Status:** Settled
+
+Only normalized fields with resolved `includeInOutput === true` are directly rendered. The authoritative `request.original` source is preserved but never rendered directly.
+
+### D-071 — Client and AI strings are untrusted presentation data
+
+**Status:** Settled
+
+Structural schema validation does not make semantic text HTML-safe. The default renderer escapes all dynamic strings before HTML insertion and safely represents multiline content.
+
+### D-072 — Output privacy does not imply semantic AI taint tracking
+
+**Status:** Settled
+
+`includeInOutput=false` guarantees direct field omission only. If a field is deliberately sent to AI, deterministic rendering cannot prove that free-form analysis contains no information derived from it.
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary

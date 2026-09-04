@@ -159,6 +159,12 @@ no_input / adapter_error / invalid_output
 
 The result contains no intermediate `AnalysisInput`, provider metadata, processing state, or delivery state. No public processing API exists yet.
 
+## Deterministic presentation boundary
+
+The internal `src/presentation/render.ts` module consumes `PreCallResult` and returns `RenderedBrief` with deterministic HTML and plain text. It does not call AI, reinterpret analysis, or perform I/O. Successful and unavailable analysis are rendered through fixed sections; optional empty arrays are omitted, and direct source presentation uses only normalized fields with `includeInOutput === true`.
+
+The renderer escapes AI strings for HTML but cannot provide semantic taint tracking. An output-private field that was deliberately sent to AI may still influence free-form analysis text.
+
 ## Structured output
 
 Precall owns the Zod `AnalysisResult` schema.

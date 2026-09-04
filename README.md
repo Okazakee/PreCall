@@ -29,4 +29,4 @@ bun run build
 bun run check
 ```
 
-The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, fake-adapter analysis execution, and reusable result composition. No real AI provider integration exists yet; continue with the documented default-renderer phase.
+The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, fake-adapter analysis execution, reusable result composition, and deterministic internal HTML/plain-text rendering. No real AI provider, email transport, or raw attachment integration exists yet; continue with the documented raw-attachment milestone.

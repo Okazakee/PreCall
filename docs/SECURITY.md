@@ -204,6 +204,20 @@ The internal `runAnalysis()` boundary accepts only the schema-parsed value as su
 
 Empty AI-visible input produces `no_input` without an adapter call. Caller cancellation is checked before invocation, forwarded unchanged, and rechecked after adapter execution and output parsing; it propagates rather than becoming fallback.
 
+## Default renderer guarantees
+
+The internal default renderer:
+
+- escapes client strings before inserting them into HTML;
+- escapes AI strings before inserting them into HTML;
+- uses positive `includeInOutput === true` allowlisting for direct source presentation;
+- never directly renders `request.original`;
+- omits hidden fields rather than adding redaction placeholders;
+- omits provenance and policy metadata from the brief;
+- renders successful and unavailable results without exposing raw provider errors or malformed output.
+
+`includeInOutput=false` guarantees direct field omission from the default renderer. If the same field is deliberately sent to AI, AI-generated free-form analysis may still be influenced by it. Strong non-disclosure from AI-derived output requires preventing that data from reaching AI; the renderer does not provide semantic taint tracking or redaction.
+
 ## Raw source versus output-safe source view
 
 The authoritative original submission should remain preserved.

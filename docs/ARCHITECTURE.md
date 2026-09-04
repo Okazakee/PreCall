@@ -21,6 +21,10 @@ positive AI projection
 runAnalysis
         ↓
 PreCallResult
+        ↓
+deterministic presentation
+        ├→ RenderedBrief.html
+        └→ RenderedBrief.text
 ```
 
 Analysis failure follows a preserved-request branch:
@@ -30,9 +34,11 @@ valid normalized request
 + AI unavailable
         ↓
 PreCallResult with analysis unavailable
+        ↓
+deterministic fallback presentation
 ```
 
-Rendering and delivery are future stages and remain separate from composition.
+Presentation is complete for the default internal brief. Delivery remains a future stage and consumes rendered output without rerunning analysis.
 
 ## Main responsibility boundaries
 
@@ -88,20 +94,16 @@ Working name:
 
 `PreCallResult`
 
-The structured result is the main reuse boundary.
-
-It must be useful independently of email.
-
-### 5. Presentation
-
 Transforms `PreCallResult` into human-readable output.
 
-MVP presentation:
+Implemented default presentation:
 
-- deterministic HTML email;
-- deterministic plain text.
+- `RenderedBrief` with deterministic HTML;
+- `RenderedBrief` with deterministic plain text;
+- successful and unavailable analysis branches;
+- positive output-field projection from normalized fields.
 
-Presentation does not reinterpret the project or call AI.
+Presentation does not reinterpret the project, call AI, or perform I/O. Email packaging is a future delivery concern.
 
 ### 6. Delivery
 
@@ -208,32 +210,24 @@ interface AIAdapter {
 
 `AIAnalysisRequest` contains only the privacy-filtered `AnalysisInput` and an optional caller `AbortSignal`. The adapter output remains unknown until `AnalysisResultSchema` validates it. `runAnalysis()` makes at most one attempt and returns either a schema-parsed succeeded result or an explicit unavailable code for no input, adapter error, or invalid output. Caller cancellation propagates rather than becoming fallback.
 
-The adapter interface remains narrower than a general LLM SDK. Do not add generic chat, embeddings, audio, sessions, agents, tools, or provider capabilities unless a real future requirement needs them.
-
-## Email architecture
+## Future email architecture
 
 ```text
 PreCallResult
     ↓
 default renderer
     ↓
-RenderedEmail
+RenderedBrief
+    ↓
+Email packaging / raw attachment
     ↓
 EmailTransport
     ↓
 DeliveryOutcome
 ```
 
-The renderer owns:
+The implemented renderer owns only deterministic HTML and plain-text brief presentation. Future email packaging may add subject and raw attachment handling; the transport owns provider-specific sending. The recipient must come from trusted application configuration, not client-submitted fields.
 
-- subject construction;
-- HTML;
-- plain text;
-- raw attachment construction.
-
-The transport owns provider-specific sending.
-
-The recipient comes from trusted application configuration, not client-submitted fields.
 
 ## Runtime direction
 

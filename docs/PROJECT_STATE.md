@@ -6,9 +6,25 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 6 — Reusable core result composition complete; ready for default rendering.**
+**Phase 6 — Reusable core result composition and deterministic default rendering complete.**
 
-The repository now composes a detached normalized request snapshot with the explicit analysis execution outcome into an internal `PreCallResult`. The next phase adds deterministic rendering without changing the request, privacy, or analysis boundaries.
+The repository composes a detached normalized request snapshot with the explicit analysis execution outcome into an internal `PreCallResult`, then renders it as an internal deterministic brief. Email transport and raw attachments remain future stages.
+
+## Deterministic default renderer
+
+Implemented in the internal `src/presentation/render.ts` module:
+
+- `RenderedBrief` contains exactly `{ html: string; text: string }`;
+- `renderPreCallResult()` is synchronous, pure, deterministic, and does not call AI or perform I/O;
+- successful results render a fixed internal brief sequence in HTML and plain text;
+- unavailable analysis renders a safe reason-specific fallback while preserving permitted source presentation;
+- optional empty analysis sections are omitted;
+- direct source presentation positively allowlists only normalized fields with `includeInOutput === true` in normalized order;
+- HTML escapes client and AI strings, including structured source values, before newline handling;
+- the renderer never directly renders `request.original` and does not expose provenance or policy metadata.
+
+`includeInOutput=false` guarantees direct field omission from this renderer. If that field was deliberately sent to AI, free-form AI analysis may still contain derived information; strong non-disclosure requires excluding the field from AI input upstream.
+No email transport exists yet. No attachment exists yet. No real AI provider exists yet.
 
 ## AI-visible input boundary
 
@@ -219,7 +235,7 @@ Settled behavior:
 - recipient from trusted application config;
 - raw source attachment enabled by default;
 - attachment based on output-permitted source data;
-- `includeInOutput=false` excludes data from body and attachment;
+- `includeInOutput=false` excludes data from the direct renderer source projection and future raw attachment; it cannot guarantee semantic omission from free-form AI text when the field was deliberately sent to AI.
 - AI/client strings escaped;
 - AI failure still produces a useful raw inquiry email;
 - attachment failure should not necessarily destroy the email attempt.
@@ -306,7 +322,7 @@ The project explicitly chose not to build these abstractions in v0:
 
 ## Unresolved decisions
 
-These are not blockers for the current intake, projection, schema, analysis execution, and core composition phases:
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, and deterministic rendering phases:
 
 - exact minimum Node version;
 - first real email provider/transport;
@@ -319,4 +335,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Implement the deterministic default renderer for successful and unavailable `PreCallResult` values, before adding email transport or other delivery concerns.
+Implement the permitted raw-submission attachment view, before adding email transport or other delivery concerns.
