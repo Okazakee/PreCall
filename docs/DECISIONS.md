@@ -254,6 +254,30 @@ Structural schema validation does not make semantic text HTML-safe. The default 
 
 `includeInOutput=false` guarantees direct field omission only. If a field is deliberately sent to AI, deterministic rendering cannot prove that free-form analysis contains no information derived from it.
 
+### D-073 — Structured submission attachment uses output allowlisting
+
+**Status:** Settled
+
+The professional-facing JSON artifact uses only normalized fields with `includeInOutput === true`; it never serializes the authoritative original object directly.
+
+### D-074 — Attachment contains field keys and values only
+
+**Status:** Settled
+
+The structured submission artifact excludes labels, descriptions, policy metadata, analysis, and delivery state.
+
+### D-075 — Attachment filename and content type are fixed
+
+**Status:** Settled
+
+The artifact uses `submission.json` and `application/json` to avoid unnecessary filename or MIME configuration and injection complexity.
+
+### D-076 — Attachment creation is separate from delivery configuration
+
+**Status:** Settled
+
+The synchronous artifact builder does not decide recipients, package email content, or consume `attachRawSubmission` configuration. A later email-packaging boundary decides whether to include it.
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary

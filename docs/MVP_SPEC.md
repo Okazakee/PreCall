@@ -162,25 +162,17 @@ MVP includes one built-in email destination abstraction.
 
 Rendering and transport remain separate.
 
-### 10. Attach raw submission by default
+### 10. Output-permitted submission attachment
 
-Email attaches a permitted raw/source representation by default.
+The internal attachment builder creates a deterministic structured submission artifact:
 
-Working setting:
+```text
+filename: submission.json
+content type: application/json
+bytes: UTF-8 JSON
+```
 
-`attachRawSubmission: true`
-
-The attachment is derived from preserved source data, not reconstructed from analysis.
-
-For direct renderer and attachment source projections, fields with `includeInOutput=false` must not appear in:
-
-- HTML brief;
-- plain-text brief;
-- raw email attachment.
-
-This direct omission does not guarantee semantic non-disclosure from free-form AI analysis when the same field was deliberately sent to AI.
-
-A fixed library-controlled filename such as `submission.json` is preferred.
+The payload contains only normalized field keys and values where `includeInOutput === true`, in normalized field order. It contains no labels, descriptions, policy metadata, analysis, or `request.original`. An all-private output produces `{}` with a trailing newline. Email packaging later decides whether to include the artifact; the builder has no attachment configuration.
 
 ### 11. Graceful no-AI fallback
 

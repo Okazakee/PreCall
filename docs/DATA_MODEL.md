@@ -347,7 +347,7 @@ type PreCallResult = {
 
 `processNormalizedSubmission(adapter, normalized, signal?)` synchronously creates a detached request snapshot, derives `AnalysisInput` from that snapshot's normalized fields, runs analysis, and maps execution codes to `analysis.reason`. The request is preserved for success, no-input, adapter-error, and invalid-output outcomes. Caller cancellation propagates and returns no result.
 
-The result contains no `AnalysisInput`, provider/model data, metadata, processing status, issues, delivery state, or renderer output. `RequestSnapshot` owns independent copies of the authoritative source and normalized fields; future rendering must apply `includeInOutput` rather than serializing `request.original` directly.
+The result contains no `AnalysisInput`, provider/model data, metadata, processing status, issues, delivery state, renderer output, or attachment bytes. `RequestSnapshot` owns independent copies of the authoritative source and normalized fields; presentation artifacts apply positive output policy rather than serializing `request.original` directly.
 
 ## 22. Deterministic presentation output
 
@@ -362,9 +362,25 @@ type RenderedBrief = {
 
 `renderPreCallResult()` returns deterministic HTML and plain text with the same fixed section order. It omits empty optional analysis sections and renders direct submitted information only from normalized fields with `includeInOutput === true`. It never serializes `request.original`, provenance arrays, or policy metadata. Client and AI strings are escaped for HTML, and unavailable analysis receives safe fallback wording.
 
-`includeInOutput=false` guarantees direct field omission from the default renderer. It does not guarantee that free-form AI analysis lacks derived information when that field was deliberately sent to AI.
+`includeInOutput=false` guarantees direct field omission from the default renderer and attachment. It does not guarantee that free-form AI analysis lacks derived information when that field was deliberately sent to AI.
 
-## 22. Delivery remains separate
+## 23. Submission attachment
+
+The internal `src/presentation/attachment.ts` module creates a structured output artifact:
+
+```ts
+type SubmissionAttachment = {
+  filename: "submission.json"
+  contentType: "application/json"
+  bytes: Uint8Array
+}
+```
+
+`createSubmissionAttachment(result)` is synchronous, pure, deterministic, and I/O-free. It serializes only output-visible normalized fields as top-level field-key-to-value members in normalized order, with no labels, descriptions, policy metadata, analysis, or `request.original`. The JSON is pretty-printed with two spaces and a trailing newline, then encoded as UTF-8. All-private output produces `{}` plus a trailing newline. Standard JSON serialization represents `-0` as `0`.
+
+The attachment is an output-permitted structured view, not the authoritative source or exact original HTTP bytes. Email packaging decides later whether to include it.
+
+## 24. Delivery remains separate
 
 A delivery result should not become part of the core domain result.
 
@@ -388,7 +404,7 @@ type DeliveryOutcome =
 
 A processing result can therefore survive an email-provider failure.
 
-## 23. Rendered email
+## 25. Rendered email
 
 Conceptually:
 
@@ -401,9 +417,9 @@ type RenderedEmail = {
 }
 ```
 
-The exact attachment byte representation should be chosen for runtime portability during implementation.
+Email packaging remains future work and will consume the independent `RenderedBrief` and `SubmissionAttachment` artifacts.
 
-## 24. Schema philosophy
+## 26. Schema philosophy
 
 Prefer:
 

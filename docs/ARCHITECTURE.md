@@ -21,10 +21,14 @@ positive AI projection
 runAnalysis
         ↓
 PreCallResult
-        ↓
-deterministic presentation
-        ├→ RenderedBrief.html
-        └→ RenderedBrief.text
+        ├→ deterministic brief renderer
+        │       ├→ RenderedBrief.html
+        │       └→ RenderedBrief.text
+        └→ output-permitted submission projection
+                ↓
+             JSON UTF-8 bytes
+                ↓
+        SubmissionAttachment
 ```
 
 Analysis failure follows a preserved-request branch:
@@ -38,7 +42,7 @@ PreCallResult with analysis unavailable
 deterministic fallback presentation
 ```
 
-Presentation is complete for the default internal brief. Delivery remains a future stage and consumes rendered output without rerunning analysis.
+Presentation is complete for the default internal brief and output-permitted submission artifact. Delivery remains a future stage and consumes these artifacts without rerunning analysis.
 
 ## Main responsibility boundaries
 
@@ -105,9 +109,13 @@ Implemented default presentation:
 
 Presentation does not reinterpret the project, call AI, or perform I/O. Email packaging is a future delivery concern.
 
-### 6. Delivery
+### 6. Submission artifact
 
-Sends a rendered artifact somewhere.
+Creates a deterministic `SubmissionAttachment` from output-visible normalized fields. It does not read `request.original`, call AI, package email, or perform I/O.
+
+### 7. Delivery
+
+Sends rendered artifacts somewhere.
 
 MVP destination:
 
@@ -115,7 +123,7 @@ MVP destination:
 
 Delivery does not rerun analysis.
 
-### 7. Storage
+### 8. Storage
 
 Primarily belongs to the consuming application.
 
@@ -214,20 +222,24 @@ interface AIAdapter {
 
 ```text
 PreCallResult
-    ↓
-default renderer
-    ↓
-RenderedBrief
-    ↓
-Email packaging / raw attachment
-    ↓
-EmailTransport
-    ↓
-DeliveryOutcome
+        ├──→ deterministic brief renderer
+        │       ├── HTML
+        │       └── text
+        │
+        └──→ output-permitted submission projection
+                ↓
+             JSON bytes
+                ↓
+        SubmissionAttachment
+                ↓
+        deterministic email package
+                ↓
+        EmailTransport
+        ↓
+    DeliveryOutcome
 ```
 
-The implemented renderer owns only deterministic HTML and plain-text brief presentation. Future email packaging may add subject and raw attachment handling; the transport owns provider-specific sending. The recipient must come from trusted application configuration, not client-submitted fields.
-
+The implemented brief renderer and attachment builder are separate, destination-neutral boundaries. Future email packaging decides whether to include both artifacts; transport owns provider-specific sending. Recipients and headers must come from trusted application configuration.
 
 ## Runtime direction
 

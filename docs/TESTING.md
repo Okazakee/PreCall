@@ -175,15 +175,21 @@ The deterministic renderer tests must prove:
 
 Tests use manual valid `PreCallResult` fixtures and no network, provider, email, or Markdown parser.
 
-## Raw attachment tests
+## Submission attachment tests
 
-- enabled by default;
-- disabling works;
-- attachment JSON is valid;
-- output-hidden fields are excluded;
-- source values are represented faithfully;
-- AI output cannot alter attachment content;
-- fixed/safe filename is used.
+The deterministic attachment tests must prove:
+
+- exact filename, content type, and `Uint8Array` bytes;
+- valid pretty JSON with a trailing newline;
+- UTF-8 round-trip for Unicode values;
+- output-private exclusion and `request.original` bypass prevention;
+- sensitive output-visible and AI-visible/output-private policy independence;
+- normalized field ordering, including array-index-looking keys;
+- nested values, hostile strings, and prototype-sensitive keys;
+- standard `-0` serialization to `0`;
+- all-private output as `{}` without hidden-field leakage;
+- no analysis or policy metadata;
+- deterministic repeated bytes and non-mutation.
 
 ## Email/delivery tests
 

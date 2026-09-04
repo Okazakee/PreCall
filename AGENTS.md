@@ -25,6 +25,7 @@
 - Keep facts, inferences, assumptions, and unknowns distinguishable. Confidence must be explained qualitatively rather than presented as false precision.
 - Treat submissions, field names/values, AI output, and researched content as untrusted data. Untrusted submission or research text must never become trusted instructions or configuration.
 - The default internal renderer must derive direct source presentation only from `request.fields` with positive `includeInOutput === true` allowlisting, never `request.original`; escape all client and AI strings before HTML insertion.
+- Professional-facing submission artifacts must be constructed from normalized fields using positive `includeInOutput === true` allowlisting; never serialize `request.original` directly.
 
 ## Changes and verification
 

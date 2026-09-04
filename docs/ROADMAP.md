@@ -146,17 +146,38 @@ The renderer is internal and does not call AI, perform I/O, or provide email pac
 
 **Milestone:** reusable `PreCallResult` now renders as a deterministic internal HTML/plain-text brief, including safe unavailable fallback output.
 
-## Phase 7 — Raw attachment
+## Phase 7 — Raw submission attachment
+
+**Status: complete**
+
+Implemented:
+
+- internal `SubmissionAttachment` artifact;
+- fixed filename `submission.json`;
+- fixed content type `application/json`;
+- UTF-8 `Uint8Array` bytes;
+- top-level field-key-to-value JSON payload;
+- positive `includeInOutput === true` allowlisting;
+- normalized field order, including array-index-looking keys;
+- nested JSON-like values and safe arbitrary keys;
+- all-private output as `{}` with a trailing newline;
+- standard JSON `-0` behavior (`-0` becomes `0`).
+
+The attachment is an output-permitted structured view derived from normalized fields, not `request.original` or exact original HTTP bytes. It contains no analysis or policy metadata. Email packaging and transport remain separate future stages.
+
+**Milestone:** `PreCallResult` now produces both deterministic brief output and a structured submission artifact.
+
+## Phase 8 — Deterministic email packaging
 
 Implement:
 
-- permitted source view;
-- JSON attachment;
-- default `attachRawSubmission=true`;
-- fixed safe filename;
-- disable override.
+- package `RenderedBrief` and `SubmissionAttachment`;
+- subject and trusted recipient handling;
+- raw attachment inclusion policy.
 
-## Phase 8 — Email transport boundary
+Do not send email in this phase.
+
+## Phase 9 — Email transport boundary
 
 Implement:
 
@@ -169,7 +190,7 @@ Then select one real email provider/transport.
 
 Do not build a universal email framework.
 
-## Phase 9 — Package contract
+## Phase 10 — Package contract
 
 After public API is real:
 
@@ -180,7 +201,7 @@ After public API is real:
 - Bun smoke;
 - Node smoke.
 
-## Phase 10 — Next.js integration proof
+## Phase 11 — Next.js integration proof
 
 Add a small example using:
 
@@ -194,7 +215,7 @@ Goal:
 
 A full demo application is unnecessary.
 
-## Phase 11 — Pi AI spike
+## Phase 12 — Pi AI spike
 
 After the fake-adapter core is green:
 
@@ -212,7 +233,7 @@ Possible outcome B:
 
 Either outcome keeps the core unchanged.
 
-## Phase 12 — First public package preparation
+## Phase 13 — First public package preparation
 
 Before publishing, settle:
 

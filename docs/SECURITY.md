@@ -218,6 +218,22 @@ The internal default renderer:
 
 `includeInOutput=false` guarantees direct field omission from the default renderer. If the same field is deliberately sent to AI, AI-generated free-form analysis may still be influenced by it. Strong non-disclosure from AI-derived output requires preventing that data from reaching AI; the renderer does not provide semantic taint tracking or redaction.
 
+## Submission attachment guarantees
+
+The internal submission attachment:
+
+- uses a positive `includeInOutput === true` allowlist over normalized fields;
+- never serializes `request.original`;
+- contains only field keys and submitted values;
+- omits hidden fields completely rather than redacting them;
+- safely handles arbitrary keys including `__proto__`, `constructor`, and `prototype`;
+- uses the fixed filename `submission.json`;
+- uses the fixed content type `application/json`;
+- produces UTF-8 JSON bytes;
+- contains no analysis, policy metadata, email headers, provider data, or filesystem output.
+
+The artifact is an output-permitted structured view, not exact original HTTP bytes or the authoritative internal source.
+
 ## Raw source versus output-safe source view
 
 The authoritative original submission should remain preserved.
