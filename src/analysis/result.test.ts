@@ -10,71 +10,142 @@ import {
 } from "./result.js";
 
 const representative: AnalysisResult = {
-  summary: "The request has a clear outcome but needs a staged feasibility review.",
+  summary:
+    "A small fitness business wants a mobile app for class booking and membership management, but important operational details remain unresolved.",
   clarity: {
     level: "medium",
-    reason: "The desired outcome is clear, while constraints and ownership are incomplete.",
+    reason:
+      "The desired customer outcome is clear, while systems, rules, ownership, and timing need discovery.",
   },
   facts: [
     {
-      text: "The requester wants a private pilot before a broad launch.",
-      sourceFieldKeys: ["goal", "audience"],
+      text: "The client operates a small fitness business.",
+      sourceFieldKeys: ["business"],
+    },
+    {
+      text: "Customers should be able to book classes and manage memberships.",
+      sourceFieldKeys: ["goal"],
+    },
+    {
+      text: "iPhone and Android are preferred platforms.",
+      sourceFieldKeys: ["platforms"],
+    },
+    {
+      text: "The business already has a website.",
+      sourceFieldKeys: ["website"],
+    },
+    {
+      text: "The stated budget is around €15k.",
+      sourceFieldKeys: ["budget"],
+    },
+    {
+      text: "The client would like to launch fairly soon.",
+      sourceFieldKeys: ["timing"],
     },
   ],
   inferences: [
     {
-      text: "A pilot is likely intended to reduce operational risk.",
+      text: "Existing booking or membership systems may need to integrate with the new app.",
       confidence: "medium",
-      reason: "The staged rollout request implies caution about an untested process.",
-      basedOnFieldKeys: ["goal", "constraints"],
-      needsValidation: "Confirm which risks the pilot is expected to measure.",
+      reason:
+        "The existing website and operational goals suggest that current workflows or systems may already hold relevant data.",
+      basedOnFieldKeys: ["website", "goal"],
+      needsValidation:
+        "Identify the systems currently used for customers, memberships, bookings, and payments.",
+    },
+    {
+      text: "Class availability and capacity rules are likely important to the booking experience.",
+      confidence: "medium",
+      reason:
+        "Class booking normally depends on schedules, capacity, and cancellation or waitlist rules, none of which are specified.",
+      basedOnFieldKeys: ["goal"],
     },
   ],
   assumptions: [
     {
-      text: "The requester can provide a small pilot group.",
-      impact: "high",
+      text: "The existing website may remain in use during the initial mobile-app rollout.",
+      impact: "medium",
     },
   ],
   unknowns: [
     {
-      text: "The available pilot timeline is not specified.",
+      text: "The current booking and membership workflow is not specified.",
+      priority: "critical",
+      whyItMatters: "The current workflow determines scope, migration needs, and integration risk.",
+    },
+    {
+      text: "The meaning of managing memberships is not specified.",
       priority: "important",
-      whyItMatters: "Timeline determines whether the proposed validation sequence is feasible.",
+      whyItMatters:
+        "Membership changes, renewals, payments, and access rules could materially change the solution.",
+    },
+    {
+      text: "The actual launch date and budget flexibility are unknown.",
+      priority: "important",
+      whyItMatters:
+        "Timing and budget constraints affect scope and the feasibility of supporting two mobile platforms.",
     },
   ],
   risks: [
     {
-      text: "A broad launch before pilot evidence could create avoidable rework.",
-      reason: "The request does not yet define a validation gate.",
+      text: "Unknown booking and membership rules could create significant rework.",
+      reason:
+        "The request names the desired outcomes without defining operational rules or current systems.",
       severity: "medium",
-      needsValidation: "Agree on pilot exit criteria before implementation begins.",
+      needsValidation:
+        "Map the current customer, booking, membership, and payment workflows before estimating implementation scope.",
+    },
+    {
+      text: "Supporting two mobile platforms may exceed the initial scope if the budget is fixed.",
+      reason:
+        "The budget and launch timing are stated broadly while platform coverage is already expected.",
+      severity: "medium",
     },
   ],
   discoveryQuestions: [
     {
-      question: "Who owns the pilot decision and its success criteria?",
+      question: "How are bookings and memberships handled today?",
       priority: "critical",
-      reason: "A named owner is needed to turn discovery into an actionable plan.",
+      reason: "The current workflow is the primary input to scope and integration decisions.",
+    },
+    {
+      question: "What does manage memberships mean operationally for staff and customers?",
+      priority: "critical",
+      reason:
+        "The phrase could include very different account, payment, renewal, and access requirements.",
+    },
+    {
+      question: "What date does fairly soon mean, and is the €15k budget a hard ceiling?",
+      priority: "important",
+      reason:
+        "Concrete timing and budget constraints are needed to frame a responsible delivery path.",
     },
   ],
   roadmap: {
-    status: "available",
-    note: "Begin with discovery and keep launch scope bounded.",
+    status: "limited",
+    note: "Begin with discovery and current-system assessment before committing to a two-platform implementation scope.",
     phases: [
       {
-        name: "Pilot definition",
-        purpose: "Agree on scope, owner, timeline, and measurable exit criteria.",
+        name: "Discovery",
+        purpose:
+          "Clarify users, workflows, booking rules, membership operations, constraints, and success criteria.",
       },
       {
-        name: "Pilot review",
-        purpose: "Use observed results to decide whether a broader rollout is justified.",
+        name: "Existing-system assessment",
+        purpose:
+          "Identify current website, booking, membership, and payment systems and their integration boundaries.",
+      },
+      {
+        name: "Scope definition",
+        purpose:
+          "Choose an initial mobile scope that fits validated priorities, timing, and budget constraints.",
       },
     ],
   },
   confidence: {
     level: "medium",
-    reason: "The outcome is understandable, but important operational details remain open.",
+    reason:
+      "The business goal and broad constraints are known, but operational and technical details remain unverified.",
   },
 };
 
