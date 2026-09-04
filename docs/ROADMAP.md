@@ -106,7 +106,7 @@ Tests cover representative, vague-request, minimal-valid, malformed, enum, prove
 
 
 ## Phase 5 — Core processing vertical slice
-**Status: complete for the internal analysis-execution sub-slice**
+**Status: complete**
 
 Implemented:
 
@@ -116,26 +116,15 @@ Implemented:
 - strict `AnalysisResultSchema` validation of unknown adapter output;
 - explicit `succeeded`, `no_input`, `adapter_error`, and `invalid_output` outcomes;
 - caller cancellation propagation without fallback conversion;
-- deterministic fake-adapter tests.
+- detached `RequestSnapshot` preserving authoritative source and normalized fields;
+- `AnalysisState` mapping analysis execution to reusable result semantics;
+- minimal internal `PreCallResult` containing only `request` and `analysis`;
+- `processNormalizedSubmission()` deriving request and AI input from one operation snapshot;
+- deterministic adapter and composition tests.
 
-This sub-slice does not yet construct `PreCallResult`, preserve normalized source in a composed result, render a fallback, or expose a public `process()` API.
+The result composition preserves valid intake when AI enrichment is unavailable. It does not yet render output, deliver email, expose a public `process()` API, or include provider/processing metadata.
 
-Remaining Phase 5 composition:
-
-- compose normalized request data with the analysis execution outcome;
-- construct the reusable core processing result;
-- preserve raw fallback data for later rendering.
-
-Tests:
-
-- successful and vague structured analysis;
-- adapter exception and malformed/strict-invalid output;
-- empty AI input skip;
-- pre-operation and mid-operation abort handling;
-- exact input and signal forwarding;
-- single attempt and output detachment.
-
-**Milestone:** analysis execution works end-to-end without external services; reusable core-result composition remains next.
+**Milestone:** core request and analysis state compose end-to-end without external services.
 
 ## Phase 6 — Default renderer
 

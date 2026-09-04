@@ -275,29 +275,34 @@ Confidence describes the quality/completeness of current understanding, not a ma
 
 ## Processing outcomes
 
-The internal Phase 5 analysis-execution boundary distinguishes:
+The internal composition boundary now combines a valid normalized request with the analysis execution outcome:
 
 ### Successful analysis
 
-Valid adapter output becomes `{ status: "succeeded", result }` only after `AnalysisResultSchema` succeeds.
+Valid adapter output becomes:
+
+```text
+request preserved
+analysis.status = "succeeded"
+```
+
+The analysis value is the trusted result parsed by `AnalysisResultSchema`.
 
 ### Unavailable analysis
 
-The intake remains valid when enrichment is unavailable:
+The request remains a valid reusable `PreCallResult` when enrichment is unavailable:
 
 - empty AI-visible input returns `no_input` without an adapter call;
 - an ordinary adapter failure returns `adapter_error`;
 - malformed or strict-schema-invalid output returns `invalid_output`.
 
-These outcomes do not expose raw provider errors or malformed output and do not retry.
+The unavailable reason is stored on `analysis.reason`. Raw provider errors and malformed output are not retained, and no retry occurs.
 
 ### Caller cancellation
 
-An explicitly aborted operation propagates cancellation before invocation, during adapter execution, and after output parsing. It is not converted into unavailable analysis.
+An explicitly aborted operation propagates cancellation before invocation or during processing. It returns no `PreCallResult` and is not converted into unavailable analysis.
 
-### Failed operation
-
-A core invariant or invalid use may still prevent a trustworthy result from being constructed. That composition layer is not implemented yet.
+The current result composition does not yet render a fallback or deliver email.
 
 ## Email behavior
 

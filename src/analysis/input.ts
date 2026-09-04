@@ -20,18 +20,18 @@ function defineValue(target: object, key: string, value: JsonValue): void {
   });
 }
 
-function cloneValue(value: JsonValue): JsonValue {
+export function cloneJsonValue(value: JsonValue): JsonValue {
   if (value === null || typeof value !== "object") return value;
 
   if (Array.isArray(value)) {
     const result: JsonValue[] = [];
-    for (const item of value) result.push(cloneValue(item));
+    for (const item of value) result.push(cloneJsonValue(item));
     return result;
   }
 
   const result = Object.create(null) as Record<string, JsonValue>;
   for (const key of Object.keys(value)) {
-    defineValue(result, key, cloneValue(value[key] as JsonValue));
+    defineValue(result, key, cloneJsonValue(value[key] as JsonValue));
   }
   return result;
 }
@@ -44,7 +44,7 @@ export function createAnalysisInput(normalized: NormalizedSubmission): AnalysisI
     const projected: AnalysisInputField = {
       key: field.key,
       label: field.label,
-      value: cloneValue(field.value),
+      value: cloneJsonValue(field.value),
     };
     if (field.description !== undefined) projected.description = field.description;
     fields.push(projected);

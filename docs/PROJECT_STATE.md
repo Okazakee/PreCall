@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 5 — Fake-adapter analysis execution complete; ready for core composition.**
+**Phase 6 — Reusable core result composition complete; ready for default rendering.**
 
-The repository now connects `AnalysisInput` to a tiny internal adapter, validates unknown adapter output through `AnalysisResultSchema`, and represents ordinary analysis failure as explicit unavailable state. The next slice composes normalized intake and analysis execution into the reusable core processing result before rendering or delivery.
+The repository now composes a detached normalized request snapshot with the explicit analysis execution outcome into an internal `PreCallResult`. The next phase adds deterministic rendering without changing the request, privacy, or analysis boundaries.
 
 ## AI-visible input boundary
 
@@ -55,7 +55,21 @@ Implemented in the internal `src/analysis/run.ts` module:
 - caller cancellation propagates before, during, and after adapter execution;
 - the adapter is invoked at most once.
 
-No real AI provider, prompt implementation, `PreCallResult`, or public `process()` API exists yet.
+No real AI provider, prompt implementation, or public `process()` API exists yet.
+
+## Core result composition
+
+Implemented in the internal `src/result.ts` module:
+
+- `RequestSnapshot` preserves detached `original` data and normalized fields;
+- `AnalysisState` maps successful analysis or unavailable execution reasons;
+- `PreCallResult` contains exactly `request` and `analysis`;
+- `processNormalizedSubmission()` snapshots before the async adapter boundary;
+- `AnalysisInput` derives from the same snapshot, preserving operation consistency;
+- request source and normalized fields are independently owned;
+- no metadata, processing status, issues, delivery state, provider data, or intermediate `AnalysisInput` enters the result.
+
+The request survives `succeeded`, `no_input`, `adapter_error`, and `invalid_output` outcomes. Caller cancellation propagates without returning a result.
 
 ## Intake foundation
 
@@ -292,9 +306,8 @@ The project explicitly chose not to build these abstractions in v0:
 
 ## Unresolved decisions
 
-These are not blockers for the current intake, projection, schema, and analysis-execution phases:
+These are not blockers for the current intake, projection, schema, analysis execution, and core composition phases:
 
-- exact composition shape for normalized request plus analysis execution;
 - exact minimum Node version;
 - first real email provider/transport;
 - whether Pi passes the future provider spike;
@@ -306,4 +319,4 @@ These are not blockers for the current intake, projection, schema, and analysis-
 
 ## Immediate next action
 
-Implement the smallest composition layer that creates the reusable core processing result from normalized request data plus `runAnalysis()` outcome, before rendering or delivery.
+Implement the deterministic default renderer for successful and unavailable `PreCallResult` values, before adding email transport or other delivery concerns.

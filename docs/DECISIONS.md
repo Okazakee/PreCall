@@ -212,6 +212,24 @@ An all-private analysis input must not call an adapter; it returns `no_input` to
 
 The internal analysis runner invokes the adapter at most once. Retry, repair, and provider fallback require later evidence and are not part of this slice.
 
+### D-066 — Core result preserves request independently of analysis success
+
+**Status:** Settled
+
+AI enrichment is optional; an ordinary AI failure must not erase or invalidate the accepted inquiry. `PreCallResult` preserves the detached request for every non-cancellation analysis outcome.
+
+### D-067 — Result and AI input derive from one operation snapshot
+
+**Status:** Settled
+
+Caller mutation during asynchronous AI execution must not cause the preserved request and the analysis basis to describe different request states.
+
+### D-068 — Keep PreCallResult minimal until later stages require more state
+
+**Status:** Settled
+
+The internal result contains only `request` and `analysis`. Provider metadata, IDs, timestamps, generic issues, processing state, and delivery state are deferred until a concrete stage needs them.
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary

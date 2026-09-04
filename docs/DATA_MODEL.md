@@ -293,7 +293,7 @@ type AnalysisExecutionResult =
 
 Empty AI-visible input skips the adapter. An ordinary adapter error or invalid schema output becomes unavailable analysis without raw error/output details, repair, or retry. Caller cancellation propagates rather than becoming fallback. The adapter is invoked at most once, and the succeeded branch contains only the `AnalysisResultSchema`-parsed value.
 
-This is an internal analysis-stage outcome, not the future `PreCallResult`; source preservation, composition, rendering, and delivery remain separate work.
+This is the internal analysis-stage outcome consumed by the composition layer below. It is not itself the reusable `PreCallResult`.
 
 ## 19. Processing issues
 
@@ -313,62 +313,41 @@ type ProcessingIssue = {
 }
 ```
 
-Keep `code` extensible rather than defining every possible provider failure before implementation.
+These are future composition concerns; the current `PreCallResult` does not include a generic issues array.
 
 ## 20. Processing status
 
-Working conceptual status:
-
-```ts
-type ProcessingStatus =
-  | 'succeeded'
-  | 'fallback'
-  | 'failed'
-```
-
-`fallback` is distinct from `failed`.
-
-Example:
-
-```text
-valid submission
-AI unavailable
-raw fallback created
-```
-
-is a fallback, not a failed intake.
+Future processing composition may distinguish success, fallback, and failed operation. The current `PreCallResult` intentionally does not duplicate `analysis.status` with a top-level processing status.
 
 ## 21. PreCallResult
 
-Working name only; the product name is not settled.
-The future composition layer may wrap `AnalysisExecutionResult` with preserved source and processing metadata as an `AnalysisState`; that composed state is not implemented in this slice.
-
-Conceptually:
+The internal `src/result.ts` module now implements the smallest reusable core result:
 
 ```ts
+type RequestSnapshot = {
+  original: Record<string, JsonValue>
+  fields: NormalizedField[]
+}
+
+type AnalysisState =
+  | {
+      status: "succeeded"
+      result: AnalysisResult
+    }
+  | {
+      status: "unavailable"
+      reason: "no_input" | "adapter_error" | "invalid_output"
+    }
+
 type PreCallResult = {
-  request: {
-    original: unknown
-    fields: SubmissionField[]
-  }
-
+  request: RequestSnapshot
   analysis: AnalysisState
-
-  processing: {
-    status: ProcessingStatus
-    issues: ProcessingIssue[]
-  }
-
-  metadata: {
-    id: string
-    receivedAt: string
-    processedAt: string
-    version: string
-  }
 }
 ```
 
-The exact metadata format may be adjusted during implementation.
+`processNormalizedSubmission(adapter, normalized, signal?)` synchronously creates a detached request snapshot, derives `AnalysisInput` from that snapshot's normalized fields, runs analysis, and maps execution codes to `analysis.reason`. The request is preserved for success, no-input, adapter-error, and invalid-output outcomes. Caller cancellation propagates and returns no result.
+
+The result contains no `AnalysisInput`, provider/model data, metadata, processing status, issues, delivery state, or renderer output. `RequestSnapshot` owns independent copies of the authoritative source and normalized fields; future rendering must apply `includeInOutput` rather than serializing `request.original` directly.
 
 ## 22. Delivery remains separate
 

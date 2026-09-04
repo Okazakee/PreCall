@@ -134,6 +134,26 @@ Using a test-local fake adapter, Phase 5 covers:
 
 Tests are deterministic and use no network, credentials, provider SDK, model call, timing sleep, or production fake-adapter module.
 
+## Core result composition tests
+
+Phase 6 adds deterministic coverage for:
+
+- minimal `{ request, analysis }` result shape;
+- successful analysis composition;
+- vague analysis composition;
+- no-input, adapter-error, and invalid-output unavailable analysis;
+- request snapshot detachment in both directions;
+- snapshot creation before the asynchronous adapter boundary;
+- consistency between preserved request and captured AI basis;
+- private-field preservation versus AI exclusion;
+- `includeInOutput` independence from `sendToAI`;
+- explicit sensitive-field AI override;
+- caller abort before and during processing;
+- hostile and prototype-sensitive nested values;
+- absence of intermediate `AnalysisInput`, provider metadata, processing state, and delivery state.
+
+No renderer, delivery, provider, or public API behavior is asserted in this phase.
+
 ## Rendering tests
 
 - successful result renders HTML;

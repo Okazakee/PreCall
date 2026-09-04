@@ -4,37 +4,35 @@
 
 Keep the system understandable while separating responsibilities that have materially different trust, failure, or reuse characteristics.
 
-The current simplified architecture is:
+The current implemented core pipeline is:
 
 ```text
 untrusted submission
         ↓
 validate + normalize
         ↓
-apply field/privacy rules
+NormalizedSubmission
         ↓
-AI adapter
+detached operation snapshot
+        ├→ reusable request state
         ↓
-validate structured analysis
+positive AI projection
+        ↓
+runAnalysis
         ↓
 PreCallResult
-        ↓
-deterministic renderer
-        ↓
-email transport
 ```
 
-AI failure follows a simpler branch:
+Analysis failure follows a preserved-request branch:
 
 ```text
-AI call or AI validation fails
+valid normalized request
++ AI unavailable
         ↓
 PreCallResult with analysis unavailable
-        ↓
-fallback renderer
-        ↓
-delivery may still proceed
 ```
+
+Rendering and delivery are future stages and remain separate from composition.
 
 ## Main responsibility boundaries
 

@@ -142,6 +142,23 @@ The adapter owns only the future transport boundary: given permitted analysis in
 
 The core owns the distinction between unknown adapter output, schema-validated success, unavailable analysis, and caller cancellation. Structural validation does not establish semantic truth, and semantic strings remain untrusted presentation data.
 
+## Composed core result
+
+`processNormalizedSubmission()` now composes the detached normalized request with `runAnalysis()` into an internal `PreCallResult`. The request snapshot and `AnalysisInput` derive from the same operation snapshot before the adapter await, so caller mutation cannot make the preserved request and analysis basis disagree.
+
+Analysis execution maps as follows:
+
+```text
+succeeded
+→ analysis.status = "succeeded"
+
+no_input / adapter_error / invalid_output
+→ analysis.status = "unavailable"
+→ analysis.reason preserves the machine-readable reason
+```
+
+The result contains no intermediate `AnalysisInput`, provider metadata, processing state, or delivery state. No public processing API exists yet.
+
 ## Structured output
 
 Precall owns the Zod `AnalysisResult` schema.
