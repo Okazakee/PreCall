@@ -20,6 +20,7 @@
 - Construct AI-visible data only from normalized fields by positive resolved `sendToAI` allowlisting; never filter the authoritative original object.
 - AI-generated analysis must not enter trusted processing state unless it satisfies the canonical `AnalysisResultSchema`.
 - Treat AI as optional enrichment. Preserve useful raw intake and explicit uncertainty when enrichment is unavailable; never manufacture certainty.
+- The internal analysis runner invokes the adapter at most once; ordinary AI failure becomes an unavailable outcome, while caller cancellation propagates.
 - Keep facts, inferences, assumptions, and unknowns distinguishable. Confidence must be explained qualitatively rather than presented as false precision.
 - Treat submissions, field names/values, AI output, and researched content as untrusted data. Untrusted submission or research text must never become trusted instructions or configuration.
 

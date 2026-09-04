@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 4 — Analysis schema complete; ready for the fake-adapter processing slice.**
+**Phase 5 — Fake-adapter analysis execution complete; ready for core composition.**
 
-The repository now defines and validates the strict structured `AnalysisResult` contract. The next phase connects `AnalysisInput` to a tiny fake adapter and schema-validated processing fallback.
+The repository now connects `AnalysisInput` to a tiny internal adapter, validates unknown adapter output through `AnalysisResultSchema`, and represents ordinary analysis failure as explicit unavailable state. The next slice composes normalized intake and analysis execution into the reusable core processing result before rendering or delivery.
 
 ## AI-visible input boundary
 
@@ -23,7 +23,7 @@ Implemented in the internal `src/analysis/input.ts` module:
 - An all-private submission produces `{ fields: [] }` without error.
 - Permitted hostile-looking client text is preserved exactly as data; no prompt-injection sanitization is performed.
 
-No AI adapter, provider SDK, prompt, model call, or processing pipeline exists yet. The package root remains intentionally empty.
+The internal adapter and analysis execution boundary are implemented without a provider SDK, prompt, or model call. The package root remains intentionally empty.
 
 ## AnalysisResult schema
 
@@ -39,7 +39,23 @@ Implemented in the internal `src/analysis/result.ts` module:
 - Zod 4 JSON Schema conversion verified;
 - no semantic truth or referenced-field existence checks in this structural phase.
 
-AI-generated output remains untrusted until it satisfies `AnalysisResultSchema`. The schema and types remain internal; no adapter or model call consumes them yet.
+AI-generated output remains untrusted until it satisfies `AnalysisResultSchema`. The schema and types remain internal; `runAnalysis()` is the only current consumer and returns only schema-parsed results as succeeded.
+
+## Analysis execution
+
+Implemented in the internal `src/analysis/run.ts` module:
+
+- `AIAdapter.generateAnalysis()` receives only `AIAnalysisRequest`;
+- `AIAnalysisRequest` contains `AnalysisInput` and an optional caller `AbortSignal`;
+- adapter output is `unknown` until `AnalysisResultSchema.safeParse()` succeeds;
+- a successful parse returns `{ status: "succeeded", result }` with the parsed result;
+- empty AI-visible input returns `{ status: "unavailable", code: "no_input" }` without calling the adapter;
+- ordinary adapter failures return `adapter_error` without exposing exception details;
+- invalid or strict-schema-rejected output returns `invalid_output` without raw output or retry;
+- caller cancellation propagates before, during, and after adapter execution;
+- the adapter is invoked at most once.
+
+No real AI provider, prompt implementation, `PreCallResult`, or public `process()` API exists yet.
 
 ## Intake foundation
 
@@ -276,9 +292,9 @@ The project explicitly chose not to build these abstractions in v0:
 
 ## Unresolved decisions
 
-These are not blockers for the current intake, projection, and schema phases:
+These are not blockers for the current intake, projection, schema, and analysis-execution phases:
 
-- exact processing and fallback behavior;
+- exact composition shape for normalized request plus analysis execution;
 - exact minimum Node version;
 - first real email provider/transport;
 - whether Pi passes the future provider spike;
@@ -290,4 +306,4 @@ These are not blockers for the current intake, projection, and schema phases:
 
 ## Immediate next action
 
-Implement the tiny internal AIAdapter contract and the first fake-adapter processing vertical slice that connects AnalysisInput → validated AnalysisResult → fallback behavior.
+Implement the smallest composition layer that creates the reusable core processing result from normalized request data plus `runAnalysis()` outcome, before rendering or delivery.

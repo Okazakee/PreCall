@@ -182,6 +182,35 @@ Zod is the single source of truth for runtime validation, inferred TypeScript ty
 **Status:** Settled
 
 Facts, inferences, assumptions, unknowns, risks, and discovery questions may each be empty. The schema must not force invented content; roadmap phases remain the sole required non-empty analysis list.
+### D-061 — Adapter output is untrusted
+
+**Status:** Settled
+
+`AIAdapter.generateAnalysis()` returns `unknown`; only `AnalysisResultSchema`-parsed output may enter the succeeded execution branch.
+
+### D-062 — Ordinary AI failure becomes unavailable analysis
+
+**Status:** Settled
+
+Adapter exceptions and invalid structured output must degrade to explicit unavailable analysis without exposing raw provider details or output.
+
+### D-063 — Caller cancellation is not fallback
+
+**Status:** Settled
+
+An `AbortSignal` is forwarded unchanged and caller cancellation propagates before, during, and after adapter execution rather than becoming an unavailable outcome.
+
+### D-064 — Empty AI input skips execution
+
+**Status:** Settled
+
+An all-private analysis input must not call an adapter; it returns `no_input` to preserve privacy and avoid unnecessary cost.
+
+### D-065 — Analysis execution makes one attempt
+
+**Status:** Settled
+
+The internal analysis runner invokes the adapter at most once. Retry, repair, and provider fallback require later evidence and are not part of this slice.
 
 ## Architecture
 

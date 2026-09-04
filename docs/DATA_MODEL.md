@@ -262,27 +262,40 @@ type AnalysisConfidence = {
 
 `AnalysisResultSchema` is also the source for inferred TypeScript types and converts to provider-facing JSON Schema through Zod 4. It does not validate semantic truth, referenced-key existence, or overall analysis quality.
 
-## 17. Analysis state
+## 17. AI analysis request
 
-MVP simplification:
+The internal `src/analysis/run.ts` module passes only the privacy-filtered analysis view to an adapter:
 
 ```ts
-type AnalysisState =
+type AIAnalysisRequest = {
+  input: AnalysisInput
+  signal?: AbortSignal
+}
+```
+
+No normalized submission, `original`, field-policy metadata, prompt, provider, model, tools, or usage data is part of this request. `AIAdapter.generateAnalysis()` returns `Promise<unknown>` because adapter/provider output is untrusted.
+
+## 18. Analysis execution result
+
+`runAnalysis(adapter, input, signal?)` is the current internal execution boundary:
+
+```ts
+type AnalysisExecutionResult =
   | {
-      status: 'succeeded'
+      status: "succeeded"
       result: AnalysisResult
     }
   | {
-      status: 'unavailable'
-      issues: ProcessingIssue[]
+      status: "unavailable"
+      code: "no_input" | "adapter_error" | "invalid_output"
     }
 ```
 
-A generic partial-result framework is deferred.
+Empty AI-visible input skips the adapter. An ordinary adapter error or invalid schema output becomes unavailable analysis without raw error/output details, repair, or retry. Caller cancellation propagates rather than becoming fallback. The adapter is invoked at most once, and the succeeded branch contains only the `AnalysisResultSchema`-parsed value.
 
-If the model output fails the required schema, analysis becomes unavailable.
+This is an internal analysis-stage outcome, not the future `PreCallResult`; source preservation, composition, rendering, and delivery remain separate work.
 
-## 18. Processing issues
+## 19. Processing issues
 
 Conceptually:
 
@@ -302,7 +315,7 @@ type ProcessingIssue = {
 
 Keep `code` extensible rather than defining every possible provider failure before implementation.
 
-## 19. Processing status
+## 20. Processing status
 
 Working conceptual status:
 
@@ -325,9 +338,10 @@ raw fallback created
 
 is a fallback, not a failed intake.
 
-## 20. PreCallResult
+## 21. PreCallResult
 
 Working name only; the product name is not settled.
+The future composition layer may wrap `AnalysisExecutionResult` with preserved source and processing metadata as an `AnalysisState`; that composed state is not implemented in this slice.
 
 Conceptually:
 
@@ -356,7 +370,7 @@ type PreCallResult = {
 
 The exact metadata format may be adjusted during implementation.
 
-## 21. Delivery remains separate
+## 22. Delivery remains separate
 
 A delivery result should not become part of the core domain result.
 
@@ -380,7 +394,7 @@ type DeliveryOutcome =
 
 A processing result can therefore survive an email-provider failure.
 
-## 22. Rendered email
+## 23. Rendered email
 
 Conceptually:
 
@@ -395,7 +409,7 @@ type RenderedEmail = {
 
 The exact attachment byte representation should be chosen for runtime portability during implementation.
 
-## 23. Schema philosophy
+## 24. Schema philosophy
 
 Prefer:
 

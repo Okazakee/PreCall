@@ -63,7 +63,7 @@ type AnalysisInput = {
 
 Projected values are deeply detached from normalized intake. An all-private submission produces `{ fields: [] }`. Permitted hostile-looking client text is preserved exactly as untrusted data; this boundary does not solve prompt injection.
 
-The projection remains internal. No AI adapter, provider, prompt, model call, or structured analysis output is implemented yet.
+The projection remains internal. The processing boundary now consumes it through a fake-adapter-compatible internal contract; no provider SDK, prompt, or model call exists yet.
 
 ## Implemented structured result contract
 
@@ -84,81 +84,63 @@ confidence
 
 The schema keeps facts and inferences structurally distinct, requires non-empty provenance for both, permits empty analysis arrays, requires at least one roadmap phase, and supports `insufficient_information` for roadmap and confidence. Unknown properties and unsupported provider metadata are rejected. Semantic strings remain untrusted content even after structural validation.
 
-Zod remains the source of truth for runtime validation, inferred TypeScript types, and provider-facing JSON Schema conversion. A future adapter will conceptually receive `AnalysisInput` plus the generated `AnalysisResult` JSON Schema; no adapter or model call exists yet.
+Zod remains the source of truth for runtime validation, inferred types, and provider-facing JSON Schema conversion. The internal execution layer receives `AnalysisInput`, while future concrete adapters may use the generated schema internally; no provider or model call exists yet.
 
-## AIAdapter boundary
+## Implemented AIAdapter boundary
 
-The core owns a narrow adapter contract.
-
-Conceptually:
+The internal `AIAdapter` in `src/analysis/run.ts` is deliberately semantic:
 
 ```ts
 interface AIAdapter {
-  analyze(request: AIAnalysisRequest): Promise<AIAnalysisResponse>
+  generateAnalysis(request: AIAnalysisRequest): Promise<unknown>
+}
+
+interface AIAnalysisRequest {
+  input: AnalysisInput
+  signal?: AbortSignal
 }
 ```
 
-The adapter receives only the already-filtered analysis input.
+The adapter receives only the already-filtered `AnalysisInput` and an optional caller signal. It never receives the normalized submission, authoritative `original`, field-policy metadata, prompt configuration, provider, model, tools, schema metadata, or usage data.
 
-It must not receive the complete raw submission merely for convenience.
+`Promise<unknown>` is intentional. Adapter output remains untrusted until `AnalysisResultSchema.safeParse()` succeeds.
 
-The response should keep model output untrusted:
+`runAnalysis()` performs one attempt:
 
-```ts
-type AIAnalysisResponse = {
-  output: unknown
-  provider?: string
-  model?: string
-  usage?: {
-    inputTokens?: number
-    outputTokens?: number
-  }
-}
+```text
+AnalysisInput
+→ AIAdapter.generateAnalysis()
+→ unknown
+→ AnalysisResultSchema.safeParse()
+→ AnalysisExecutionResult
 ```
 
-Exact metadata remains implementation-time detail.
+Its ordinary outcomes are:
 
-## What the adapter owns
+- empty `input.fields` skips the adapter as `no_input`;
+- an ordinary adapter exception becomes `adapter_error` without exposing its details;
+- malformed or strict-schema-invalid output becomes `invalid_output` without repair or retry;
+- a successful schema parse becomes `succeeded` with the parsed result;
+- caller cancellation propagates before invocation, during adapter execution, and after output parsing rather than becoming fallback.
 
-The adapter should own provider transport concerns such as:
+No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists in this slice. The adapter is invoked at most once, and accepted output is the schema-parsed value rather than the adapter-owned object.
 
-- sending the request;
-- mapping abort signals;
-- translating basic provider errors;
-- returning model/provider/usage information where available.
+## Adapter ownership
 
-## What the adapter does not own
-
-Do not move product behavior into the adapter.
-
-It should not own:
+The adapter owns only the future transport boundary: given permitted analysis input, it may attempt to produce the structured analysis output. It does not own:
 
 - field privacy;
 - prompt-injection policy;
 - fact/inference rules;
-- raw fallback;
+- fallback result construction;
 - email;
 - rendering;
 - business logic;
 - multi-provider fallback graphs.
 
-## Errors
+## Failure and trust boundary
 
-A small normalized error vocabulary is sufficient.
-
-Possible conceptual codes:
-
-- timeout;
-- rate_limit;
-- authentication;
-- unavailable;
-- invalid_response;
-- aborted;
-- unknown.
-
-Expected provider failures become analysis fallback state.
-
-Invalid library use or broken core invariants may throw.
+The core owns the distinction between unknown adapter output, schema-validated success, unavailable analysis, and caller cancellation. Structural validation does not establish semantic truth, and semantic strings remain untrusted presentation data.
 
 ## Structured output
 

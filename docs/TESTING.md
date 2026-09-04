@@ -119,14 +119,20 @@ Phase 4 requires deterministic coverage for:
 
 ## Processing pipeline tests
 
-Using a fake adapter:
+Using a test-local fake adapter, Phase 5 covers:
 
-- valid AI output → successful `PreCallResult`;
-- adapter throws → fallback result;
-- adapter returns malformed data → fallback result;
-- abort behavior is handled predictably;
-- original submission remains unchanged;
-- hidden fields never reach fake adapter.
+- valid representative output → schema-parsed `succeeded` result;
+- vague discovery-first output → successful analysis without extra semantic requirements;
+- adapter throws → `adapter_error` without raw details;
+- malformed or strict-extra-field output → `invalid_output`;
+- empty AI-visible input → `no_input` with zero adapter calls;
+- pre-operation, mid-adapter, and during-parse abort propagation;
+- exact `AnalysisInput` and `AbortSignal` forwarding;
+- at-most-one adapter attempt with no retry;
+- accepted output detached from adapter-owned nested objects;
+- malicious semantic strings remain text when structure is valid.
+
+Tests are deterministic and use no network, credentials, provider SDK, model call, timing sleep, or production fake-adapter module.
 
 ## Rendering tests
 

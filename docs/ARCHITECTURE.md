@@ -200,19 +200,17 @@ Client fields must not be able to alter:
 
 ## AI boundary
 
-The core owns a small AI interface.
-
-Conceptually:
+The core owns a small internal AI interface:
 
 ```ts
 interface AIAdapter {
-  analyze(request: AIAnalysisRequest): Promise<AIAnalysisResponse>
+  generateAnalysis(request: AIAnalysisRequest): Promise<unknown>
 }
 ```
 
-The interface should remain narrower than a general LLM SDK.
+`AIAnalysisRequest` contains only the privacy-filtered `AnalysisInput` and an optional caller `AbortSignal`. The adapter output remains unknown until `AnalysisResultSchema` validates it. `runAnalysis()` makes at most one attempt and returns either a schema-parsed succeeded result or an explicit unavailable code for no input, adapter error, or invalid output. Caller cancellation propagates rather than becoming fallback.
 
-Do not add generic chat, embeddings, audio, sessions, agents, tools, or provider capabilities unless a real future requirement needs them.
+The adapter interface remains narrower than a general LLM SDK. Do not add generic chat, embeddings, audio, sessions, agents, tools, or provider capabilities unless a real future requirement needs them.
 
 ## Email architecture
 

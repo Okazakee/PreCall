@@ -194,6 +194,10 @@ The projected JSON-like values are detached from authoritative intake, preventin
 
 AI-generated structured output remains untrusted until it passes the strict internal `AnalysisResultSchema`. The schema rejects unknown structure, malformed enums, missing provenance, whitespace-only semantic strings, and unsupported provider metadata. This establishes structural validity, not factual truth or prompt-injection immunity.
 
+The internal `runAnalysis()` boundary accepts only the schema-parsed value as succeeded. Malformed output becomes `invalid_output` without exposing raw output, repair, or retry. Ordinary adapter exceptions become `adapter_error` without exposing provider error details.
+
+Empty AI-visible input produces `no_input` without an adapter call. Caller cancellation is checked before invocation, forwarded unchanged, and rechecked after adapter execution and output parsing; it propagates rather than becoming fallback.
+
 ## Raw source versus output-safe source view
 
 The authoritative original submission should remain preserved.
@@ -271,11 +275,14 @@ Do not build a general quota platform into the core.
 
 ## Failure behavior
 
-Expected AI failure should degrade to raw fallback.
+At the current analysis-execution boundary:
 
-Security controls should not turn a valid inquiry into a fabricated "successful analysis."
+- expected adapter failure degrades to `adapter_error`;
+- unusable adapter output degrades to `invalid_output`;
+- empty AI-visible input returns `no_input` without a model call;
+- caller cancellation remains cancellation and is not converted to unavailable analysis.
 
-If a core invariant cannot be maintained, return a real operation failure instead of hiding the problem.
+The adapter is attempted at most once. No raw provider exception, malformed output, or provider metadata enters the execution result. Later composition should degrade the complete intake to raw fallback without fabricating successful analysis.
 
 ## Logging guidance
 

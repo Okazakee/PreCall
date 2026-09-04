@@ -1,6 +1,6 @@
 # PreCall
 
-PreCall is an early-stage service-intake library intended for open-source development. The intake foundation is implemented; AI analysis, delivery, and other later phases are not. The permanent name, package identity, and license remain unsettled.
+PreCall is an early-stage service-intake library intended for open-source development. The intake foundation, privacy-filtered AI input, strict analysis schema, and internal fake-adapter analysis execution are implemented; delivery and later phases are not. The permanent name, package identity, and license remain unsettled.
 
 ## Documentation
 
@@ -29,4 +29,4 @@ bun run build
 bun run check
 ```
 
-The repository has completed bootstrap and intake normalization; continue with the documented next phase rather than assuming AI processing is available.
+The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, and internal fake-adapter analysis execution. No real AI provider integration exists yet; continue with the documented next composition phase.

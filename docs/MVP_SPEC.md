@@ -135,7 +135,7 @@ The analysis should produce:
 
 Top-level analysis arrays may be empty. Unknown properties, unsupported enums, null optionals, missing required fields, and whitespace-only semantic text are rejected. Zod is also the source for inferred types and JSON Schema conversion.
 
-The schema validates structure and provenance shape, not semantic truth or referenced-field existence. No AI output is processed in this phase; the later processing slice will decide how invalid output becomes unavailable analysis or fallback.
+The internal `runAnalysis()` boundary accepts only schema-parsed output as succeeded. Malformed output becomes explicit unavailable analysis; it is not repaired, partially returned, or retried.
 
 ### 7. Produce a reusable result
 
@@ -275,28 +275,29 @@ Confidence describes the quality/completeness of current understanding, not a ma
 
 ## Processing outcomes
 
-MVP should distinguish:
+The internal Phase 5 analysis-execution boundary distinguishes:
 
 ### Successful analysis
 
-Valid analysis was produced.
+Valid adapter output becomes `{ status: "succeeded", result }` only after `AnalysisResultSchema` succeeds.
 
-### Fallback
+### Unavailable analysis
 
-The intake succeeded but AI enrichment was unavailable.
+The intake remains valid when enrichment is unavailable:
+
+- empty AI-visible input returns `no_input` without an adapter call;
+- an ordinary adapter failure returns `adapter_error`;
+- malformed or strict-schema-invalid output returns `invalid_output`.
+
+These outcomes do not expose raw provider errors or malformed output and do not retry.
+
+### Caller cancellation
+
+An explicitly aborted operation propagates cancellation before invocation, during adapter execution, and after output parsing. It is not converted into unavailable analysis.
 
 ### Failed operation
 
-A core invariant or invalid use prevented a trustworthy result from being constructed.
-
-Examples:
-
-- invalid library configuration;
-- invalid submission;
-- broken adapter contract;
-- impossible internal state.
-
-Expected external AI failures should normally become fallback state rather than exceptions.
+A core invariant or invalid use may still prevent a trustworthy result from being constructed. That composition layer is not implemented yet.
 
 ## Email behavior
 
