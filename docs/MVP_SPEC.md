@@ -120,13 +120,22 @@ The analysis should produce:
 
 ### 6. Validate AI output
 
-AI output is untrusted.
+`AnalysisResultSchema` is the canonical strict Zod 4 schema for the structured result. It requires:
 
-It must pass the project's runtime schema before becoming a trusted `AnalysisResult`.
+- non-blank `summary`;
+- qualitative `clarity` with a required reason;
+- facts with non-empty unique source-field provenance;
+- inferences with qualitative confidence, reasoning, and non-empty unique source-field provenance;
+- assumptions;
+- prioritized unknowns with required reasons;
+- risks with required reasons;
+- prioritized discovery questions with required reasons;
+- a roadmap with a valid status and at least one phase;
+- qualitative confidence with a required reason.
 
-MVP does not attempt arbitrary partial recovery.
+Top-level analysis arrays may be empty. Unknown properties, unsupported enums, null optionals, missing required fields, and whitespace-only semantic text are rejected. Zod is also the source for inferred types and JSON Schema conversion.
 
-If required structure is invalid, analysis becomes unavailable and the raw fallback path is used.
+The schema validates structure and provenance shape, not semantic truth or referenced-field existence. No AI output is processed in this phase; the later processing slice will decide how invalid output becomes unavailable analysis or fallback.
 
 ### 7. Produce a reusable result
 

@@ -65,6 +65,27 @@ Projected values are deeply detached from normalized intake. An all-private subm
 
 The projection remains internal. No AI adapter, provider, prompt, model call, or structured analysis output is implemented yet.
 
+## Implemented structured result contract
+
+`AnalysisResultSchema` in the internal `src/analysis/result.ts` module is the canonical Zod 4 contract for structured analysis output. It defines the strict root sections:
+
+```text
+summary
+clarity
+facts
+inferences
+assumptions
+unknowns
+risks
+discoveryQuestions
+roadmap
+confidence
+```
+
+The schema keeps facts and inferences structurally distinct, requires non-empty provenance for both, permits empty analysis arrays, requires at least one roadmap phase, and supports `insufficient_information` for roadmap and confidence. Unknown properties and unsupported provider metadata are rejected. Semantic strings remain untrusted content even after structural validation.
+
+Zod remains the source of truth for runtime validation, inferred TypeScript types, and provider-facing JSON Schema conversion. A future adapter will conceptually receive `AnalysisInput` plus the generated `AnalysisResult` JSON Schema; no adapter or model call exists yet.
+
 ## AIAdapter boundary
 
 The core owns a narrow adapter contract.

@@ -104,12 +104,18 @@ Do not claim this test proves that no LLM can ever be manipulated.
 
 ## Analysis-result tests
 
-- representative golden fitness inquiry validates;
-- vague-request result validates;
-- invalid fact provenance fails where required;
-- malformed enums fail;
-- malformed structure fails;
-- missing required analysis structure fails.
+Phase 4 requires deterministic coverage for:
+
+- representative golden fitness result;
+- vague-request discovery-first result;
+- minimal structurally valid result with empty analysis arrays;
+- invalid fact and inference provenance;
+- malformed nested structure;
+- invalid enums;
+- whitespace-only semantic strings;
+- strict unknown-property rejection;
+- roadmap phase minimum;
+- Zod 4 JSON Schema conversion and focused structural assertions.
 
 ## Processing pipeline tests
 

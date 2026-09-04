@@ -89,22 +89,25 @@ Tests prove hidden fields and metadata cannot cross the boundary, `original` is 
 
 ## Phase 4 — Analysis schema
 
-Implement Zod schemas for:
+**Status: complete**
 
-- summary;
-- clarity;
-- facts;
-- inferences;
-- assumptions;
-- unknowns;
-- risks;
-- discovery questions;
-- roadmap;
-- confidence.
+Implemented:
 
-Use representative and vague golden fixtures.
+- strict `AnalysisResultSchema` and inferred types;
+- strict subordinate schemas for all golden-brief sections;
+- qualitative enums for clarity, confidence, priorities, impact, severity, and roadmap status;
+- non-blank semantic strings preserving accepted text;
+- required non-empty unique fact and inference provenance;
+- roadmap phase minimum;
+- strict unknown-property rejection;
+- Zod 4 JSON Schema conversion compatibility.
+
+Tests cover representative, vague-request, minimal-valid, malformed, enum, provenance, whitespace, strictness, and JSON Schema cases.
+
 
 ## Phase 5 — Core processing vertical slice
+**Status: next**
+
 
 Implement:
 

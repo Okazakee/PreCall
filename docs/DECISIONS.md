@@ -159,6 +159,30 @@ The configurable defaults are 100 fields, 128 key code points, 256 label code po
 
 Only normalized fields whose resolved `sendToAI` policy is `true` are copied into internal AI-visible input. Hidden fields are absent rather than redacted, and the authoritative original source is never filtered directly.
 
+### D-057 — Facts require source-field provenance
+
+**Status:** Settled
+
+Every fact must identify at least one non-empty unique source field key. The schema guarantees provenance shape without claiming that the referenced key exists or proves the statement.
+
+### D-058 — Inferences require reasoning and source basis
+
+**Status:** Settled
+
+Every inference requires qualitative confidence, a non-empty reason, and at least one non-empty unique source field key. Inference remains structurally distinct from client-stated fact.
+
+### D-059 — AnalysisResult uses strict provider-neutral Zod schemas
+
+**Status:** Settled
+
+Zod is the single source of truth for runtime validation, inferred TypeScript types, and provider-facing JSON Schema conversion. The result schema contains no provider metadata or processing state.
+
+### D-060 — Analysis arrays may be empty
+
+**Status:** Settled
+
+Facts, inferences, assumptions, unknowns, risks, and discovery questions may each be empty. The schema must not force invented content; roadmap phases remain the sole required non-empty analysis list.
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary

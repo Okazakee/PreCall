@@ -190,6 +190,10 @@ Only normalized fields may cross this boundary. The projection never reads or fi
 
 The projected JSON-like values are detached from authoritative intake, preventing mutation in a future adapter from changing normalized fields or the preserved source snapshot. Permitted prompt-like text remains unchanged as untrusted data. This projection is data authorization only and does not claim model-level prompt-injection resistance.
 
+## Structured AI output validation
+
+AI-generated structured output remains untrusted until it passes the strict internal `AnalysisResultSchema`. The schema rejects unknown structure, malformed enums, missing provenance, whitespace-only semantic strings, and unsupported provider metadata. This establishes structural validity, not factual truth or prompt-injection immunity.
+
 ## Raw source versus output-safe source view
 
 The authoritative original submission should remain preserved.

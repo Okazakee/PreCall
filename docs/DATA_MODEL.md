@@ -129,40 +129,37 @@ Each permitted value is deeply detached into a new JSON-like graph. The projecti
 
 ## 7. Analysis result
 
-Working conceptual shape:
+The internal `AnalysisResultSchema` is the canonical strict Zod 4 schema for a complete structured pre-call brief:
 
 ```ts
 type AnalysisResult = {
   summary: string
-
-  clarity: {
-    level: 'high' | 'medium' | 'low'
-    reason: string
-  }
-
+  clarity: RequestClarity
   facts: Fact[]
   inferences: Inference[]
   assumptions: Assumption[]
   unknowns: Unknown[]
   risks: Risk[]
   discoveryQuestions: DiscoveryQuestion[]
-
   roadmap: Roadmap
-
-  confidence: {
-    level: 'high' | 'medium' | 'low' | 'insufficient_information'
-    reason: string
-  }
+  confidence: AnalysisConfidence
 }
 ```
 
-Zod should be the source of truth for the runtime schema and TypeScript type.
+The root and every nested object reject unknown properties. Required semantic strings reject empty or whitespace-only values while preserving accepted text exactly.
 
-## 8. Facts
+## 8. Request clarity
 
-Facts should preserve traceability to client input.
+```ts
+type RequestClarity = {
+  level: "high" | "medium" | "low"
+  reason: string
+}
+```
 
-Conceptually:
+`reason` is required and non-blank. No numeric score or additional clarity state is accepted.
+
+## 9. Facts
 
 ```ts
 type Fact = {
@@ -171,87 +168,71 @@ type Fact = {
 }
 ```
 
-A client-stated fact should not exist without a source basis.
+`text` is required and non-blank. `sourceFieldKeys` is required, contains at least one non-blank key, and rejects duplicate raw strings. The schema validates provenance shape, not whether a referenced key exists in the current `AnalysisInput`.
 
-This does not guarantee semantic truth, but it forces the output to maintain provenance rather than producing unsupported fact-like prose.
-
-## 9. Inferences
-
-Conceptually:
+## 10. Inferences
 
 ```ts
 type Inference = {
   text: string
-  confidence: 'high' | 'medium' | 'low'
+  confidence: "high" | "medium" | "low"
   reason: string
-  basedOnFieldKeys?: string[]
+  basedOnFieldKeys: string[]
   needsValidation?: string
 }
 ```
 
-Inferences must never be rendered as client-stated facts.
+`text`, `reason`, and `basedOnFieldKeys` are required. Inference provenance contains at least one non-blank unique raw key. `needsValidation` is optional and non-blank when present.
 
-## 10. Assumptions
-
-Keep assumptions comparatively simple:
+## 11. Assumptions
 
 ```ts
 type Assumption = {
   text: string
-  impact?: 'high' | 'medium' | 'low'
+  impact?: "high" | "medium" | "low"
 }
 ```
 
-Do not over-model every section.
+`text` is required and non-blank. `impact` is optional.
 
-## 11. Unknowns
-
-Conceptually:
+## 12. Unknowns
 
 ```ts
 type Unknown = {
   text: string
-  priority: 'critical' | 'important' | 'minor'
-  whyItMatters?: string
+  priority: "critical" | "important" | "minor"
+  whyItMatters: string
 }
 ```
 
-Priority is important because not all missing information deserves equal attention.
-
-## 12. Discovery questions
-
-Conceptually:
-
-```ts
-type DiscoveryQuestion = {
-  question: string
-  priority: 'critical' | 'important' | 'secondary'
-  reason?: string
-}
-```
-
-Avoid fragile permanent references to array indexes in v0.
-
-If cross-references later become genuinely valuable, introduce stable IDs then.
+All three properties are required. `text` and `whyItMatters` are non-blank.
 
 ## 13. Risks
-
-Conceptually:
 
 ```ts
 type Risk = {
   text: string
-  severity?: 'high' | 'medium' | 'low'
   reason: string
+  severity?: "high" | "medium" | "low"
   needsValidation?: string
 }
 ```
 
-The reason should normally be required so the model cannot fill the section with generic risk labels.
+`text` and `reason` are required and non-blank. `severity` and `needsValidation` are optional and validated when present.
 
-## 14. Roadmap
+## 14. Discovery questions
 
-Conceptually:
+```ts
+type DiscoveryQuestion = {
+  question: string
+  priority: "critical" | "important" | "secondary"
+  reason: string
+}
+```
+
+All three properties are required and non-blank where textual.
+
+## 15. Roadmap
 
 ```ts
 type RoadmapPhase = {
@@ -260,22 +241,28 @@ type RoadmapPhase = {
 }
 
 type Roadmap = {
-  status: 'available' | 'limited' | 'insufficient_information'
+  status: "available" | "limited" | "insufficient_information"
   note?: string
   phases: RoadmapPhase[]
 }
 ```
 
-A vague request may validly return only:
+`phases` requires at least one strict phase with non-blank `name` and `purpose`. An insufficient-information roadmap can therefore contain only a `Discovery` phase. `note` is optional and non-blank when present.
 
-```text
-status: insufficient_information
-phase: Discovery
+## 16. Analysis confidence
+
+```ts
+type AnalysisConfidence = {
+  level: "high" | "medium" | "low" | "insufficient_information"
+  reason: string
+}
 ```
 
-The schema must not force false implementation detail.
+`reason` is required and non-blank. Confidence remains qualitative rather than numeric.
 
-## 15. Analysis state
+`AnalysisResultSchema` is also the source for inferred TypeScript types and converts to provider-facing JSON Schema through Zod 4. It does not validate semantic truth, referenced-key existence, or overall analysis quality.
+
+## 17. Analysis state
 
 MVP simplification:
 
@@ -295,7 +282,7 @@ A generic partial-result framework is deferred.
 
 If the model output fails the required schema, analysis becomes unavailable.
 
-## 16. Processing issues
+## 18. Processing issues
 
 Conceptually:
 
@@ -315,7 +302,7 @@ type ProcessingIssue = {
 
 Keep `code` extensible rather than defining every possible provider failure before implementation.
 
-## 17. Processing status
+## 19. Processing status
 
 Working conceptual status:
 
@@ -338,7 +325,7 @@ raw fallback created
 
 is a fallback, not a failed intake.
 
-## 18. PreCallResult
+## 20. PreCallResult
 
 Working name only; the product name is not settled.
 
@@ -369,7 +356,7 @@ type PreCallResult = {
 
 The exact metadata format may be adjusted during implementation.
 
-## 19. Delivery remains separate
+## 21. Delivery remains separate
 
 A delivery result should not become part of the core domain result.
 
@@ -393,7 +380,7 @@ type DeliveryOutcome =
 
 A processing result can therefore survive an email-provider failure.
 
-## 20. Rendered email
+## 22. Rendered email
 
 Conceptually:
 
@@ -408,7 +395,7 @@ type RenderedEmail = {
 
 The exact attachment byte representation should be chosen for runtime portability during implementation.
 
-## 21. Schema philosophy
+## 23. Schema philosophy
 
 Prefer:
 

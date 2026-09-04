@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 3 — AI-visible input boundary complete; ready for the analysis schema.**
+**Phase 4 — Analysis schema complete; ready for the fake-adapter processing slice.**
 
-The repository now constructs a deterministic, privacy-filtered, detached AI-visible input from normalized intake. The next phase defines and validates the structured `AnalysisResult` schema.
+The repository now defines and validates the strict structured `AnalysisResult` contract. The next phase connects `AnalysisInput` to a tiny fake adapter and schema-validated processing fallback.
 
 ## AI-visible input boundary
 
@@ -23,7 +23,23 @@ Implemented in the internal `src/analysis/input.ts` module:
 - An all-private submission produces `{ fields: [] }` without error.
 - Permitted hostile-looking client text is preserved exactly as data; no prompt-injection sanitization is performed.
 
-No AI adapter, provider SDK, prompt, model call, or analysis-result schema exists yet. The package root remains intentionally empty.
+No AI adapter, provider SDK, prompt, model call, or processing pipeline exists yet. The package root remains intentionally empty.
+
+## AnalysisResult schema
+
+Implemented in the internal `src/analysis/result.ts` module:
+
+- strict `AnalysisResultSchema` with inferred TypeScript types;
+- strict subordinate schemas for clarity, facts, inferences, assumptions, unknowns, risks, discovery questions, roadmap, and confidence;
+- qualitative clarity, confidence, impact, severity, priority, and roadmap enums;
+- non-blank semantic strings that preserve accepted text exactly;
+- required non-empty unique provenance arrays for facts and inferences;
+- required roadmap phase with non-blank name and purpose;
+- empty top-level analysis arrays allowed;
+- Zod 4 JSON Schema conversion verified;
+- no semantic truth or referenced-field existence checks in this structural phase.
+
+AI-generated output remains untrusted until it satisfies `AnalysisResultSchema`. The schema and types remain internal; no adapter or model call consumes them yet.
 
 ## Intake foundation
 
@@ -260,9 +276,9 @@ The project explicitly chose not to build these abstractions in v0:
 
 ## Unresolved decisions
 
-These are not blockers for the current intake and projection phases:
+These are not blockers for the current intake, projection, and schema phases:
 
-- exact structured `AnalysisResult` schema and metadata;
+- exact processing and fallback behavior;
 - exact minimum Node version;
 - first real email provider/transport;
 - whether Pi passes the future provider spike;
@@ -274,4 +290,4 @@ These are not blockers for the current intake and projection phases:
 
 ## Immediate next action
 
-Define and validate the structured `AnalysisResult` schema with representative, vague-request, and invalid-output fixtures.
+Implement the tiny internal AIAdapter contract and the first fake-adapter processing vertical slice that connects AnalysisInput → validated AnalysisResult → fallback behavior.
