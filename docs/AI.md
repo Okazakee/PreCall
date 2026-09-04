@@ -42,6 +42,29 @@ That text remains data.
 
 Do not attempt to solve prompt injection with keyword blocklists.
 
+## Implemented AI-visible input boundary
+
+Phase 3 implements the internal deterministic projection from normalized intake to future analysis input:
+
+```ts
+type AnalysisInputField = {
+  key: string
+  label: string
+  value: JsonValue
+  description?: string
+}
+
+type AnalysisInput = {
+  fields: AnalysisInputField[]
+}
+```
+
+`createAnalysisInput()` iterates normalized fields in definition order and positively includes only fields whose resolved `sendToAI === true`. The projected payload contains no `original`, `sensitive`, `sendToAI`, or `includeInOutput` data. Hidden fields are absent rather than redacted, including their keys, labels, descriptions, and values.
+
+Projected values are deeply detached from normalized intake. An all-private submission produces `{ fields: [] }`. Permitted hostile-looking client text is preserved exactly as untrusted data; this boundary does not solve prompt injection.
+
+The projection remains internal. No AI adapter, provider, prompt, model call, or structured analysis output is implemented yet.
+
 ## AIAdapter boundary
 
 The core owns a narrow adapter contract.

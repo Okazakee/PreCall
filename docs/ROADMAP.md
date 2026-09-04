@@ -69,18 +69,23 @@ Implemented:
 - configurable field, value, submission-size, and nesting limits;
 - stable intake validation error categories.
 
-The next phase is Phase 3 — AI-visible input boundary. It will construct a deterministic privacy-filtered analysis input and prove that fields with `sendToAI=false` cannot reach the AI adapter.
+Phase 3 now provides the deterministic privacy-filtered analysis input boundary.
 
 ## Phase 3 — AI-visible input boundary
 
-Implement deterministic field filtering before AI.
+**Status: complete**
 
-Tests:
+Implemented:
 
-- hidden fields never reach adapter;
-- sensitive default works;
-- explicit override works;
-- hostile client instructions remain data.
+- internal `AnalysisInput` and `AnalysisInputField` types;
+- positive `sendToAI === true` allowlisting from normalized fields;
+- minimal metadata projection;
+- detached JSON-like values;
+- stable normalized/definition ordering;
+- empty output for all-private submissions.
+
+Tests prove hidden fields and metadata cannot cross the boundary, `original` is not used, explicit privacy policies remain independent, hostile permitted text remains exact, and projected values do not alias normalized intake.
+
 
 ## Phase 4 — Analysis schema
 

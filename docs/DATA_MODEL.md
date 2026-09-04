@@ -1,6 +1,6 @@
 # Data Model
 
-This document describes the current implemented intake model and the conceptual future analysis model. The intake API remains internal while the package is still establishing its first complete processing boundary.
+This document describes the current implemented intake and AI-visible projection models alongside the conceptual future analysis model. The intake and projection APIs remain internal while the package is still establishing its intentional public processing API.
 
 ## 1. Field definition
 
@@ -104,7 +104,30 @@ Intake failures use a small stable category set:
 
 Error messages are generic and do not include submitted values, serialized source data, or native reflection/serialization details.
 
-## 6. Analysis result
+## 6. AI-visible analysis input
+
+The internal `src/analysis/input.ts` module defines:
+
+```ts
+type AnalysisInputField = {
+  key: string
+  label: string
+  value: JsonValue
+  description?: string
+}
+
+type AnalysisInput = {
+  fields: AnalysisInputField[]
+}
+```
+
+`createAnalysisInput(normalized)` iterates `normalized.fields` in their existing definition order and positively includes only fields with resolved `sendToAI === true`. It copies only `key`, `label`, `value`, and a defined `description`.
+
+`AnalysisInput` is internal pipeline data, not the source submission. It contains no `original`, `sensitive`, `sendToAI`, or `includeInOutput` properties and no metadata for hidden fields. Hidden fields are absent rather than redacted. An all-private submission returns `{ fields: [] }`.
+
+Each permitted value is deeply detached into a new JSON-like graph. The projection preserves values, ordering, null-prototype records, suspicious own data keys, `-0`, and hostile-looking text exactly. It does not call an AI or construct prompts.
+
+## 7. Analysis result
 
 Working conceptual shape:
 
@@ -135,7 +158,7 @@ type AnalysisResult = {
 
 Zod should be the source of truth for the runtime schema and TypeScript type.
 
-## 7. Facts
+## 8. Facts
 
 Facts should preserve traceability to client input.
 
@@ -152,7 +175,7 @@ A client-stated fact should not exist without a source basis.
 
 This does not guarantee semantic truth, but it forces the output to maintain provenance rather than producing unsupported fact-like prose.
 
-## 8. Inferences
+## 9. Inferences
 
 Conceptually:
 
@@ -168,7 +191,7 @@ type Inference = {
 
 Inferences must never be rendered as client-stated facts.
 
-## 9. Assumptions
+## 10. Assumptions
 
 Keep assumptions comparatively simple:
 
@@ -181,7 +204,7 @@ type Assumption = {
 
 Do not over-model every section.
 
-## 10. Unknowns
+## 11. Unknowns
 
 Conceptually:
 
@@ -195,7 +218,7 @@ type Unknown = {
 
 Priority is important because not all missing information deserves equal attention.
 
-## 11. Discovery questions
+## 12. Discovery questions
 
 Conceptually:
 
@@ -211,7 +234,7 @@ Avoid fragile permanent references to array indexes in v0.
 
 If cross-references later become genuinely valuable, introduce stable IDs then.
 
-## 12. Risks
+## 13. Risks
 
 Conceptually:
 
@@ -226,7 +249,7 @@ type Risk = {
 
 The reason should normally be required so the model cannot fill the section with generic risk labels.
 
-## 13. Roadmap
+## 14. Roadmap
 
 Conceptually:
 
@@ -252,7 +275,7 @@ phase: Discovery
 
 The schema must not force false implementation detail.
 
-## 14. Analysis state
+## 15. Analysis state
 
 MVP simplification:
 
@@ -272,7 +295,7 @@ A generic partial-result framework is deferred.
 
 If the model output fails the required schema, analysis becomes unavailable.
 
-## 15. Processing issues
+## 16. Processing issues
 
 Conceptually:
 
@@ -292,7 +315,7 @@ type ProcessingIssue = {
 
 Keep `code` extensible rather than defining every possible provider failure before implementation.
 
-## 16. Processing status
+## 17. Processing status
 
 Working conceptual status:
 
@@ -315,7 +338,7 @@ raw fallback created
 
 is a fallback, not a failed intake.
 
-## 17. PreCallResult
+## 18. PreCallResult
 
 Working name only; the product name is not settled.
 
@@ -346,7 +369,7 @@ type PreCallResult = {
 
 The exact metadata format may be adjusted during implementation.
 
-## 18. Delivery remains separate
+## 19. Delivery remains separate
 
 A delivery result should not become part of the core domain result.
 
@@ -370,7 +393,7 @@ type DeliveryOutcome =
 
 A processing result can therefore survive an email-provider failure.
 
-## 19. Rendered email
+## 20. Rendered email
 
 Conceptually:
 
@@ -385,7 +408,7 @@ type RenderedEmail = {
 
 The exact attachment byte representation should be chosen for runtime portability during implementation.
 
-## 20. Schema philosophy
+## 21. Schema philosophy
 
 Prefer:
 

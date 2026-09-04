@@ -174,6 +174,22 @@ Example:
 
 is valid and useful.
 
+## Implemented AI-visible boundary
+
+The implemented trust-boundary flow is:
+
+```text
+NormalizedSubmission.fields
+→ positive sendToAI === true allowlist
+→ detached AnalysisInput
+```
+
+Only normalized fields may cross this boundary. The projection never reads or filters `NormalizedSubmission.original`. Hidden fields are absent completely, not redacted, so their keys, labels, descriptions, values, and privacy flags do not enter the AI-visible payload.
+
+`sensitive` supplies a default policy but is not the final filter. Explicit `sendToAI` controls exposure, and `includeInOutput` remains a separate future output policy. A field with `sensitive=true` and explicit `sendToAI=true` is included; a field with `sendToAI=false` is excluded.
+
+The projected JSON-like values are detached from authoritative intake, preventing mutation in a future adapter from changing normalized fields or the preserved source snapshot. Permitted prompt-like text remains unchanged as untrusted data. This projection is data authorization only and does not claim model-level prompt-injection resistance.
+
 ## Raw source versus output-safe source view
 
 The authoritative original submission should remain preserved.
@@ -220,7 +236,6 @@ Minimum defense-in-depth:
 8. give the AI no unnecessary tools or privileges;
 9. escape output at presentation sinks.
 
-No individual step is treated as a complete prompt-injection solution.
 
 ## AI output is untrusted
 
@@ -236,11 +251,11 @@ The professional remains the final reviewer.
 
 ## Cost protection
 
-Exact numeric limits are not yet fixed, but MVP should support conservative defaults for:
+The intake boundary already enforces field count and structured UTF-8 byte limits before future AI processing:
 
-- number of fields;
-- field size;
-- total submission size.
+- 100 fields;
+- 65,536 UTF-8 JSON bytes per value;
+- 262,144 UTF-8 JSON bytes per submission.
 
 Future AI-specific limits may include:
 

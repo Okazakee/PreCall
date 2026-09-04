@@ -80,11 +80,26 @@ Initial defaults are configurable and inclusive: 100 fields, 128 key code points
 
 ### 4. Construct a permitted AI view
 
-The AI receives only fields allowed by configuration.
+Phase 3 implements the internal `createAnalysisInput(normalized)` boundary.
 
-**Raw request is not the same thing as AI input.**
+It returns:
 
-Client content remains untrusted data even after structural validation.
+```ts
+type AnalysisInputField = {
+  key: string
+  label: string
+  value: JsonValue
+  description?: string
+}
+
+type AnalysisInput = {
+  fields: AnalysisInputField[]
+}
+```
+
+The projection iterates normalized fields in definition order and includes only fields with resolved `sendToAI === true`. It copies no policy metadata and never uses the authoritative `original` source. Every permitted value is detached before future AI processing.
+
+Hidden fields are absent, not redacted. An all-private submission produces `{ fields: [] }`. This phase performs no AI call, prompt construction, provider integration, or structured analysis.
 
 ### 5. Perform one structured analysis operation
 

@@ -9,7 +9,7 @@
 
 ## Bootstrap and tooling
 
-- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; intake implementation is internal while the processing API is still being established.
+- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; intake and AI-visible projection remain internal while the processing API is still being established.
 - Use Bun for package management and tooling. Use Zod 4 for runtime validation.
 - TypeScript is strict: retain `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `isolatedModules`; do not weaken compiler settings to make code pass.
 - Do not couple the core to a framework, database, or provider without an explicit project decision. Avoid speculative abstractions, extra packages, and generic agent/plugin infrastructure.
@@ -17,6 +17,7 @@
 ## Behavioral and trust boundaries
 
 - Preserve the authoritative raw submission separately from the privacy-filtered AI input. Field privacy must be deterministic; never send data to AI merely because it is convenient.
+- Construct AI-visible data only from normalized fields by positive resolved `sendToAI` allowlisting; never filter the authoritative original object.
 - Treat AI as optional enrichment. Preserve useful raw intake and explicit uncertainty when enrichment is unavailable; never manufacture certainty.
 - Keep facts, inferences, assumptions, and unknowns distinguishable. Confidence must be explained qualitatively rather than presented as false precision.
 - Treat submissions, field names/values, AI output, and researched content as untrusted data. Untrusted submission or research text must never become trusted instructions or configuration.

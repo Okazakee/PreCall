@@ -6,9 +6,24 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 2 — Intake and normalization complete; ready for the AI-visible input boundary.**
+**Phase 3 — AI-visible input boundary complete; ready for the analysis schema.**
 
-The repository now validates structured intake data, preserves a detached authoritative source snapshot, resolves field privacy metadata, and emits deterministic normalized fields. The next phase constructs the privacy-filtered AI-visible analysis input.
+The repository now constructs a deterministic, privacy-filtered, detached AI-visible input from normalized intake. The next phase defines and validates the structured `AnalysisResult` schema.
+
+## AI-visible input boundary
+
+Implemented in the internal `src/analysis/input.ts` module:
+
+- `AnalysisInput` contains only a `fields` array.
+- `AnalysisInputField` contains `key`, `label`, `value`, and `description` when defined.
+- Projection iterates `NormalizedSubmission.fields` in definition order and includes only fields with resolved `sendToAI === true`.
+- `sensitive`, `sendToAI`, and `includeInOutput` never enter the AI-visible payload.
+- `NormalizedSubmission.original` is never used as a projection source.
+- Every permitted value is deeply detached, including nested arrays and null-prototype objects.
+- An all-private submission produces `{ fields: [] }` without error.
+- Permitted hostile-looking client text is preserved exactly as data; no prompt-injection sanitization is performed.
+
+No AI adapter, provider SDK, prompt, model call, or analysis-result schema exists yet. The package root remains intentionally empty.
 
 ## Intake foundation
 
@@ -124,14 +139,13 @@ Edge portability is desirable, but not an MVP support claim.
 
 ## AI state
 
-### Settled
+### Settled direction
 
-- core owns a narrow `AIAdapter`;
-- adapter receives only filtered analysis input;
-- AI output remains untrusted until Zod validation;
-- fake adapter is implemented/tested before real provider integration;
-- no generic agent framework in core;
-- no multi-provider fallback engine in MVP.
+- core will own a narrow `AIAdapter`;
+- the adapter will receive only the already-filtered analysis input;
+- AI output will remain untrusted until Zod validation;
+- no generic agent framework belongs in core;
+- no multi-provider fallback engine belongs in MVP.
 
 ### To validate
 
@@ -230,7 +244,7 @@ Add Next.js server example/build smoke when that integration exists.
 
 ## Simplifications intentionally made
 
-The project explicitly chose **not** to build these abstractions in v0:
+The project explicitly chose not to build these abstractions in v0:
 
 - partial AI-result framework;
 - provider capability matrix;
@@ -246,14 +260,12 @@ The project explicitly chose **not** to build these abstractions in v0:
 
 ## Unresolved decisions
 
-These are not blockers for starting implementation:
+These are not blockers for the current intake and projection phases:
 
-- exact numeric validation limits;
-- exact final Zod property names;
-- exact metadata/version fields;
+- exact structured `AnalysisResult` schema and metadata;
 - exact minimum Node version;
 - first real email provider/transport;
-- whether Pi passes the spike;
+- whether Pi passes the future provider spike;
 - exact npm package name;
 - permanent product/repository name;
 - open-source license;
@@ -262,4 +274,4 @@ These are not blockers for starting implementation:
 
 ## Immediate next action
 
-Construct the privacy-filtered AI-visible analysis input from normalized intake and prove that fields with `sendToAI=false` cannot reach the AI adapter.
+Define and validate the structured `AnalysisResult` schema with representative, vague-request, and invalid-output fixtures.

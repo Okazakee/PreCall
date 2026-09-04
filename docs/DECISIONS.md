@@ -153,6 +153,12 @@ Normalized fields follow consumer configuration order rather than submission obj
 
 The configurable defaults are 100 fields, 128 key code points, 256 label code points, 1,024 description code points, 65,536 UTF-8 JSON bytes per value, 262,144 UTF-8 JSON bytes per submission, and depth 8. These are implementation safety defaults, not eternal product limits.
 
+### D-056 — AI-visible data uses positive allowlisting
+
+**Status:** Settled
+
+Only normalized fields whose resolved `sendToAI` policy is `true` are copied into internal AI-visible input. Hidden fields are absent rather than redacted, and the authoritative original source is never filtered directly.
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary
