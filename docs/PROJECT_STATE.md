@@ -6,9 +6,24 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Repository bootstrap complete; ready for intake implementation.**
+**Phase 2 — Intake and normalization complete; ready for the AI-visible input boundary.**
 
-The repository foundation is configured and verified. The next phase is the deterministic intake and normalization slice.
+The repository now validates structured intake data, preserves a detached authoritative source snapshot, resolves field privacy metadata, and emits deterministic normalized fields. The next phase constructs the privacy-filtered AI-visible analysis input.
+
+## Intake foundation
+
+Implemented in the internal `src/intake/` module:
+
+- `FieldDefinitionSchema` validates strict field definitions with inferred TypeScript types.
+- `resolveFieldDefinition()` applies `sensitive: false`, `includeInOutput: true`, and `sendToAI: !sensitive` defaults while preserving explicit overrides.
+- `normalizeSubmission()` accepts only JSON-like structured data, rejects undeclared fields and duplicate definitions, and permits configured-but-absent fields.
+- `NormalizedSubmission.original` is a detached null-prototype snapshot of the structured input; it is not the original HTTP request bytes.
+- Normalized fields follow field-definition order and carry resolved privacy metadata.
+- Validation rejects accessors, runtime objects, cycles, sparse/augmented arrays, excessive nesting, and suspicious reflective structures.
+- Initial limits are configurable and inclusive: 100 fields, 128 key code points, 256 label code points, 1,024 description code points, 65,536 UTF-8 JSON bytes per value, 262,144 UTF-8 JSON bytes per submission, and depth 8.
+- Intake failures use stable `invalid_configuration`, `invalid_submission`, and `limit_exceeded` categories without embedding submitted values.
+
+The intake symbols remain internal; the package root does not expose a premature public API.
 
 ## Repository bootstrap
 
@@ -247,4 +262,4 @@ These are not blockers for starting implementation:
 
 ## Immediate next action
 
-Implement intake field definitions, source preservation, normalization, validation limits, privacy defaults, and deterministic intake tests. Then build the vertical slice with a fake AI adapter before integrating a real provider.
+Construct the privacy-filtered AI-visible analysis input from normalized intake and prove that fields with `sendToAI=false` cannot reach the AI adapter.

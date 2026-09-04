@@ -34,7 +34,7 @@ Optional metadata:
 - `includeInOutput`;
 - `sensitive`.
 
-Working default policy:
+Implemented field-policy defaults:
 
 - `sensitive` defaults to `false`;
 - `includeInOutput` defaults to `true`;
@@ -42,7 +42,7 @@ Working default policy:
 - otherwise `sendToAI` defaults to `true`;
 - an explicit field setting overrides the default.
 
-This default policy is settled in direction, but exact implementation syntax remains to be coded and tested.
+The strict field-definition schema rejects unknown properties, empty keys, and whitespace-only labels.
 
 ## Required processing behavior
 
@@ -62,18 +62,21 @@ A normalized array representation is preferred.
 
 ### 3. Validate before expensive processing
 
-Validation and size/cost boundaries happen before the AI call.
+The intake boundary validates and size-checks structured data before any later expensive processing.
 
-Validation should cover:
+Validation covers:
 
-- field-definition structure;
-- field keys;
-- field counts;
-- value sizes;
-- total submission size;
-- required internal invariants.
+- strict field-definition structure;
+- duplicate definitions;
+- field keys and labels;
+- definition and submission field counts;
+- JSON-like value structure;
+- value nesting depth;
+- per-value UTF-8 JSON bytes;
+- total preserved-submission UTF-8 JSON bytes;
+- required intake invariants.
 
-Exact numeric limits are an implementation-time decision.
+Initial defaults are configurable and inclusive: 100 fields, 128 key code points, 256 label code points, 1,024 description code points, 65,536 bytes per value, 262,144 bytes per submission, and depth 8.
 
 ### 4. Construct a permitted AI view
 

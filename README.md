@@ -1,6 +1,6 @@
 # PreCall
 
-PreCall is an early/bootstrap-stage service-intake library intended for open-source development. The repository is being prepared for implementation; its current scope and decisions live in the reference documentation. The permanent name, package identity, and license remain unsettled.
+PreCall is an early-stage service-intake library intended for open-source development. The intake foundation is implemented; AI analysis, delivery, and other later phases are not. The permanent name, package identity, and license remain unsettled.
 
 ## Documentation
 
@@ -29,4 +29,4 @@ bun run build
 bun run check
 ```
 
-The repository is still at bootstrap stage; run commands as implementation lands.
+The repository has completed bootstrap and intake normalization; continue with the documented next phase rather than assuming AI processing is available.

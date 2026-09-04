@@ -56,23 +56,20 @@ all pass before substantial product code exists.
 
 ## Phase 2 — Intake and normalization
 
-Implement:
+**Status: complete**
 
-- `FieldDefinition`;
-- field defaults;
-- arbitrary structured submission handling;
-- normalized field array;
-- source preservation;
-- request/field limits.
+Implemented:
 
-Tests:
+- strict `FieldDefinitionSchema` with inferred TypeScript types;
+- resolved sensitive, AI, and output privacy defaults with explicit overrides;
+- JSON-like structured submission validation;
+- detached authoritative source snapshots;
+- deterministic normalized field arrays in definition order;
+- duplicate-definition and unknown-submission-field rejection;
+- configurable field, value, submission-size, and nesting limits;
+- stable intake validation error categories.
 
-- arbitrary fields;
-- source fidelity;
-- invalid config;
-- excessive fields/values;
-- suspicious keys;
-- sensitive defaults.
+The next phase is Phase 3 — AI-visible input boundary. It will construct a deterministic privacy-filtered analysis input and prove that fields with `sendToAI=false` cannot reach the AI adapter.
 
 ## Phase 3 — AI-visible input boundary
 

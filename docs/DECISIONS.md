@@ -127,7 +127,31 @@ Prefer an array of normalized field entries rather than relying on untrusted dyn
 - `includeInOutput=true`;
 - `sendToAI=!sensitive` unless explicitly overridden.
 
-Exact schema syntax will be finalized in code.
+The exact schema syntax is implemented in the internal intake module and remains subject to the future intentional public API.
+
+### D-052 — Submitted fields require definitions
+
+**Status:** Settled
+
+Every submitted top-level field must match a configured `FieldDefinition`. A field without policy metadata has no explicit AI, output, or privacy behavior, so undeclared fields fail rather than being silently dropped or accepted.
+
+### D-053 — Structured submission values are JSON-like data
+
+**Status:** Settled for intake
+
+The intake boundary accepts JSON-like trees and rejects executable or runtime-specific objects such as accessors, class instances, cycles, and unsupported built-ins. Structured validation does not make client text semantically trusted.
+
+### D-054 — Normalized ordering follows field-definition order
+
+**Status:** Settled
+
+Normalized fields follow consumer configuration order rather than submission object enumeration order, providing deterministic downstream processing and presentation.
+
+### D-055 — Initial intake safety limits
+
+**Status:** Settled for current implementation
+
+The configurable defaults are 100 fields, 128 key code points, 256 label code points, 1,024 description code points, 65,536 UTF-8 JSON bytes per value, 262,144 UTF-8 JSON bytes per submission, and depth 8. These are implementation safety defaults, not eternal product limits.
 
 ## Architecture
 

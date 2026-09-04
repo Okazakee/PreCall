@@ -9,7 +9,7 @@
 
 ## Bootstrap and tooling
 
-- Keep the initial deliverable as one private ESM package with `src/index.ts` as its sole entry point; this repository is still at bootstrap stage.
+- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; intake implementation is internal while the processing API is still being established.
 - Use Bun for package management and tooling. Use Zod 4 for runtime validation.
 - TypeScript is strict: retain `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `isolatedModules`; do not weaken compiler settings to make code pass.
 - Do not couple the core to a framework, database, or provider without an explicit project decision. Avoid speculative abstractions, extra packages, and generic agent/plugin infrastructure.

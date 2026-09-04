@@ -1,12 +1,10 @@
 # Data Model
 
-This document describes the current conceptual model. Exact property names may still change during implementation, but the semantic boundaries are settled.
+This document describes the current implemented intake model and the conceptual future analysis model. The intake API remains internal while the package is still establishing its first complete processing boundary.
 
 ## 1. Field definition
 
-A consumer describes each relevant form field.
-
-Conceptually:
+Each configured field uses the strict Zod-backed shape:
 
 ```ts
 type FieldDefinition = {
@@ -19,72 +17,94 @@ type FieldDefinition = {
 }
 ```
 
-### Default policy
+`key` must be non-empty. `label` must contain non-whitespace content. Unknown properties are rejected, and no `required` property exists in this phase.
 
-Working defaults:
+### Resolved policy
 
-- `sensitive = false`;
-- `includeInOutput = true`;
-- `sendToAI = !sensitive` unless explicitly overridden.
+`resolveFieldDefinition()` resolves each definition without rewriting its strings:
 
-`sendToAI` and `includeInOutput` are different concerns.
+- `sensitive` defaults to `false`;
+- `includeInOutput` defaults to `true`;
+- `sendToAI` defaults to `!sensitive`;
+- explicit values override these defaults.
 
-Example:
+Sensitive fields therefore default to hidden from future AI input but remain included in professional-facing output unless configured otherwise. This phase does not construct an AI-visible payload.
+
+## 2. Structured submission values
+
+Submissions contain JSON-like structured data only:
 
 ```ts
-{
-  key: 'email',
-  label: 'Email',
-  sensitive: true,
-  sendToAI: false,
-  includeInOutput: true
-}
+type JsonPrimitive = string | number | boolean | null
+
+type JsonValue =
+  | JsonPrimitive
+  | JsonValue[]
+  | { [key: string]: JsonValue }
 ```
 
-means:
+Accepted values are `null`, strings, booleans, finite numbers, standard arrays, and plain objects with `Object.prototype` or `null` prototypes. Accessors, non-enumerable or symbol properties, sparse or augmented arrays, class instances, `Date`, `Map`, `Set`, regular expressions, functions, `undefined`, `bigint`, symbols, non-finite numbers, cycles, and over-depth structures are rejected.
 
-- AI: hidden;
-- professional-facing brief: visible;
-- permitted raw attachment: visible.
+Runtime validation establishes structure, not semantic trust. Submitted text remains untrusted data.
 
-## 2. Original source versus normalized representation
+## 3. Source snapshot and normalized representation
 
-The original client submission remains authoritative and preserved.
+`normalizeSubmission()` accepts configured field definitions, a non-empty top-level structured submission, and optional intake-limit overrides.
 
-Internally, dynamic fields should be normalized rather than repeatedly merged into arbitrary objects.
-
-Preferred conceptual representation:
+It returns:
 
 ```ts
-type SubmissionField = {
+type NormalizedField = {
   key: string
   label: string
-  value: unknown
+  value: JsonValue
   description?: string
+  sensitive: boolean
   sendToAI: boolean
   includeInOutput: boolean
-  sensitive: boolean
 }
-```
 
-and:
-
-```ts
 type NormalizedSubmission = {
-  fields: SubmissionField[]
+  original: Record<string, JsonValue>
+  fields: NormalizedField[]
 }
 ```
 
-Why an array?
+`original` is a detached, deep source snapshot of the structured submission. It preserves submitted values but is not the original HTTP request bytes. Caller mutation after normalization cannot alter the snapshot, and normalization does not mutate caller input or definitions.
 
-- arbitrary field names remain data rather than internal object structure;
-- easier deterministic filtering;
-- easier handling of suspicious keys such as `__proto__`;
-- clear policy metadata travels with each value.
+Only submitted fields appear in `fields`. Configured-but-absent fields are valid and produce no placeholder. Every submitted top-level field must have a definition; undeclared fields fail validation. Duplicate definition keys fail validation. Normalized fields follow definition order rather than submission object enumeration order.
 
-The normalized representation does not replace the untouched source.
+`__proto__`, `constructor`, and `prototype` remain ordinary data keys when supplied. The implementation uses detached null-prototype objects and keyed lookup rather than dynamic object merging.
 
-## 3. Analysis result
+## 4. Intake limits
+
+The configurable inclusive defaults are:
+
+| Limit | Default |
+|---|---:|
+| `maxFields` | 100 |
+| `maxKeyLength` | 128 Unicode code points |
+| `maxLabelLength` | 256 Unicode code points |
+| `maxDescriptionLength` | 1,024 Unicode code points |
+| `maxFieldBytes` | 65,536 UTF-8 JSON bytes |
+| `maxSubmissionBytes` | 262,144 UTF-8 JSON bytes |
+| `maxValueDepth` | 8 containers |
+
+String lengths use Unicode code points. Byte limits count the compact JSON representation in UTF-8, including JSON punctuation, escaped keys, and nested values. The root submitted field value container has depth 1; depth 8 is accepted and depth 9 is rejected.
+
+Limit overrides must be positive safe integers. Invalid values such as zero, negatives, fractions, `NaN`, infinity, and unsafe integers fail configuration validation.
+
+## 5. Intake failures
+
+Intake failures use a small stable category set:
+
+- `invalid_configuration`;
+- `invalid_submission`;
+- `limit_exceeded`.
+
+Error messages are generic and do not include submitted values, serialized source data, or native reflection/serialization details.
+
+## 6. Analysis result
 
 Working conceptual shape:
 
@@ -115,7 +135,7 @@ type AnalysisResult = {
 
 Zod should be the source of truth for the runtime schema and TypeScript type.
 
-## 4. Facts
+## 7. Facts
 
 Facts should preserve traceability to client input.
 
@@ -132,7 +152,7 @@ A client-stated fact should not exist without a source basis.
 
 This does not guarantee semantic truth, but it forces the output to maintain provenance rather than producing unsupported fact-like prose.
 
-## 5. Inferences
+## 8. Inferences
 
 Conceptually:
 
@@ -148,7 +168,7 @@ type Inference = {
 
 Inferences must never be rendered as client-stated facts.
 
-## 6. Assumptions
+## 9. Assumptions
 
 Keep assumptions comparatively simple:
 
@@ -161,7 +181,7 @@ type Assumption = {
 
 Do not over-model every section.
 
-## 7. Unknowns
+## 10. Unknowns
 
 Conceptually:
 
@@ -175,7 +195,7 @@ type Unknown = {
 
 Priority is important because not all missing information deserves equal attention.
 
-## 8. Discovery questions
+## 11. Discovery questions
 
 Conceptually:
 
@@ -191,7 +211,7 @@ Avoid fragile permanent references to array indexes in v0.
 
 If cross-references later become genuinely valuable, introduce stable IDs then.
 
-## 9. Risks
+## 12. Risks
 
 Conceptually:
 
@@ -206,7 +226,7 @@ type Risk = {
 
 The reason should normally be required so the model cannot fill the section with generic risk labels.
 
-## 10. Roadmap
+## 13. Roadmap
 
 Conceptually:
 
@@ -232,7 +252,7 @@ phase: Discovery
 
 The schema must not force false implementation detail.
 
-## 11. Analysis state
+## 14. Analysis state
 
 MVP simplification:
 
@@ -252,7 +272,7 @@ A generic partial-result framework is deferred.
 
 If the model output fails the required schema, analysis becomes unavailable.
 
-## 12. Processing issues
+## 15. Processing issues
 
 Conceptually:
 
@@ -272,7 +292,7 @@ type ProcessingIssue = {
 
 Keep `code` extensible rather than defining every possible provider failure before implementation.
 
-## 13. Processing status
+## 16. Processing status
 
 Working conceptual status:
 
@@ -295,7 +315,7 @@ raw fallback created
 
 is a fallback, not a failed intake.
 
-## 14. PreCallResult
+## 17. PreCallResult
 
 Working name only; the product name is not settled.
 
@@ -326,7 +346,7 @@ type PreCallResult = {
 
 The exact metadata format may be adjusted during implementation.
 
-## 15. Delivery remains separate
+## 18. Delivery remains separate
 
 A delivery result should not become part of the core domain result.
 
@@ -350,7 +370,7 @@ type DeliveryOutcome =
 
 A processing result can therefore survive an email-provider failure.
 
-## 16. Rendered email
+## 19. Rendered email
 
 Conceptually:
 
@@ -365,7 +385,7 @@ type RenderedEmail = {
 
 The exact attachment byte representation should be chosen for runtime portability during implementation.
 
-## 17. Schema philosophy
+## 20. Schema philosophy
 
 Prefer:
 
