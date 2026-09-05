@@ -17,6 +17,7 @@ const expectedScripts = [
   "check",
   "check:repo",
   "live-ai:check",
+  "live-email:check",
 ];
 
 const expectedFiles = [

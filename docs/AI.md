@@ -63,7 +63,7 @@ type AnalysisInput = {
 
 Projected values are deeply detached from normalized intake. An all-private submission produces `{ fields: [] }`. Permitted hostile-looking client text is preserved exactly as untrusted data; this boundary does not solve prompt injection.
 
-The projection remains internal. The processing boundary now consumes it through a fake-adapter-compatible internal contract; no provider SDK, prompt, or model call exists yet.
+The projection remains internal. The processing boundary consumes it through the provider-neutral adapter contract; the optional LangChain model-layer adapter and deterministic prompt implement the first real analysis integration behind `./langchain`.
 
 ## Implemented structured result contract
 
@@ -254,7 +254,34 @@ Offline tests use the public LangChain fake/runnable seam and the real PreCall f
 
 The adapter rejects enabled LangChain/LangSmith tracing and verbose environment flags, consumer models with `verbose: true`, and inherited callback context before sending intake; it also pins the live OpenAI harness to the official API endpoint.
 
-The real email provider remains absent. Research, budget analysis, multi-provider fallback, and agent infrastructure remain deferred.
+The first built-in email transport is now available separately through `./resend`. It is independent of the AI adapter and consumes the existing `RenderedEmail`/`EmailDeliveryRequest` contracts without rerunning analysis.
+
+## Built-in AI plus delivery E2E
+
+Offline integration tests use the real LangChain adapter, the public PreCall facade, and the real Resend request mapping with a deterministic fetch seam. They cover:
+
+- successful LangChain analysis followed by fake email delivery;
+- LangChain failure followed by successful Resend request mapping;
+- successful LangChain analysis followed by Resend provider failure;
+- private-field absence from AI input while the same field remains in permitted rendered output and `submission.json`.
+
+The live AI and live email harnesses remain independent explicit opt-ins. Full live AI plus live email E2E was not run.
+
+## Email provider bake-off
+
+The first built-in email provider bake-off evaluated Resend, Postmark, and Amazon SES v2:
+
+| Criterion | Resend | Postmark | SES v2 |
+|---|---|---|---|
+| API strategy | Direct `fetch()` to fixed `https://api.resend.com/emails` | Direct `fetch()` to fixed Postmark API endpoint | AWS SDK with regional endpoint and SigV4 |
+| Abort/attempts | Caller signal preserved; one request; no SDK retry layer | Direct fetch preserves signal; SDK does not | SDK supports abort but requires explicit `maxAttempts: 1` |
+| Bodies/attachments | Exact HTML/text; Base64 `Uint8Array` attachments | Exact HTML/text; Base64 attachments | Exact HTML/text; raw attachment bytes |
+| Runtime/footprint | Bun and Node Web APIs; no runtime dependency | Bun and Node Web APIs; no runtime dependency | Large SDK and broader credential/region surface |
+| Decision | **Winner** | Viable alternative, not selected | Rejected for first adapter complexity |
+
+`RESEND_WINS`. The direct adapter snapshots explicit `apiKey`/`from`, maps existing `RenderedEmail` content and `SubmissionAttachment` bytes, forwards the trusted recipient and signal, and throws opaque errors for non-2xx responses. The official `resend` SDK was not used because its caller-abort and environment/base-URL behavior were a poorer fit.
+
+Evidence: [Resend API](https://resend.com/docs/api-reference/emails/send-email), [Resend Bun guide](https://resend.com/docs/send-with-bun), [Postmark API](https://postmarkapp.com/developer/user-guide/send-email-with-api), [SES v2 SendEmail](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html), and [SES attachment limits](https://docs.aws.amazon.com/ses/latest/dg/attachments.html).
 
 ## Multi-provider fallback
 

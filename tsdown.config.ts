@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/langchain.ts"],
+  entry: ["src/index.ts", "src/langchain.ts", "src/resend.ts"],
   format: ["esm"],
   dts: true,
   outDir: "dist",

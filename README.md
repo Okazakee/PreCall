@@ -48,6 +48,27 @@ const result = await precall.process({ submission });
 
 The adapter performs one structured model operation using the canonical PreCall analysis schema. It does not browse, execute tools, quote, estimate, or replace discovery. The root package remains usable without installing LangChain.
 
+### Optional Resend email integration
+
+The optional `./resend` subpath provides the first built-in `EmailTransport`. Configure the trusted sender and API key in application configuration; do not derive either from client submissions:
+
+```ts
+import { createResendEmailTransport } from "precall/resend";
+
+const transport = createResendEmailTransport({
+  apiKey,
+  from: "briefs@example.com",
+});
+
+await precall.deliver({
+  result,
+  transport,
+  recipient: "professional@example.com",
+});
+```
+
+The transport uses one fixed Resend API request and reuses the existing rendered HTML, text, and permitted `submission.json` attachment. Custom `EmailTransport` implementations remain supported.
+
 ## Development
 
 Bun is used for package management and tooling.
@@ -69,4 +90,4 @@ bun run build
 bun run check
 ```
 
-The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, fake-adapter analysis execution, reusable result composition, deterministic rendering/email packaging, provider-neutral delivery orchestration, the public facade, packed Node/Bun/declaration verification, the LangChain model-layer bake-off, the optional LangChain adapter, offline integration coverage, and the opt-in live AI harness. No real email provider exists yet. The next milestone is the first real email provider adapter and opt-in email harness.
+The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, fake-adapter analysis execution, reusable result composition, deterministic rendering/email packaging, provider-neutral delivery orchestration, the public facade, packed Node/Bun/declaration verification, the LangChain model-layer bake-off, the optional LangChain adapter, the Resend provider bake-off, the optional Resend transport, offline provider/E2E coverage, and opt-in AI/email harnesses. The next milestone is first public package preparation.

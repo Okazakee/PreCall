@@ -596,3 +596,27 @@ LangChain structured-output validation is defense in depth. Adapter output remai
 **Status:** Settled
 
 The live harness requires `PRECALL_LIVE_AI=1` plus explicit provider, model, and credential variables. It uses synthetic data, never runs in CI or `check`, and does not discover OMP credentials or print secrets.
+
+### D-091 — Resend direct HTTP transport selected
+
+**Status:** Settled
+
+The first built-in email provider is Resend. The bake-off evaluated Resend, Postmark, and Amazon SES v2 against abort behavior, one-attempt semantics, exact HTML/text and attachment mapping, explicit credentials, fixed endpoints, Bun/Node compatibility, package footprint, testability, and error semantics. Resend won narrowly because direct `fetch()` provides the cleanest fixed-endpoint mapping with caller cancellation, no provider SDK dependency, official Bun guidance, and an adequate message limit.
+
+### D-092 — Built-in email transport remains optional
+
+**Status:** Settled
+
+`createResendEmailTransport({ apiKey, from })` is available only through `./resend`. The root package remains provider-neutral and consumers may continue supplying any `EmailTransport`; no provider registry or fallback path is added.
+
+### D-093 — Resend uses direct fixed-endpoint fetch
+
+**Status:** Settled
+
+The adapter sends exactly one `POST` to `https://api.resend.com/emails`, uses explicit factory credentials and trusted sender configuration, forwards the delivery recipient and caller signal, maps existing `RenderedEmail` content and `SubmissionAttachment` bytes, and suppresses provider response details behind the existing delivery error boundary. The official `resend` SDK was not selected because it does not preserve caller abort semantics and exposes environment/base-URL behavior unnecessary for this boundary.
+
+### D-094 — Live email remains explicit opt-in
+
+**Status:** Settled
+
+`bun run live-email:check` requires `PRECALL_LIVE_EMAIL=1` plus explicit API key, sender, and recipient variables. It uses deterministic synthetic PreCall data, sends one message, never runs in ordinary checks or CI, and was not run without private credentials.

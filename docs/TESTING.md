@@ -344,4 +344,22 @@ The test does not make paid calls. LangChain's provider-level retry behavior is 
 
 ## Optional package contract
 
-`package:check` validates both boundaries from the packed artifact: a root consumer installs and processes with only a custom `AIAdapter`, while a separate consumer with `@langchain/core@1.2.9` imports the `./langchain` subpath under Node, Bun, and NodeNext TypeScript declarations. The root export does not eagerly load the optional integration.
+`package:check` validates all three boundaries from the packed artifact: a root consumer installs and processes with only a custom `AIAdapter` and `EmailTransport`, a separate consumer with `@langchain/core@1.2.9` imports `./langchain`, and a separate consumer imports `./resend`, each under Node, Bun, and NodeNext TypeScript declarations. The root export does not eagerly load either optional integration.
+
+## Resend transport and integrated E2E
+
+`src/resend.test.ts` exercises the real direct-fetch mapping through an injected local seam. It covers:
+
+- fixed endpoint, method, authorization, and content type;
+- exact subject, HTML, text, trusted recipient, and attachment mapping;
+- binary attachment round-trip after one Base64 transformation;
+- no attachment representation when packaging has none;
+- sender/API-key validation and creation-time snapshots;
+- hostile body content remaining body data;
+- opaque non-2xx errors;
+- pre-aborted and in-flight cancellation;
+- exactly one fetch attempt.
+
+`src/integration.test.ts` composes the built-in LangChain adapter with the public facade and delivery boundary. It covers successful AI plus fake email, AI failure plus successful Resend mapping, successful AI plus provider failure, result independence, and private-field separation across model input, rendered email, and `submission.json`.
+
+`bun run live-email:check` is deliberately separate from `check` and CI. Without `PRECALL_LIVE_EMAIL=1` it performs no network call. Opt-in requires explicit Resend API key, sender, and recipient variables and sends one deterministic synthetic message only. Full live AI plus email was not run.

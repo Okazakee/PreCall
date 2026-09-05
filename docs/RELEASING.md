@@ -215,7 +215,7 @@ The first built-in AI integration is optional and exported from `./langchain`. I
 
 Packed-package verification must continue to prove:
 
-- the root import and custom `AIAdapter` flow work without `@langchain/core`;
+- the root import and custom `AIAdapter`/`EmailTransport` flow work without optional provider packages;
 - the explicit `./langchain` subpath imports with compatible `@langchain/core` and `langsmith` peers installed;
 - Node and Bun runtime imports succeed;
 - NodeNext TypeScript declarations compile;
@@ -223,3 +223,17 @@ Packed-package verification must continue to prove:
 - source, tests, docs, temporary consumers, secrets, and media are absent.
 
 The live AI harness is not part of `check`, CI, or package validation. It requires explicit opt-in and credentials and may never run during normal release validation.
+
+## Optional Resend integration package contract
+
+The first built-in email integration is optional and exported from `./resend`. It uses no Resend SDK dependency; consumers receive `createResendEmailTransport({ apiKey, from })` and retain the provider-neutral `EmailTransport` contract.
+
+Packed-package verification must prove:
+
+- the root consumer works without LangChain or Resend dependencies;
+- `./langchain` works with its optional peers;
+- `./resend` imports under Node, Bun, and NodeNext TypeScript;
+- the tarball contains the Resend runtime/declaration entrypoints but no source, tests, docs, temporary files, secrets, or media;
+- the Resend adapter uses the fixed official endpoint and does not expose arbitrary endpoint configuration.
+
+`live-email:check` is excluded from `check`, CI, and package validation. It requires explicit opt-in and credentials and was not run as part of ordinary validation.

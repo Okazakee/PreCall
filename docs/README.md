@@ -12,7 +12,7 @@ Different files have different authority:
 2. **`MVP_SPEC.md`** — expected first-version product behavior.
 3. **`ARCHITECTURE.md`** — current technical architecture and ownership boundaries.
 4. **`DATA_MODEL.md`** — current conceptual data model and schema direction.
-5. **`AI.md`** — AI boundary, provider strategy, structured-output rules, and Pi evaluation plan.
+5. **`AI.md`** — AI boundary, provider strategy, structured-output rules, and current integration decisions.
 6. **`SECURITY.md`** — trust boundaries, privacy, rendering safety, abuse/cost responsibility split.
 7. **`TESTING.md`** — test philosophy, required invariants, CI package/runtime verification.
 8. **`RELEASING.md`** — CI/release/publishing policy.

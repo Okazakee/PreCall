@@ -49,6 +49,8 @@ function assertArchive(tarball: string): PackageMetadata {
     "package/dist/index.d.ts",
     "package/dist/langchain.js",
     "package/dist/langchain.d.ts",
+    "package/dist/resend.js",
+    "package/dist/resend.d.ts",
   ];
   for (const entry of required)
     assert(entries.includes(entry), `packed artifact is missing ${entry}`);
@@ -99,10 +101,11 @@ function assertArchive(tarball: string): PackageMetadata {
   );
   const exportsMap = metadata.exports as Record<string, unknown>;
   assert(
-    Object.keys(exportsMap).length === 2 &&
+    Object.keys(exportsMap).length === 3 &&
       Object.hasOwn(exportsMap, ".") &&
-      Object.hasOwn(exportsMap, "./langchain"),
-    "packed exports must expose only the root and LangChain entrypoints",
+      Object.hasOwn(exportsMap, "./langchain") &&
+      Object.hasOwn(exportsMap, "./resend"),
+    "packed exports must expose only the root, LangChain, and Resend entrypoints",
   );
   const rootExport = exportsMap["."];
   assert(typeof rootExport === "object" && rootExport !== null, "packed root export is missing");
@@ -128,6 +131,20 @@ function assertArchive(tarball: string): PackageMetadata {
   assert(
     langchainRecord.types === "./dist/langchain.d.ts",
     "packed LangChain type export must target dist/langchain.d.ts",
+  );
+  const resendExport = exportsMap["./resend"];
+  assert(
+    typeof resendExport === "object" && resendExport !== null,
+    "packed Resend export is missing",
+  );
+  const resendRecord = resendExport as Record<string, unknown>;
+  assert(
+    resendRecord.import === "./dist/resend.js",
+    "packed Resend import export must target dist/resend.js",
+  );
+  assert(
+    resendRecord.types === "./dist/resend.d.ts",
+    "packed Resend type export must target dist/resend.d.ts",
   );
   return metadata;
 }
@@ -199,12 +216,39 @@ adapter.generateAnalysis;
 `;
 }
 
+function resendConsumerSource(packageName: string): string {
+  return `
+const { createResendEmailTransport } = await import(${JSON.stringify(`${packageName}/resend`)});
+const transport = createResendEmailTransport({
+  apiKey: "test-key",
+  from: "briefs@example.test",
+});
+if (typeof transport.send !== "function") throw new Error("Resend export is unusable");
+`;
+}
+
+function resendTypeConsumerSource(packageName: string): string {
+  return `
+import {
+  createResendEmailTransport,
+  type ResendEmailTransportOptions,
+} from ${JSON.stringify(`${packageName}/resend`)};
+const options: ResendEmailTransportOptions = {
+  apiKey: "test-key",
+  from: "briefs@example.test",
+};
+createResendEmailTransport(options).send;
+`;
+}
+
 async function checkPackage(): Promise<void> {
   const distFiles = [
     join(root, "dist", "index.js"),
     join(root, "dist", "index.d.ts"),
     join(root, "dist", "langchain.js"),
     join(root, "dist", "langchain.d.ts"),
+    join(root, "dist", "resend.js"),
+    join(root, "dist", "resend.d.ts"),
   ];
   for (const file of distFiles) await readFile(file);
 
@@ -213,10 +257,11 @@ async function checkPackage(): Promise<void> {
     const packDirectory = join(temporaryRoot, "pack");
     const consumerDirectory = join(temporaryRoot, "consumer");
     const langchainConsumerDirectory = join(temporaryRoot, "langchain-consumer");
+    const resendConsumerDirectory = join(temporaryRoot, "resend-consumer");
     await mkdir(packDirectory);
     await mkdir(consumerDirectory);
     await mkdir(langchainConsumerDirectory);
-
+    await mkdir(resendConsumerDirectory);
     run("bun", ["pm", "pack", "--destination", packDirectory, "--ignore-scripts"], root);
     const packedFiles = (await readdir(packDirectory)).filter((file) => file.endsWith(".tgz"));
     assert(packedFiles.length === 1, "bun pm pack must create exactly one tarball");
@@ -302,6 +347,46 @@ async function checkPackage(): Promise<void> {
         "types.ts",
       ],
       langchainConsumerDirectory,
+    );
+    const resendDependencyPath = relative(resendConsumerDirectory, tarball);
+    await writeFile(
+      join(resendConsumerDirectory, "package.json"),
+      JSON.stringify(
+        {
+          private: true,
+          type: "module",
+          dependencies: { [packageName]: `file:${resendDependencyPath}` },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFile(
+      join(resendConsumerDirectory, "consumer.mjs"),
+      resendConsumerSource(packageName),
+    );
+    await writeFile(
+      join(resendConsumerDirectory, "types.ts"),
+      resendTypeConsumerSource(packageName),
+    );
+    run("bun", ["install", "--offline", "--ignore-scripts"], resendConsumerDirectory);
+    run("node", ["consumer.mjs"], resendConsumerDirectory);
+    run("bun", ["consumer.mjs"], resendConsumerDirectory);
+    run(
+      tsc,
+      [
+        "--noEmit",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--target",
+        "ES2022",
+        "--strict",
+        "--skipLibCheck",
+        "types.ts",
+      ],
+      resendConsumerDirectory,
     );
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });

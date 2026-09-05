@@ -127,7 +127,7 @@ Owns:
 - mapping ordinary transport failures to a stable `DeliveryOutcome`;
 - preserving caller cancellation as cancellation.
 
-The internal `deliverPreCallResult(transport, recipient, result, emailOptions?, signal?)` function returns `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`. It rejects empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, forwards a supplied signal by identity, and never mutates or adds delivery state to `PreCallResult`. No real provider exists.
+The internal `deliverPreCallResult(transport, recipient, result, emailOptions?, signal?)` function returns `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`. It rejects empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, forwards a supplied signal by identity, and never mutates or adds delivery state to `PreCallResult`. The optional `./resend` implementation sits behind this unchanged boundary.
 
 ### 8. Storage
 
@@ -242,7 +242,21 @@ PreCallResult
           DeliveryOutcome
 ```
 
-The implemented renderer, attachment builder, email packager, and internal transport boundary are separate, destination-neutral boundaries. Packaging fixes the subject, reuses the rendered bodies, and optionally includes the existing submission artifact. Delivery accepts the explicit trusted recipient, attempts the transport once, redacts ordinary transport errors, and preserves cancellation. A concrete provider, credentials, headers, retries, and other destination behavior remain outside this slice.
+The implemented renderer, attachment builder, email packager, and internal transport boundary are separate, destination-neutral boundaries. Packaging fixes the subject, reuses the rendered bodies, and optionally includes the existing submission artifact. Delivery accepts the explicit trusted recipient, attempts the transport once, redacts ordinary transport errors, and preserves cancellation. The optional `./resend` integration implements `EmailTransport` with direct fixed-endpoint fetch; provider credentials and sender remain trusted factory configuration.
+
+The provider-neutral core and optional integrations remain separate:
+
+```text
+provider-neutral core
+        ↓
+AIAdapter ← optional ./langchain
+
+provider-neutral delivery
+        ↓
+EmailTransport ← optional ./resend
+```
+
+`PreCallResult` remains distinct from `DeliveryOutcome`; neither stores provider metadata or delivery state.
 
 ## Runtime direction
 
@@ -278,9 +292,7 @@ MVP does not need:
 - built-in database;
 - HTTP framework;
 - job queue;
-- real AI provider;
-- real email provider;
-- Pi integration before the compatibility spike;
-- provider SDK;
+- provider registry or fallback graph;
+- provider SDK in the root bundle;
 - retry/fallback graph;
 - workflow engine.

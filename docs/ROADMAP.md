@@ -199,7 +199,7 @@ Implemented:
 - default and disabled attachment packaging forwarding;
 - one transport attempt with ordinary failure redaction and exact cancellation propagation;
 - delivery outcome remains separate from `PreCallResult`;
-- no real provider, SDK, retry, queue, webhook, MIME, or public export.
+- no provider SDK, retry, queue, webhook, MIME, or public provider export in the core.
 
 **Milestone:** An unavailable or successful `PreCallResult` can be packaged and delivered through a deterministic internal boundary without changing the result.
 
@@ -250,7 +250,7 @@ Goal:
 
 A full demo application is unnecessary.
 
-## Phase 13 — AI provider abstraction and first real adapter
+## Phase 13 — AI provider abstraction and first real adapters
 
 **Status: complete**
 
@@ -260,27 +260,30 @@ Implemented:
 - rejected/deferred Deep Agents for core;
 - selected direct `@langchain/core@1.2.9` model-layer integration with documented limitations;
 - added the optional `./langchain` adapter without changing the provider-neutral core;
-- added the deterministic PreCall analysis prompt;
-- added offline real-library integration coverage for success, vague input, invalid output, provider failure, privacy, injection boundaries, abort, and one-call behavior;
+- added the deterministic PreCall analysis prompt and offline AI integration coverage;
 - added an explicit opt-in synthetic live AI harness;
-- extended packed-package verification for root isolation and the optional integration under Node, Bun, and TypeScript.
+- evaluated Resend, Postmark, and Amazon SES v2;
+- selected `RESEND_WINS` using direct fixed-endpoint fetch rather than the SDK;
+- added optional `./resend` with explicit credentials, exact rendered-body/attachment mapping, abort propagation, one-attempt semantics, and opaque provider errors;
+- added deterministic provider mapping tests and an explicit opt-in live email harness;
+- added LangChain + delivery E2E coverage for success, AI failure, provider failure, and privacy;
+- extended packed-package verification for root, `./langchain`, and `./resend` under Node, Bun, and NodeNext TypeScript.
 
-**Milestone:** The core remains usable with a custom `AIAdapter`, while consumers may opt into a direct LangChain model instance without agent or tool orchestration.
+**Milestone:** Both first external boundaries now exist as optional integrations while the core remains provider-neutral.
 
 ## Next implementation batch
 
-Implement the first real email provider adapter, add its explicit opt-in live email harness, and verify the combined real-AI/fake-email flow before first public package preparation.
+Prepare the first public package: settle permanent naming, license, runtime/version policy, package metadata, release workflow, and publish dry-run.
 
 ## Phase 14 — First public package preparation
 
 Before publishing, settle:
 
-- permanent package/repository name;
+- permanent product/repository name;
+- exact npm package name;
 - license;
-- minimum Node version;
+- minimum supported Node version;
 - exact Bun support policy;
-- first real AI adapter;
-- first email transport.
 
 Add release workflow:
 

@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 13/14 — Optional LangChain model-layer adapter and live AI harness complete; ready for the first real email provider.**
+**Phase 13/14 — Optional LangChain AI and Resend email integrations complete; ready for first public package preparation.**
 
-The provider bake-off is complete. The core remains provider-neutral while the optional `./langchain` integration supplies one direct LangChain model-layer adapter. Deterministic offline integration tests and packed-package consumer checks pass. No real email provider exists.
+The provider bake-offs are complete. The core remains provider-neutral while optional `./langchain` and `./resend` integrations provide direct provider-backed adapters. Deterministic offline integration tests, built-in AI/delivery E2E tests, live harnesses, and packed-package consumer checks pass.
 
 ## Deterministic default renderer
 
@@ -25,7 +25,7 @@ Implemented in the internal `src/presentation/render.ts` module:
 
 `includeInOutput=false` guarantees direct omission from the renderer and attachment source projections. If that field was deliberately sent to AI, free-form AI analysis may still contain derived information; strong non-disclosure requires excluding the field from AI input upstream.
 
-The internal email transport and delivery orchestration remain provider-neutral. The package root now intentionally exports the public facade, canonical intake error, and only the types required to configure or implement supported extension points. No real email or AI provider exists.
+The internal email transport and delivery orchestration remain provider-neutral. The package root now intentionally exports the public facade, canonical intake error, and only the types required to configure or implement supported extension points. Optional `./langchain` and `./resend` integrations remain separate package surfaces.
 
 ## Output-permitted submission attachment
 
@@ -69,7 +69,7 @@ Implemented in the internal `src/analysis/input.ts` module:
 - An all-private submission produces `{ fields: [] }` without error.
 - Permitted hostile-looking client text is preserved exactly as data; no prompt-injection sanitization is performed.
 
-The internal adapter and analysis execution boundary are implemented without a provider SDK, prompt, or model call. The package root remains intentionally empty.
+The internal adapter, deterministic prompt, and analysis execution boundary are implemented. The package root remains provider-neutral; LangChain is available only through the optional `./langchain` subpath.
 
 ## AnalysisResult schema
 
@@ -101,7 +101,7 @@ Implemented in the internal `src/analysis/run.ts` module:
 - caller cancellation propagates before, during, and after adapter execution;
 - the adapter is invoked at most once.
 
-No real AI provider, prompt implementation, or public `process()` API exists yet.
+The optional LangChain model-layer adapter and deterministic analysis prompt are implemented behind `./langchain`.
 
 ## Core result composition
 
@@ -143,7 +143,7 @@ Completed baseline:
 - Repository scripts cover formatting, linting, typechecking, tests, coverage, building, the repository contract, and aggregate checks.
 - GitHub Actions CI runs frozen installation, the repository contract, non-mutating formatting and linting, typechecking, tests, and build on pull requests and pushes to `main`.
 
-No product implementation, provider SDK, email transport, framework, database, or speculative module tree was added.
+No framework, database, provider SDK, email queue, or provider registry was added to the core. Optional direct integrations remain isolated behind explicit package subpaths.
 
 ## Permanent name
 
@@ -266,7 +266,9 @@ The optional adapter receives only `AnalysisInput`, separates trusted system ins
 
 `bun run live-ai:check` is implemented but not run without explicit credentials. It requires `PRECALL_LIVE_AI=1`, `PRECALL_LIVE_AI_PROVIDER=openai`, `PRECALL_LIVE_AI_MODEL`, and `PRECALL_LIVE_AI_API_KEY`; it uses synthetic fixture data and is excluded from CI and `check`.
 
-The first real email provider remains absent.
+`bun run live-email:check` is implemented but not run without explicit credentials. It requires `PRECALL_LIVE_EMAIL=1`, `PRECALL_LIVE_EMAIL_API_KEY`, `PRECALL_LIVE_EMAIL_FROM`, and `PRECALL_LIVE_EMAIL_TO`; it uses a deterministic synthetic PreCall result, sends exactly one Resend message, and is excluded from CI and `check`.
+
+Full live AI plus live email E2E was not run.
 
 ## Email state
 
@@ -283,7 +285,8 @@ Settled behavior:
 - cancellation propagates its exact reason and is not converted to a failed delivery;
 - delivery makes one transport attempt and returns a separate `DeliveryOutcome`;
 - public `precall.deliver()` is a thin wrapper over the internal delivery boundary;
-- no real provider or provider SDK exists.
+- `RESEND_WINS`: the optional `./resend` transport uses direct `fetch()` against the fixed `https://api.resend.com/emails` endpoint;
+- `createResendEmailTransport({ apiKey, from })` snapshots explicit trusted configuration and maps rendered content/attachments without provider SDK dependencies.
 
 ## Security state
 
@@ -360,12 +363,9 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, and package-contract phases:
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, package-contract, optional-AI, and optional-email phases:
 
 - exact minimum Node version;
-- first real AI transport/provider;
-- first real email provider/transport;
-- whether Pi passes the provider spike;
 - exact npm package name;
 - permanent product/repository name;
 - open-source license;
@@ -373,4 +373,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Implement the first real email provider adapter, add its opt-in live email harness, and verify the combined real-AI/fake-email flow.
+Prepare the first public package: settle permanent naming, license, runtime/version policy, package metadata, release workflow, and publish dry-run.

@@ -12,6 +12,10 @@
     "./langchain": {
       "types": "./dist/langchain.d.ts",
       "import": "./dist/langchain.js"
+    },
+    "./resend": {
+      "types": "./dist/resend.d.ts",
+      "import": "./dist/resend.js"
     }
   },
   "files": [
@@ -29,6 +33,7 @@
     "build": "tsdown",
     "package:check": "bun scripts/check-package.ts",
     "live-ai:check": "bun scripts/live-ai.ts",
+    "live-email:check": "bun scripts/live-email.ts",
     "check:repo": "bun scripts/check-repo.ts",
     "check": "bun run check:repo && bun run format:check && bun run lint:ci && bun run typecheck && bun run test && bun run build && bun run package:check"
   },
