@@ -163,7 +163,7 @@ Implemented:
 - all-private output as `{}` with a trailing newline;
 - standard JSON `-0` behavior (`-0` becomes `0`).
 
-The attachment is an output-permitted structured view derived from normalized fields, not `request.original` or exact original HTTP bytes. It contains no analysis or policy metadata. Email packaging is a separate completed phase; transport remains a future stage.
+The attachment is an output-permitted structured view derived from normalized fields, not `request.original` or exact original HTTP bytes. It contains no analysis or policy metadata. Email packaging is complete, and internal transport/delivery is now complete; a real provider remains a future stage.
 
 **Milestone:** `PreCallResult` now produces both deterministic brief output and a structured submission artifact.
 
@@ -188,16 +188,26 @@ Packaging is synchronous, pure, deterministic, non-mutating, and transport-free.
 
 ## Phase 9 — Email transport boundary
 
-Implement:
+**Status: complete**
 
-- `EmailTransport`;
-- deterministic fake transport;
-- trusted delivery request/addressing configuration;
-- delivery outcome separate from `PreCallResult`;
+Implemented:
 
-Do not select a real provider until the fake transport boundary is proven.
+- internal provider-neutral `EmailTransport` boundary over `RenderedEmail`;
+- deterministic fake transport in focused tests only;
+- trusted explicit recipient forwarding with empty/whitespace/CR/LF rejection;
+- positional internal delivery orchestration returning `DeliveryOutcome`;
+- default and disabled attachment packaging forwarding;
+- one transport attempt with ordinary failure redaction and exact cancellation propagation;
+- delivery outcome remains separate from `PreCallResult`;
+- no real provider, SDK, retry, queue, webhook, MIME, or public export.
 
-## Phase 10 — Package contract
+**Milestone:** An unavailable or successful `PreCallResult` can be packaged and delivered through a deterministic internal boundary without changing the result.
+
+## Phase 10 — Public API and fake end-to-end flow
+
+Implement the first intentional public `createPrecall()` / `process()` API and prove a complete consumer flow using fake AI and email adapters. Keep the internal delivery boundary provider-neutral and keep `src/index.ts` limited to deliberate exports.
+
+## Phase 11 — Package contract
 
 After public API is real:
 
@@ -207,8 +217,7 @@ After public API is real:
 - clean-consumer install;
 - Bun smoke;
 - Node smoke.
-
-## Phase 11 — Next.js integration proof
+## Phase 12 — Next.js integration proof
 
 Add a small example using:
 
@@ -222,7 +231,7 @@ Goal:
 
 A full demo application is unnecessary.
 
-## Phase 12 — Pi AI spike
+## Phase 13 — Pi AI spike
 
 After the fake-adapter core is green:
 
@@ -240,7 +249,7 @@ Possible outcome B:
 
 Either outcome keeps the core unchanged.
 
-## Phase 13 — First public package preparation
+## Phase 14 — First public package preparation
 
 Before publishing, settle:
 

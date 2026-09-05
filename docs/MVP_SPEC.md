@@ -308,8 +308,7 @@ The unavailable reason is stored on `analysis.reason`. Raw provider errors and m
 
 ### Caller cancellation
 
-The deterministic default renderer now renders successful and unavailable analysis as HTML/plain text. Email delivery remains a future stage.
-
+Caller cancellation propagates without returning a `PreCallResult` or a delivery failure outcome.
 
 ## Email behavior
 
@@ -334,6 +333,8 @@ Empty sections should generally be omitted rather than converted into unjustifie
 Fallback email packaging should clearly state that AI enrichment was unavailable and still include the permitted submitted fields.
 
 The package includes one `submission.json` attachment by default. This is an output-permitted structured view, not the complete authoritative source or original HTTP bytes. `attachRawSubmission=false` disables the attachment without changing the subject or bodies.
+
+The internal delivery boundary accepts a trusted explicit recipient and the rendered package. It rejects empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, attempts the transport once, maps ordinary transport errors to `{ status: "failed", reason: "transport_error" }`, and propagates cancellation unchanged. Delivery returns a separate `DeliveryOutcome`; it never mutates or adds delivery state to `PreCallResult`.
 
 ## MVP acceptance cases
 

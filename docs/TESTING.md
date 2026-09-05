@@ -210,10 +210,17 @@ Deterministic packaging tests must prove:
 
 ## Email/delivery tests
 
-- successful analysis + successful email;
-- fallback analysis + successful email;
-- email provider failure does not destroy `PreCallResult`;
-- attachment failure can become partial delivery rather than destroying the intake.
+Deterministic fake-transport tests must prove:
+
+- successful analysis and unavailable analysis both deliver;
+- the request contains the trusted recipient and the rendered package;
+- valid recipients are preserved verbatim while empty/whitespace/CR/LF recipients reject before send;
+- supplied `AbortSignal` identity is forwarded and an absent signal is omitted;
+- ordinary transport errors produce only `{ status: "failed", reason: "transport_error" }`;
+- cancellation propagates its exact reason before, during, and after one transport attempt;
+- packaging options are forwarded, including attachment disabled;
+- exactly one transport attempt occurs;
+- delivery leaves the original `PreCallResult` unchanged and separate.
 
 ## Real provider tests
 

@@ -90,6 +90,17 @@ Owner: **email destination/transport boundary**
 Recipient and headers should come from trusted configuration.
 
 Do not use arbitrary client text as raw email headers.
+The implemented internal delivery boundary validates the explicit trusted recipient before packaging or transport:
+
+- empty or whitespace-only recipients are rejected;
+- recipients containing CR or LF are rejected;
+- valid recipients are preserved verbatim;
+- recipients are never derived from client submission fields;
+- the fixed package subject and attachment filename remain library-controlled;
+- ordinary transport errors are converted to a stable failure outcome without exposing raw errors;
+- caller cancellation is rethrown unchanged rather than converted to transport failure.
+
+The transport receives only the explicit recipient, `RenderedEmail`, and an optional caller `AbortSignal`. It is attempted once; provider, credential, retry, queue, and logging behavior remain outside this internal boundary.
 
 ### Attachment filename injection
 

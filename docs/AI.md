@@ -124,6 +124,7 @@ Its ordinary outcomes are:
 - caller cancellation propagates before invocation, during adapter execution, and after output parsing rather than becoming fallback.
 
 No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists in this slice. The adapter is invoked at most once, and accepted output is the schema-parsed value rather than the adapter-owned object.
+Email delivery consumes the already-composed `PreCallResult` through deterministic packaging; it never calls AI, changes analysis state, or makes AI fallback results undeliverable. The internal email transport remains provider-neutral and is not a model/provider implementation.
 
 ## Adapter ownership
 

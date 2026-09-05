@@ -382,27 +382,35 @@ The attachment is an output-permitted structured view, not the authoritative sou
 
 ## 24. Delivery remains separate
 
-A delivery result should not become part of the core domain result.
-
-Conceptually:
+Delivery state must not become part of `PreCallResult`. The internal delivery boundary consumes a valid result and returns a separate outcome.
 
 ```ts
+type EmailDeliveryRequest = {
+  recipient: string
+  email: RenderedEmail
+  signal?: AbortSignal
+}
+
+interface EmailTransport {
+  send(request: EmailDeliveryRequest): Promise<void>
+}
+
 type DeliveryOutcome =
-  | {
-      status: 'succeeded'
-      providerId?: string
-    }
-  | {
-      status: 'partial'
-      issues: ProcessingIssue[]
-    }
-  | {
-      status: 'failed'
-      issues: ProcessingIssue[]
-    }
+  | { status: "sent" }
+  | { status: "failed"; reason: "transport_error" }
+
+type DeliverPreCallResultRequest = {
+  result: PreCallResult
+  recipient: string
+  transport: EmailTransport
+  email?: EmailPackagingOptions
+  signal?: AbortSignal
+}
 ```
 
-A processing result can therefore survive an email-provider failure.
+The current internal `deliverPreCallResult(transport, recipient, result, emailOptions?, signal?)` validates the trusted recipient, calls `createRenderedEmail(result, emailOptions)`, invokes `transport.send()` exactly once, and returns the separate outcome. It maps ordinary transport failures to `transport_error`, rethrows caller cancellation unchanged, and does not expose provider errors or provider metadata.
+
+Valid recipients are preserved verbatim. Empty/whitespace recipients and recipients containing CR or LF are rejected before packaging or transport. A supplied signal is forwarded by identity; an absent signal is omitted. Successful and unavailable `PreCallResult` values are both deliverable, and delivery does not mutate the result.
 
 ## 25. Rendered email
 

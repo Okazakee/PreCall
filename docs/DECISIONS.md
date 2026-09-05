@@ -282,6 +282,25 @@ The synchronous artifact builder does not decide recipients or package email con
 
 The internal package uses the fixed subject `Pre-Call Brief`, reuses deterministic HTML/text and the output-permitted submission artifact, and contains no addressing, general headers, provider metadata, or delivery state.
 
+### D-078 — Delivery remains separate from processing
+
+**Status:** Settled
+
+Delivery consumes a valid `PreCallResult` and returns a separate `DeliveryOutcome`. It never mutates the result or adds delivery state to the core domain object.
+
+### D-079 — Recipients are explicit trusted application input
+
+**Status:** Settled
+
+The internal delivery boundary accepts the recipient explicitly from the consuming application, preserves valid values verbatim, and rejects empty/whitespace or CR/LF-containing values. It never derives recipients from submitted fields.
+
+### D-080 — Delivery failure is minimal and provider-neutral
+
+**Status:** Settled
+
+One transport attempt maps ordinary transport errors to `transport_error` without exposing raw errors or provider metadata. Cancellation remains cancellation and is not a failed delivery outcome.
+
+
 ## Architecture
 
 ### D-017 — Reusable structured result is the main boundary

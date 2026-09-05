@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 8 — Deterministic email packaging complete; ready for the EmailTransport boundary.**
+**Phase 9 — Internal email transport and delivery orchestration complete; ready for the first public API.**
 
-The repository composes a detached normalized request snapshot, renders an internal deterministic brief, creates a separate output-permitted JSON attachment artifact, and packages those artifacts into an internal logical email representation. Email transport and provider integration remain future stages.
+The repository composes a detached normalized request snapshot, renders an internal deterministic brief, creates a separate output-permitted JSON attachment artifact, packages those artifacts into an internal logical email representation, and can deliver that package through a provider-neutral internal transport boundary. No real provider or public processing API exists yet.
 
 ## Deterministic default renderer
 
@@ -25,7 +25,7 @@ Implemented in the internal `src/presentation/render.ts` module:
 
 `includeInOutput=false` guarantees direct omission from the renderer and attachment source projections. If that field was deliberately sent to AI, free-form AI analysis may still contain derived information; strong non-disclosure requires excluding the field from AI input upstream.
 
-No `EmailTransport` exists yet. No email is actually sent. No real AI provider exists yet.
+The internal `EmailTransport` boundary and delivery orchestration now exist. No real email is sent, no provider SDK exists, and the package root remains intentionally empty.
 
 ## Output-permitted submission attachment
 
@@ -182,7 +182,8 @@ submission
 → PreCallResult
 → deterministic renderer + submission attachment
 → createRenderedEmail()
-→ future EmailTransport
+→ trusted recipient + EmailTransport
+→ DeliveryOutcome
 ```
 
 Fallback:
@@ -191,8 +192,11 @@ Fallback:
 AI fails / output invalid
 → analysis unavailable
 → raw fallback result
-→ email may still proceed
+→ deterministic email packaging
+→ delivery may still proceed
 ```
+
+Delivery remains separate from processing: `PreCallResult` is never extended with delivery state or mutated by the delivery boundary.
 
 ## Current implementation stack
 
@@ -266,7 +270,12 @@ Settled behavior:
 - `attachRawSubmission` defaults to `true`;
 - `attachRawSubmission=false` omits attachments without changing subject or bodies;
 - enabled packaging includes one output-permitted `submission.json`;
-- recipients, headers, provider behavior, and delivery outcomes remain outside packaging and are not implemented.
+- `EmailTransport.send()` receives a trusted explicit recipient and `RenderedEmail`;
+- valid recipients are preserved verbatim, while empty/whitespace and CR/LF-containing recipients are rejected;
+- ordinary transport errors map to `{ status: "failed", reason: "transport_error" }` without exposing raw errors;
+- cancellation propagates its exact reason and is not converted to a failed delivery;
+- delivery makes one transport attempt and returns a separate `DeliveryOutcome`;
+- no real provider, provider SDK, or public delivery API exists.
 
 ## Security state
 
@@ -348,7 +357,7 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, and email-packaging phases:
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, and internal-delivery phases:
 
 - exact minimum Node version;
 - first real email provider/transport;
@@ -361,4 +370,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Implement the internal `EmailTransport` boundary with a deterministic fake transport, keeping delivery outcome separate from `PreCallResult`.
+Expose the first intentional public `createPrecall()` / `process()` API and prove a complete fake-adapter/fake-transport end-to-end consumer flow.

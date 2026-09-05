@@ -28,7 +28,9 @@ PreCallResult
                 ↓
         createRenderedEmail()
                 ↓
-        RenderedEmail
+        trusted recipient + EmailTransport
+                ↓
+        DeliveryOutcome
 ```
 
 Analysis failure follows a preserved-request branch:
@@ -40,9 +42,11 @@ valid normalized request
 PreCallResult with analysis unavailable
         ↓
 deterministic fallback presentation
+        ↓
+email packaging and delivery may still proceed
 ```
 
-Presentation and deterministic email packaging are complete for the internal artifacts. Delivery remains a future stage and consumes `RenderedEmail` without rerunning analysis.
+Presentation, deterministic email packaging, and the internal delivery boundary are complete. Delivery consumes `RenderedEmail` without rerunning analysis.
 
 ## Main responsibility boundaries
 
@@ -115,13 +119,15 @@ Creates a deterministic `SubmissionAttachment` from output-visible normalized fi
 
 ### 7. Delivery
 
-Sends a rendered email somewhere.
+Owns:
 
-MVP destination:
+- accepting a trusted explicit recipient;
+- packaging the existing `PreCallResult` into a `RenderedEmail`;
+- invoking the provider-neutral `EmailTransport` exactly once;
+- mapping ordinary transport failures to a stable `DeliveryOutcome`;
+- preserving caller cancellation as cancellation.
 
-- email through a future transport boundary.
-
-Delivery does not rerun analysis.
+The internal `deliverPreCallResult(transport, recipient, result, emailOptions?, signal?)` function returns `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`. It rejects empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, forwards a supplied signal by identity, and never mutates or adds delivery state to `PreCallResult`. No real provider exists.
 
 ### 8. Storage
 
@@ -153,7 +159,7 @@ A valid intake can survive when AI fails.
 
 ### Delivery success != processing success
 
-An email provider can fail while the structured result remains valid and available to the consumer.
+An email transport can fail while the structured result remains valid and available to the consumer.
 
 ## Public API direction
 
@@ -171,7 +177,7 @@ const result = await precall.process({
 Architecturally, delivery remains separate:
 
 ```ts
-await precall.deliver(result, ...)
+await deliverPreCallResult(transport, recipient, result, emailOptions, signal)
 ```
 
 A convenience combined call may be added if implementation proves it useful, but it is not necessary to prove the MVP.
@@ -234,12 +240,12 @@ PreCallResult
                 ↓
            RenderedEmail
                 ↓
-        future EmailTransport
+     trusted recipient + EmailTransport
                 ↓
           DeliveryOutcome
 ```
 
-The implemented renderer, attachment builder, and email packager are separate, destination-neutral boundaries. Packaging fixes the subject, reuses the rendered bodies, and optionally includes the existing submission artifact. Transport owns trusted recipients, headers, provider behavior, and delivery outcomes.
+The implemented renderer, attachment builder, email packager, and internal transport boundary are separate, destination-neutral boundaries. Packaging fixes the subject, reuses the rendered bodies, and optionally includes the existing submission artifact. Delivery accepts the explicit trusted recipient, attempts the transport once, redacts ordinary transport errors, and preserves cancellation. A concrete provider, credentials, headers, retries, and other destination behavior remain outside this slice.
 
 ## Runtime direction
 
