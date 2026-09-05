@@ -165,6 +165,7 @@ The internal `src/presentation/render.ts` module consumes `PreCallResult` and re
 
 The renderer escapes AI strings for HTML but cannot provide semantic taint tracking. An output-private field that was deliberately sent to AI may still influence free-form analysis text.
 The separate submission attachment builder does not consume AI output or call the adapter; it serializes only the output-permitted normalized submission fields.
+Email packaging consumes the existing `PreCallResult` through the renderer and attachment builder; it does not invoke AI or accept provider-specific state.
 
 ## Structured output
 

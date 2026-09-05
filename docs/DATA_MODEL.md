@@ -378,7 +378,7 @@ type SubmissionAttachment = {
 
 `createSubmissionAttachment(result)` is synchronous, pure, deterministic, and I/O-free. It serializes only output-visible normalized fields as top-level field-key-to-value members in normalized order, with no labels, descriptions, policy metadata, analysis, or `request.original`. The JSON is pretty-printed with two spaces and a trailing newline, then encoded as UTF-8. All-private output produces `{}` plus a trailing newline. Standard JSON serialization represents `-0` as `0`.
 
-The attachment is an output-permitted structured view, not the authoritative source or exact original HTTP bytes. Email packaging decides later whether to include it.
+The attachment is an output-permitted structured view, not the authoritative source or exact original HTTP bytes. The internal email packager may include it as one logical attachment.
 
 ## 24. Delivery remains separate
 
@@ -406,18 +406,22 @@ A processing result can therefore survive an email-provider failure.
 
 ## 25. Rendered email
 
-Conceptually:
+The internal `src/presentation/email.ts` module packages the deterministic presentation artifacts:
 
 ```ts
+type EmailPackagingOptions = {
+  attachRawSubmission?: boolean
+}
+
 type RenderedEmail = {
-  subject: string
+  subject: "Pre-Call Brief"
   html: string
   text: string
-  attachments: EmailAttachment[]
+  attachments: SubmissionAttachment[]
 }
 ```
 
-Email packaging remains future work and will consume the independent `RenderedBrief` and `SubmissionAttachment` artifacts.
+`createRenderedEmail(result, options?)` calls `renderPreCallResult()` once and, unless `attachRawSubmission === false`, calls `createSubmissionAttachment()` once. The default and explicit `true` behavior includes exactly one attachment; explicit `false` returns no attachments without changing the subject or bodies. The package contains no recipient, headers, provider, or delivery state and remains internal.
 
 ## 26. Schema philosophy
 

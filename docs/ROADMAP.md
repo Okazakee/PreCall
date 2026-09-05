@@ -163,32 +163,39 @@ Implemented:
 - all-private output as `{}` with a trailing newline;
 - standard JSON `-0` behavior (`-0` becomes `0`).
 
-The attachment is an output-permitted structured view derived from normalized fields, not `request.original` or exact original HTTP bytes. It contains no analysis or policy metadata. Email packaging and transport remain separate future stages.
+The attachment is an output-permitted structured view derived from normalized fields, not `request.original` or exact original HTTP bytes. It contains no analysis or policy metadata. Email packaging is a separate completed phase; transport remains a future stage.
 
 **Milestone:** `PreCallResult` now produces both deterministic brief output and a structured submission artifact.
 
 ## Phase 8 — Deterministic email packaging
 
-Implement:
+**Status: complete**
 
-- package `RenderedBrief` and `SubmissionAttachment`;
-- subject and trusted recipient handling;
-- raw attachment inclusion policy.
+Implemented:
 
-Do not send email in this phase.
+- internal `EmailPackagingOptions` with optional `attachRawSubmission`;
+- internal `RenderedEmail` with only `subject`, `html`, `text`, and `attachments`;
+- fixed subject `Pre-Call Brief` without untrusted interpolation;
+- exact HTML/text reuse from one deterministic renderer invocation;
+- attachment-builder reuse with default-on `submission.json`;
+- explicit `attachRawSubmission=false` returning no attachments without changing bodies;
+- valid `{}` attachment retained when all submitted fields are output-private;
+- no recipients, headers, providers, or delivery state.
+
+Packaging is synchronous, pure, deterministic, non-mutating, and transport-free.
+
+**Milestone:** `RenderedBrief` and `SubmissionAttachment` now compose into an internal `RenderedEmail`.
 
 ## Phase 9 — Email transport boundary
 
 Implement:
 
 - `EmailTransport`;
-- fake transport;
-- delivery outcome;
-- result survival on delivery failure.
+- deterministic fake transport;
+- trusted delivery request/addressing configuration;
+- delivery outcome separate from `PreCallResult`;
 
-Then select one real email provider/transport.
-
-Do not build a universal email framework.
+Do not select a real provider until the fake transport boundary is proven.
 
 ## Phase 10 — Package contract
 

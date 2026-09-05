@@ -24,11 +24,11 @@ PreCallResult
         ├→ deterministic brief renderer
         │       ├→ RenderedBrief.html
         │       └→ RenderedBrief.text
-        └→ output-permitted submission projection
+        └→ output-permitted submission artifact
                 ↓
-             JSON UTF-8 bytes
+        createRenderedEmail()
                 ↓
-        SubmissionAttachment
+        RenderedEmail
 ```
 
 Analysis failure follows a preserved-request branch:
@@ -42,7 +42,7 @@ PreCallResult with analysis unavailable
 deterministic fallback presentation
 ```
 
-Presentation is complete for the default internal brief and output-permitted submission artifact. Delivery remains a future stage and consumes these artifacts without rerunning analysis.
+Presentation and deterministic email packaging are complete for the internal artifacts. Delivery remains a future stage and consumes `RenderedEmail` without rerunning analysis.
 
 ## Main responsibility boundaries
 
@@ -107,7 +107,7 @@ Implemented default presentation:
 - successful and unavailable analysis branches;
 - positive output-field projection from normalized fields.
 
-Presentation does not reinterpret the project, call AI, or perform I/O. Email packaging is a future delivery concern.
+Presentation does not reinterpret the project, call AI, or perform I/O. Email packaging consumes these artifacts without changing their semantics.
 
 ### 6. Submission artifact
 
@@ -115,11 +115,11 @@ Creates a deterministic `SubmissionAttachment` from output-visible normalized fi
 
 ### 7. Delivery
 
-Sends rendered artifacts somewhere.
+Sends a rendered email somewhere.
 
 MVP destination:
 
-- email.
+- email through a future transport boundary.
 
 Delivery does not rerun analysis.
 
@@ -218,7 +218,7 @@ interface AIAdapter {
 
 `AIAnalysisRequest` contains only the privacy-filtered `AnalysisInput` and an optional caller `AbortSignal`. The adapter output remains unknown until `AnalysisResultSchema` validates it. `runAnalysis()` makes at most one attempt and returns either a schema-parsed succeeded result or an explicit unavailable code for no input, adapter error, or invalid output. Caller cancellation propagates rather than becoming fallback.
 
-## Future email architecture
+## Email packaging and transport architecture
 
 ```text
 PreCallResult
@@ -228,18 +228,18 @@ PreCallResult
         │
         └──→ output-permitted submission projection
                 ↓
-             JSON bytes
+             SubmissionAttachment
                 ↓
-        SubmissionAttachment
+        createRenderedEmail()
                 ↓
-        deterministic email package
+           RenderedEmail
                 ↓
-        EmailTransport
-        ↓
-    DeliveryOutcome
+        future EmailTransport
+                ↓
+          DeliveryOutcome
 ```
 
-The implemented brief renderer and attachment builder are separate, destination-neutral boundaries. Future email packaging decides whether to include both artifacts; transport owns provider-specific sending. Recipients and headers must come from trusted application configuration.
+The implemented renderer, attachment builder, and email packager are separate, destination-neutral boundaries. Packaging fixes the subject, reuses the rendered bodies, and optionally includes the existing submission artifact. Transport owns trusted recipients, headers, provider behavior, and delivery outcomes.
 
 ## Runtime direction
 

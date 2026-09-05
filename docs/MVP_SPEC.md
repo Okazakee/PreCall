@@ -158,9 +158,18 @@ It does not call AI or perform I/O. Successful and unavailable analysis branches
 
 ### 9. Email as first destination
 
-MVP includes one built-in email destination abstraction.
+MVP includes deterministic logical email packaging as an internal content boundary. It does not send email or resolve recipients.
 
-Rendering and transport remain separate.
+```ts
+type RenderedEmail = {
+  subject: "Pre-Call Brief"
+  html: string
+  text: string
+  attachments: SubmissionAttachment[]
+}
+```
+
+`createRenderedEmail(result, options?)` reuses the existing deterministic renderer and output-permitted submission attachment builder. The fixed subject contains no client or AI interpolation.
 
 ### 10. Output-permitted submission attachment
 
@@ -172,7 +181,7 @@ content type: application/json
 bytes: UTF-8 JSON
 ```
 
-The payload contains only normalized field keys and values where `includeInOutput === true`, in normalized field order. It contains no labels, descriptions, policy metadata, analysis, or `request.original`. An all-private output produces `{}` with a trailing newline. Email packaging later decides whether to include the artifact; the builder has no attachment configuration.
+The payload contains only normalized field keys and values where `includeInOutput === true`, in normalized field order. It contains no labels, descriptions, policy metadata, analysis, or `request.original`. An all-private output produces `{}` with a trailing newline. Email packaging includes it by default and may disable it with `attachRawSubmission=false`.
 
 ### 11. Graceful no-AI fallback
 
@@ -304,8 +313,9 @@ The deterministic default renderer now renders successful and unavailable analys
 
 ## Email behavior
 
-A successful brief should normally contain:
+A successful logical email package should normally contain:
 
+- deterministic fixed subject;
 - summary;
 - request clarity;
 - client-stated facts;
@@ -316,12 +326,14 @@ A successful brief should normally contain:
 - discovery questions;
 - preliminary execution path;
 - confidence;
-- human-readable original submission;
+- output-permitted submitted fields;
 - processing note where useful.
 
 Empty sections should generally be omitted rather than converted into unjustified claims such as "No risks detected."
 
-Fallback email should clearly state that AI enrichment was unavailable and still include the permitted original submission.
+Fallback email packaging should clearly state that AI enrichment was unavailable and still include the permitted submitted fields.
+
+The package includes one `submission.json` attachment by default. This is an output-permitted structured view, not the complete authoritative source or original HTTP bytes. `attachRawSubmission=false` disables the attachment without changing the subject or bodies.
 
 ## MVP acceptance cases
 
@@ -334,9 +346,9 @@ The deterministic test suite must cover at least:
 5. malformed AI output;
 6. fields hidden from AI;
 7. fields hidden from professional-facing output;
-8. raw attachment default-on;
-9. raw attachment disabled;
-10. email failure while the structured result survives.
+8. default submission attachment;
+9. disabled submission attachment;
+10. email transport failure while the structured result survives.
 
 ## Explicitly deferred from MVP
 

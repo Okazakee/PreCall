@@ -159,7 +159,7 @@ Controls whether the field may appear in professional-facing outputs such as:
 
 - HTML email;
 - plain-text email;
-- raw source attachment.
+- output-permitted `submission.json` attachment.
 
 Example:
 
@@ -216,7 +216,7 @@ The internal default renderer:
 - omits provenance and policy metadata from the brief;
 - renders successful and unavailable results without exposing raw provider errors or malformed output.
 
-`includeInOutput=false` guarantees direct field omission from the default renderer. If the same field is deliberately sent to AI, AI-generated free-form analysis may still be influenced by it. Strong non-disclosure from AI-derived output requires preventing that data from reaching AI; the renderer does not provide semantic taint tracking or redaction.
+`includeInOutput=false` guarantees direct field omission from the default renderer and submission attachment. If the same field is deliberately sent to AI, AI-generated free-form analysis may still be influenced by it. Strong non-disclosure from AI-derived output requires preventing that data from reaching AI; the renderer and packager do not provide semantic taint tracking or redaction.
 
 ## Submission attachment guarantees
 
@@ -233,6 +233,17 @@ The internal submission attachment:
 - contains no analysis, policy metadata, email headers, provider data, or filesystem output.
 
 The artifact is an output-permitted structured view, not exact original HTTP bytes or the authoritative internal source.
+
+## Logical email packaging boundary
+
+The internal package:
+
+- uses the fixed subject `Pre-Call Brief` with no untrusted interpolation;
+- reuses renderer-owned HTML/text, so body escaping remains the renderer's responsibility;
+- reuses the attachment builder, so output privacy remains the attachment builder's responsibility;
+- contains no recipient, `to`, `from`, `replyTo`, `cc`, `bcc`, general headers, provider metadata, or delivery state.
+
+Recipient and header handling belong to the future trusted transport boundary. A future transport must not infer the professional recipient from client-submitted email fields.
 
 ## Raw source versus output-safe source view
 

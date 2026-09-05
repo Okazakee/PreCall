@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 7 — Output-permitted submission attachment complete; ready for deterministic email packaging.**
+**Phase 8 — Deterministic email packaging complete; ready for the EmailTransport boundary.**
 
-The repository composes a detached normalized request snapshot, renders an internal deterministic brief, and now creates a separate output-permitted JSON attachment artifact. Email packaging and transport remain future stages.
+The repository composes a detached normalized request snapshot, renders an internal deterministic brief, creates a separate output-permitted JSON attachment artifact, and packages those artifacts into an internal logical email representation. Email transport and provider integration remain future stages.
 
 ## Deterministic default renderer
 
@@ -25,7 +25,7 @@ Implemented in the internal `src/presentation/render.ts` module:
 
 `includeInOutput=false` guarantees direct omission from the renderer and attachment source projections. If that field was deliberately sent to AI, free-form AI analysis may still contain derived information; strong non-disclosure requires excluding the field from AI input upstream.
 
-No email packaging exists yet. No `EmailTransport` exists yet. No real AI provider exists yet.
+No `EmailTransport` exists yet. No email is actually sent. No real AI provider exists yet.
 
 ## Output-permitted submission attachment
 
@@ -41,6 +41,20 @@ Implemented in the internal `src/presentation/attachment.ts` module:
 - all-private output produces the valid `{}` artifact with a trailing newline;
 - `-0` follows standard JSON serialization and becomes `0`;
 - no analysis, policy metadata, labels, descriptions, or `request.original` enter the artifact.
+
+## Deterministic email packaging
+
+Implemented in the internal `src/presentation/email.ts` module:
+
+- `EmailPackagingOptions` contains only optional `attachRawSubmission`;
+- `RenderedEmail` contains exactly `subject`, `html`, `text`, and `attachments`;
+- `createRenderedEmail()` is synchronous, pure, deterministic, non-mutating, and I/O-free;
+- subject is fixed as `Pre-Call Brief` with no untrusted interpolation;
+- HTML and text come directly from one `renderPreCallResult()` invocation;
+- attachment inclusion defaults on and reuses `createSubmissionAttachment()`;
+- `attachRawSubmission=false` returns a fresh empty attachment array without creating an attachment;
+- enabled packaging includes exactly one `submission.json` artifact, including the established `{}` output for all-private fields;
+- no recipient, addressing, headers, provider, or delivery state exists in the package.
 
 ## AI-visible input boundary
 
@@ -166,10 +180,9 @@ submission
 → one AI analysis
 → Zod validation
 → PreCallResult
-→ deterministic renderer
-→ output-permitted JSON attachment
-→ future email packaging
-→ future email transport
+→ deterministic renderer + submission attachment
+→ createRenderedEmail()
+→ future EmailTransport
 ```
 
 Fallback:
@@ -246,13 +259,14 @@ If Pi is awkward, use a direct provider adapter without changing core architectu
 
 ## Email state
 
-Settled future behavior:
+Settled behavior:
 
-- deterministic email packaging consumes `RenderedBrief` and `SubmissionAttachment`;
-- recipient and headers come from trusted application configuration;
-- raw attachment inclusion is configurable at the later email-packaging boundary;
-- `includeInOutput=false` excludes data from direct renderer and attachment projections, but cannot guarantee semantic omission from free-form AI text when the field was deliberately sent to AI;
-- email transport and provider-specific failure behavior are not implemented.
+- deterministic packaging produces a fixed-subject `RenderedEmail`;
+- HTML/text are reused from the deterministic renderer;
+- `attachRawSubmission` defaults to `true`;
+- `attachRawSubmission=false` omits attachments without changing subject or bodies;
+- enabled packaging includes one output-permitted `submission.json`;
+- recipients, headers, provider behavior, and delivery outcomes remain outside packaging and are not implemented.
 
 ## Security state
 
@@ -334,7 +348,7 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, and submission-attachment phases:
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, and email-packaging phases:
 
 - exact minimum Node version;
 - first real email provider/transport;
@@ -347,4 +361,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Implement deterministic email packaging for the `RenderedBrief` and `SubmissionAttachment` artifacts, before adding email transport.
+Implement the internal `EmailTransport` boundary with a deterministic fake transport, keeping delivery outcome separate from `PreCallResult`.

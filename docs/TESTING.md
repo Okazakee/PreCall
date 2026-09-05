@@ -191,6 +191,23 @@ The deterministic attachment tests must prove:
 - no analysis or policy metadata;
 - deterministic repeated bytes and non-mutation.
 
+## Email packaging tests
+
+Deterministic packaging tests must prove:
+
+- successful and unavailable results are packageable;
+- `RenderedEmail` has only subject, html, text, and attachments;
+- subject is exactly `Pre-Call Brief`;
+- HTML/text exactly reuse the existing renderer output;
+- attachment inclusion defaults on;
+- explicit `attachRawSubmission=true` matches the default;
+- explicit `attachRawSubmission=false` returns no attachments without changing subject/bodies;
+- all-private output still attaches the established `{}` submission artifact when enabled;
+- attachment-builder output is reused without privacy bypass;
+- hostile client and AI body content cannot influence the subject or create logical headers;
+- no recipient, provider, transport, or delivery fields exist;
+- packages are deterministic and non-mutating.
+
 ## Email/delivery tests
 
 - successful analysis + successful email;

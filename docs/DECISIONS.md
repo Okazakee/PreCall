@@ -71,7 +71,7 @@ Budget remains important to the long-term product, but it is not required to pro
 
 The core result remains destination-independent.
 
-### D-010 — Raw submission email attachment defaults on
+### D-010 — Output-permitted submission email attachment defaults on
 
 **Status:** Settled
 
@@ -79,9 +79,7 @@ Working configuration concept:
 
 `attachRawSubmission: true`
 
-The consumer may disable it.
-
-Output privacy rules override the global attachment setting.
+Despite its historical name, this option toggles the output-permitted structured `submission.json` artifact, not raw HTTP bytes or unrestricted `request.original` data. The consumer may disable it. Output privacy rules always apply.
 
 ### D-011 — No generic partial-AI-result framework in v0
 
@@ -276,7 +274,13 @@ The artifact uses `submission.json` and `application/json` to avoid unnecessary 
 
 **Status:** Settled
 
-The synchronous artifact builder does not decide recipients, package email content, or consume `attachRawSubmission` configuration. A later email-packaging boundary decides whether to include it.
+The synchronous artifact builder does not decide recipients or package email content. The email-packaging boundary decides whether to include it.
+
+### D-077 — Email packaging is a fixed content envelope
+
+**Status:** Settled
+
+The internal package uses the fixed subject `Pre-Call Brief`, reuses deterministic HTML/text and the output-permitted submission artifact, and contains no addressing, general headers, provider metadata, or delivery state.
 
 ## Architecture
 
