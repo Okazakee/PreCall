@@ -250,23 +250,26 @@ Goal:
 
 A full demo application is unnecessary.
 
-## Phase 13 — Pi AI spike
+## Phase 13 — AI provider abstraction and first real adapter
 
-**Status: next**
+**Status: complete**
 
-Run a small Pi/provider compatibility spike against the stable public adapter contract.
+Implemented:
 
-Acceptance criteria are defined in `AI.md`.
+- evaluated `@oh-my-pi/pi-ai@18.1.10` and the current LangChain JavaScript model layer;
+- rejected/deferred Deep Agents for core;
+- selected direct `@langchain/core@1.2.9` model-layer integration with documented limitations;
+- added the optional `./langchain` adapter without changing the provider-neutral core;
+- added the deterministic PreCall analysis prompt;
+- added offline real-library integration coverage for success, vague input, invalid output, provider failure, privacy, injection boundaries, abort, and one-call behavior;
+- added an explicit opt-in synthetic live AI harness;
+- extended packed-package verification for root isolation and the optional integration under Node, Bun, and TypeScript.
 
-Possible outcome A:
+**Milestone:** The core remains usable with a custom `AIAdapter`, while consumers may opt into a direct LangChain model instance without agent or tool orchestration.
 
-- Pi becomes first official AI transport.
+## Next implementation batch
 
-Possible outcome B:
-
-- use a direct provider adapter.
-
-Either outcome keeps the core unchanged.
+Implement the first real email provider adapter, add its explicit opt-in live email harness, and verify the combined real-AI/fake-email flow before first public package preparation.
 
 ## Phase 14 — First public package preparation
 

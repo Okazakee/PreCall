@@ -379,3 +379,22 @@ Deferred, but any hosted version will need explicit decisions about:
 - managed credentials.
 
 Do not make compliance or legal claims without sufficient verified basis.
+
+## Provider integration controls
+
+The optional LangChain adapter is a narrow provider boundary:
+
+- only the already-filtered `AnalysisInput` is serialized for the model;
+- the authoritative `request.original` and field-policy metadata never enter the adapter;
+- trusted analysis instructions are a separate system message from the untrusted JSON data message;
+- submitted instructions remain data, and no analysis tools are supplied;
+- the canonical `AnalysisResultSchema` remains the final trust boundary;
+- the adapter forwards the caller `AbortSignal` and invokes the structured runnable once with `maxRetries: 0`;
+- ordinary provider errors are allowed to reach the core boundary and become `adapter_error`;
+- malformed or schema-invalid candidates become `invalid_output`, without repair or raw-output exposure.
+
+The integration captures a consumer-owned LangChain model reference but does not configure provider credentials or intentionally export intake to LangSmith. Its trace-context dependency initializes process-local async context and may inspect ambient LangSmith configuration while constructing the disabled isolation context; the adapter performs no trace submission. `@langchain/core` and `langsmith` are optional peers behind the explicit `./langchain` package export; the root entrypoint has no eager provider import.
+
+The live AI harness is not a security or quality guarantee for model behavior. It is synthetic, requires explicit opt-in and explicit credentials, performs no work without `PRECALL_LIVE_AI=1`, and is excluded from CI. Prompt-injection tests verify message separation and data authorization only; they do not prove that a model is immune to manipulation.
+
+The adapter rejects enabled LangChain/LangSmith tracing/verbose modes and consumer models with `verbose: true` before sending intake, then runs the invocation in an isolated callback context. Consumer-installed model callbacks remain an explicit consumer trust decision.

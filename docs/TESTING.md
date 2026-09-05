@@ -324,3 +324,24 @@ Examples:
 Coverage can be measured with Bun's coverage support, but a numerical threshold should not become the primary quality metric before the codebase exists.
 
 Behavioral invariant coverage matters more than chasing an arbitrary percentage.
+
+## Winning provider integration
+
+The provider bake-off is recorded in `docs/AI.md`. The selected optional integration uses `@langchain/core@1.2.9` and its public `fakeModel()`/runnable seam for deterministic offline tests. `src/langchain.test.ts` exercises the real `createPrecall()` → LangChain adapter path for:
+
+- representative and vague discovery-first structured results;
+- malformed output and provider failure mappings;
+- canonical `AnalysisResultSchema` derivation;
+- private-field absence from the model messages;
+- trusted system versus untrusted JSON data separation with hostile input;
+- caller signal forwarding, abort propagation, one invocation, and disabled retries.
+
+The test does not make paid calls. LangChain's provider-level retry behavior is disabled for the adapter invocation with `maxRetries: 0`; provider-specific model configuration remains consumer-owned.
+
+## Live harness policy
+
+`bun run live-ai:check` is deliberately separate from `check` and CI. Without `PRECALL_LIVE_AI=1` it exits without importing a provider or making a network request. Opt-in requires explicit OpenAI provider/model/key variables and uses only synthetic fitness-business data. Live assertions check stable structural invariants rather than model prose and the harness may remain not run when credentials are unavailable.
+
+## Optional package contract
+
+`package:check` validates both boundaries from the packed artifact: a root consumer installs and processes with only a custom `AIAdapter`, while a separate consumer with `@langchain/core@1.2.9` imports the `./langchain` subpath under Node, Bun, and NodeNext TypeScript declarations. The root export does not eagerly load the optional integration.

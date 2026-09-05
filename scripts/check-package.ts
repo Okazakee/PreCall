@@ -9,6 +9,8 @@ type PackageMetadata = {
   private?: unknown;
   exports?: unknown;
   files?: unknown;
+  peerDependencies?: unknown;
+  peerDependenciesMeta?: unknown;
 };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -41,7 +43,13 @@ function assertArchive(tarball: string): PackageMetadata {
     .split("\n")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-  const required = ["package/package.json", "package/dist/index.js", "package/dist/index.d.ts"];
+  const required = [
+    "package/package.json",
+    "package/dist/index.js",
+    "package/dist/index.d.ts",
+    "package/dist/langchain.js",
+    "package/dist/langchain.d.ts",
+  ];
   for (const entry of required)
     assert(entries.includes(entry), `packed artifact is missing ${entry}`);
 
@@ -66,14 +74,35 @@ function assertArchive(tarball: string): PackageMetadata {
     Array.isArray(metadata.files) && metadata.files.length === 1 && metadata.files[0] === "dist",
     "packed files metadata must contain only dist",
   );
+  const peers = metadata.peerDependencies;
+  assert(
+    typeof peers === "object" &&
+      peers !== null &&
+      Object.keys(peers).length === 2 &&
+      (peers as Record<string, unknown>)["@langchain/core"] === "1.2.9" &&
+      (peers as Record<string, unknown>).langsmith === ">=0.5.0 <1.0.0",
+    "packed optional peer dependencies are incorrect",
+  );
+  const peerMetadata = metadata.peerDependenciesMeta;
+  assert(
+    typeof peerMetadata === "object" &&
+      peerMetadata !== null &&
+      Object.keys(peerMetadata).length === 2 &&
+      (peerMetadata as Record<string, { optional?: unknown }>)["@langchain/core"]?.optional ===
+        true &&
+      (peerMetadata as Record<string, { optional?: unknown }>).langsmith?.optional === true,
+    "packed optional peer metadata is incorrect",
+  );
   assert(
     typeof metadata.exports === "object" && metadata.exports !== null,
     "packed exports metadata is missing",
   );
   const exportsMap = metadata.exports as Record<string, unknown>;
   assert(
-    Object.keys(exportsMap).length === 1 && Object.hasOwn(exportsMap, "."),
-    "packed exports must expose only the root entrypoint",
+    Object.keys(exportsMap).length === 2 &&
+      Object.hasOwn(exportsMap, ".") &&
+      Object.hasOwn(exportsMap, "./langchain"),
+    "packed exports must expose only the root and LangChain entrypoints",
   );
   const rootExport = exportsMap["."];
   assert(typeof rootExport === "object" && rootExport !== null, "packed root export is missing");
@@ -85,6 +114,20 @@ function assertArchive(tarball: string): PackageMetadata {
   assert(
     exportRecord.types === "./dist/index.d.ts",
     "packed type export must target dist/index.d.ts",
+  );
+  const langchainExport = exportsMap["./langchain"];
+  assert(
+    typeof langchainExport === "object" && langchainExport !== null,
+    "packed LangChain export is missing",
+  );
+  const langchainRecord = langchainExport as Record<string, unknown>;
+  assert(
+    langchainRecord.import === "./dist/langchain.js",
+    "packed LangChain import export must target dist/langchain.js",
+  );
+  assert(
+    langchainRecord.types === "./dist/langchain.d.ts",
+    "packed LangChain type export must target dist/langchain.d.ts",
   );
   return metadata;
 }
@@ -136,16 +179,43 @@ consume;
 `;
 }
 
+function langchainConsumerSource(packageName: string): string {
+  return `
+const { createLangChainAIAdapter } = await import(${JSON.stringify(`${packageName}/langchain`)});
+if (typeof createLangChainAIAdapter !== "function") throw new Error("LangChain export missing");
+`;
+}
+
+function langchainTypeConsumerSource(packageName: string): string {
+  return `
+import { fakeModel } from "@langchain/core/testing";
+import {
+  createLangChainAIAdapter,
+  type LangChainAIAdapterOptions,
+} from ${JSON.stringify(`${packageName}/langchain`)};
+const options: LangChainAIAdapterOptions = { model: fakeModel() };
+const adapter = createLangChainAIAdapter(options);
+adapter.generateAnalysis;
+`;
+}
+
 async function checkPackage(): Promise<void> {
-  const distFiles = [join(root, "dist", "index.js"), join(root, "dist", "index.d.ts")];
+  const distFiles = [
+    join(root, "dist", "index.js"),
+    join(root, "dist", "index.d.ts"),
+    join(root, "dist", "langchain.js"),
+    join(root, "dist", "langchain.d.ts"),
+  ];
   for (const file of distFiles) await readFile(file);
 
   const temporaryRoot = await mkdtemp(join(tmpdir(), "precall-package-check-"));
   try {
     const packDirectory = join(temporaryRoot, "pack");
     const consumerDirectory = join(temporaryRoot, "consumer");
+    const langchainConsumerDirectory = join(temporaryRoot, "langchain-consumer");
     await mkdir(packDirectory);
     await mkdir(consumerDirectory);
+    await mkdir(langchainConsumerDirectory);
 
     run("bun", ["pm", "pack", "--destination", packDirectory, "--ignore-scripts"], root);
     const packedFiles = (await readdir(packDirectory)).filter((file) => file.endsWith(".tgz"));
@@ -189,6 +259,49 @@ async function checkPackage(): Promise<void> {
         "types.ts",
       ],
       consumerDirectory,
+    );
+    const langchainDependencyPath = relative(langchainConsumerDirectory, tarball);
+    await writeFile(
+      join(langchainConsumerDirectory, "package.json"),
+      JSON.stringify(
+        {
+          private: true,
+          type: "module",
+          dependencies: {
+            [packageName]: `file:${langchainDependencyPath}`,
+            "@langchain/core": "1.2.9",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFile(
+      join(langchainConsumerDirectory, "consumer.mjs"),
+      langchainConsumerSource(packageName),
+    );
+    await writeFile(
+      join(langchainConsumerDirectory, "types.ts"),
+      langchainTypeConsumerSource(packageName),
+    );
+    run("bun", ["install", "--offline", "--ignore-scripts"], langchainConsumerDirectory);
+    run("node", ["consumer.mjs"], langchainConsumerDirectory);
+    run("bun", ["consumer.mjs"], langchainConsumerDirectory);
+    run(
+      tsc,
+      [
+        "--noEmit",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--target",
+        "ES2022",
+        "--strict",
+        "--skipLibCheck",
+        "types.ts",
+      ],
+      langchainConsumerDirectory,
     );
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });

@@ -566,3 +566,33 @@ Add hooks only when concrete consumer needs appear.
 **Status:** Settled
 
 Protect consistency, evaluation, and safe defaults first.
+
+### D-086 — Direct LangChain model layer selected
+
+**Status:** Settled
+
+The provider bake-off selected `@langchain/core@1.2.9` for the first optional integration, exposed only through `./langchain` as `createLangChainAIAdapter({ model })`. The consumer owns the concrete provider/model instance. Pi AI `18.1.10` was rejected because its portable structured-output path is tool-oriented, its public completion path has hidden replay/retry behavior, and its published Node package boundary is unsuitable for the packed Node consumer contract.
+
+### D-087 — Deep Agents is not part of the core AI path
+
+**Status:** Settled for MVP
+
+PreCall requires one bounded structured completion, not an autonomous agent harness with planning, filesystem, subagents, persistent state, or tools. Deep Agents is deferred unless a later product requirement establishes that need.
+
+### D-088 — Built-in AI integration remains optional
+
+**Status:** Settled
+
+`@langchain/core` is an optional peer and development dependency. The root package remains usable with a custom `AIAdapter` without installing the optional integration. The concrete adapter is available only through the explicit `./langchain` subpath.
+
+### D-089 — AnalysisResultSchema remains the final AI trust boundary
+
+**Status:** Settled
+
+LangChain structured-output validation is defense in depth. Adapter output remains `unknown` until the existing core `AnalysisResultSchema` accepts it; no provider schema or envelope changes core trust semantics.
+
+### D-090 — Live AI checks are explicit opt-in
+
+**Status:** Settled
+
+The live harness requires `PRECALL_LIVE_AI=1` plus explicit provider, model, and credential variables. It uses synthetic data, never runs in CI or `check`, and does not discover OMP credentials or print secrets.

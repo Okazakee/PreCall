@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 10/11 — Public facade and packed-package consumer contract complete; ready for the Pi/provider compatibility spike.**
+**Phase 13/14 — Optional LangChain model-layer adapter and live AI harness complete; ready for the first real email provider.**
 
-The repository now exposes a deliberately minimal public `createPrecall()` facade with stateless `process()` and `deliver()` methods. It preserves the detached request/result pipeline, supports consumer-supplied AI and email adapters, and verifies the actual packed private package under Node, Bun, and TypeScript declaration consumers. No real provider exists.
+The provider bake-off is complete. The core remains provider-neutral while the optional `./langchain` integration supplies one direct LangChain model-layer adapter. Deterministic offline integration tests and packed-package consumer checks pass. No real email provider exists.
 
 ## Deterministic default renderer
 
@@ -244,26 +244,29 @@ Edge portability is desirable, but not an MVP support claim.
 
 - the public facade owns a narrow `AIAdapter`;
 - the adapter receives only the already-filtered analysis input;
-- AI output will remain untrusted until Zod validation;
+- AI output remains untrusted until Zod validation;
 - no generic agent framework belongs in core;
-- no multi-provider fallback engine belongs in MVP.
+- no multi-provider fallback engine belongs in MVP;
+- `LANGCHAIN_MODEL_WINS`: direct `@langchain/core@1.2.9` model layer selected;
+- the optional integration is exported from `./langchain`;
+- `AnalysisResultSchema` remains the final trust boundary;
+- the adapter makes one structured runnable invocation with `maxRetries: 0`.
 
-### To validate
+### Provider bake-off result
 
-A small Pi-based provider/model layer is the leading first transport candidate.
+`@oh-my-pi/pi-ai@18.1.10` was rejected for this integration. Its structured result path is tool-oriented, its public completion path has hidden retry/replay behavior, and its package exports TypeScript source with only a Bun engine declaration, which conflicts with the packed Node consumer requirement.
 
-The Pi spike must test:
+The LangChain model layer passed with documented limitations. The direct `@langchain/core` abstraction provides `withStructuredOutput()` over Zod 4 and `Runnable.invoke()` with `AbortSignal`; broad provider support remains consumer/provider-package owned, and LangChain's general dependency footprint is intentionally kept out of the root package.
 
-- Bun;
-- packed Node consumer;
-- Next.js build;
-- multiple providers;
-- abort/timeout behavior;
-- schema-validation flow;
-- dependency impact;
-- absence of Pi-specific public API leakage.
+Deep Agents is rejected/deferred for core because PreCall requires one bounded structured model operation, not planning, filesystem, subagents, persistent state, or tool execution.
 
-If Pi is awkward, use a direct provider adapter without changing core architecture.
+The optional adapter receives only `AnalysisInput`, separates trusted system instructions from a JSON-serialized untrusted payload, forwards cancellation, disables retries per invocation, and returns no provider envelope or metadata. `@langchain/core` is an optional peer and a development dependency; `@langchain/openai` is development-only for the explicit live harness.
+
+### Live and email state
+
+`bun run live-ai:check` is implemented but not run without explicit credentials. It requires `PRECALL_LIVE_AI=1`, `PRECALL_LIVE_AI_PROVIDER=openai`, `PRECALL_LIVE_AI_MODEL`, and `PRECALL_LIVE_AI_API_KEY`; it uses synthetic fixture data and is excluded from CI and `check`.
+
+The first real email provider remains absent.
 
 ## Email state
 
@@ -370,4 +373,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Run the Pi/provider compatibility spike against the stable public/core contracts, then implement the first real AI adapter only if structured-output, runtime, abort, and package constraints pass.
+Implement the first real email provider adapter, add its opt-in live email harness, and verify the combined real-AI/fake-email flow.

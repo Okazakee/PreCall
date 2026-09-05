@@ -190,93 +190,71 @@ The public Precall architecture must not depend on one provider-specific structu
 
 MVP does not need a generalized provider-capabilities framework.
 
-## Pi direction
+## Provider abstraction bake-off
 
-A small Pi-based provider layer is a serious candidate for the first real AI transport.
+The September 2026 bake-off evaluated exactly:
 
-The current architectural preference is:
+- `@oh-my-pi/pi-ai@18.1.10`;
+- the current LangChain JavaScript model layer, using `@langchain/core@1.2.9`.
 
-- consider the provider/model layer (`pi-ai`);
-- do **not** make the full Pi agent harness part of core architecture;
-- do not adopt agent loops, sessions, tool orchestration, compaction, or coding-agent behavior for this product;
-- keep Pi entirely behind `AIAdapter`.
+`Deep Agents` was explicitly rejected/deferred for core. PreCall requires one bounded structured model operation, not planning, filesystem access, subagents, persistent state, or tool execution.
 
-This is a **direction to validate**, not yet a permanent dependency commitment.
+### Candidate comparison
 
-## Why Pi is interesting
+| Criterion | `@oh-my-pi/pi-ai@18.1.10` | LangChain model layer |
+|---|---|---|
+| One-call fit | Completion has hidden thinking-loop/replay retry paths | Direct `Runnable.invoke()` with per-call `maxRetries: 0` |
+| Structured output | No provider-neutral parsed result; portable route is tool-call arguments or textual parsing | `withStructuredOutput(AnalysisResultSchema)` accepts Zod 4 and returns a runnable |
+| Abort | Accepts `AbortSignal`, but provider abort may resolve an aborted partial message | `Runnable.invoke()` accepts `AbortSignal` and rejects cancellation |
+| Providers | Broad catalog, including OpenAI, Anthropic, Google, OpenRouter, Ollama, and gateways | Model/provider choice remains in consumer-owned LangChain provider packages |
+| Credentials | Explicit keys supported, but also automatic env/OAuth/auth resolution | Direct provider models accept explicit credentials; adapter does not configure provider credentials or opt into tracing |
+| Bun | Bun engine declared and deterministic mock model available | Bun works through the tested package path; provider packages remain consumer-selected |
+| Node | No Node engine promise; exports ESM TypeScript source | Compiled ESM/CJS and declarations; core requires Node >=20 |
+| Footprint | 542 files, about 7.1 MB unpacked, five lockstep Pi dependencies | `@langchain/core` is broad (about 7.6 MB unpacked) but remains optional; full `langchain`/agents are not used |
+| Offline testing | Public mock model | Public `@langchain/core/testing` fake model and runnable seam |
 
-It may reduce duplicated provider plumbing and offer access to multiple providers/models, including OpenCode-oriented paths, without forcing Precall itself to become a multi-provider SDK.
+Pi was rejected for this adapter because the structured-output and one-attempt requirements would require provider-specific/tool-oriented handling, while its published Node package boundary is not compatible with the packed Node consumer contract. LangChain model-layer support was selected with a documented limitation: direct provider packages and their provider-specific structured-output behavior remain consumer-owned, and the general LangChain dependency footprint is not suitable for the root package.
 
-The benefit must be weighed against:
+## Selected integration
 
-- structured-output limitations;
-- dependency/bundle cost;
-- runtime portability;
-- provider-specific behavior leaking through;
-- error/abort semantics.
+`LANGCHAIN_MODEL_WINS` — **PASS WITH DOCUMENTED LIMITATION**.
 
-## Pi spike
+The optional `./langchain` subpath exports `createLangChainAIAdapter({ model })`. The consumer owns the concrete LangChain model and provider package. The adapter captures that model reference, creates one structured runnable from the canonical `AnalysisResultSchema`, and invokes it once per request with `maxRetries: 0`.
 
-Do the Pi spike only after the core vertical slice works with a fake adapter.
+The root package has no LangChain runtime import and remains usable with a custom `AIAdapter` without installing `@langchain/core` or `langsmith`. The optional subpath imports LangChain message/runnable types and uses LangSmith's trace-context boundary, so it requires compatible optional `@langchain/core` and `langsmith` installations when used.
 
-Reason:
+The trace-context dependency initializes process-local async context and may inspect ambient LangSmith configuration while constructing the disabled isolation context; the adapter never posts a trace or sends intake to LangSmith. Provider credential selection remains the consumer's responsibility.
 
-```text
-core + fake adapter works
-→ provider experiment becomes isolated
-```
+## Analysis prompt and input
 
-Otherwise failures are difficult to attribute between Precall architecture, Pi, provider APIs, structured output, and runtime behavior.
+The adapter sends a trusted `SystemMessage` containing the internal pre-call role, no-sales/no-quote boundaries, no-research/no-tools rule, facts/inferences/assumptions/unknowns distinction, provenance requirements, discovery-first behavior for vague requests, qualitative confidence, and the prohibition on invented scope, prices, estimates, and deadlines.
 
-## Pi spike fixtures
+It sends the `AnalysisInput` separately as a JSON-serialized `HumanMessage`. Submitted values remain faithful untrusted data; instructions inside them are not commands. The adapter receives no original submission, privacy metadata, email package, or consumer configuration.
 
-Use at least:
+The output contract embedded in the trusted prompt is generated from `AnalysisResultSchema`; no duplicate manual schema exists. LangChain's structured-output validation is defense in depth. `runAnalysis()` performs the final canonical schema validation before a result can be trusted.
 
-### Representative incomplete inquiry
+## Failure and attempt semantics
 
-A small fitness business wants iOS/Android booking and membership management, has a website, budget around €15k, and wants to launch "fairly soon."
+The adapter returns only the structured candidate. It does not return provider messages, reasoning traces, usage, headers, or metadata.
 
-### Very vague inquiry
+- valid structured output → core schema validation → `succeeded`;
+- malformed or schema-invalid candidate → core `invalid_output`;
+- provider/network/auth/rate-limit failure → adapter throws → core `adapter_error`;
+- empty or truncated/unusable output → core `invalid_output`;
+- caller abort → exact cancellation propagates;
+- one model runnable invocation per request; no repair, retry, fallback model, or agent loop.
 
-Example:
+The adapter sets `maxRetries: 0` on every runnable invocation. Direct provider configuration should also disable provider-level retries where that provider exposes its own option; this integration does not claim a universal guarantee for arbitrary third-party model implementations.
 
-> We need some kind of app for our business so customers don't have to call us. We're not really sure what features it needs.
+## Offline and live verification
 
-Expected behavior:
+Offline tests use the public LangChain fake/runnable seam and the real PreCall facade. They cover representative and vague valid outputs, malformed output, provider errors, prompt/data separation, private-field absence, schema derivation, signal forwarding/abort, and one invocation.
 
-- low clarity;
-- few confirmed facts;
-- discovery-first output;
-- no invented feature architecture.
+`bun run live-ai:check` is an explicit opt-in harness only. Without `PRECALL_LIVE_AI=1` it performs no network call. With opt-in it requires `PRECALL_LIVE_AI_PROVIDER=openai`, `PRECALL_LIVE_AI_MODEL`, and `PRECALL_LIVE_AI_API_KEY`, uses synthetic fitness-business data, dynamically loads `@langchain/openai`, and asserts stable structural invariants. It is not part of CI or `check`.
 
-### Hostile client text
+The adapter rejects enabled LangChain/LangSmith tracing and verbose environment flags, consumer models with `verbose: true`, and inherited callback context before sending intake; it also pins the live OpenAI harness to the official API endpoint.
 
-Example content includes an instruction to ignore system instructions or mark assumptions as facts.
-
-Expected behavior:
-
-- content remains data;
-- output still follows Precall's trusted task;
-- no hidden-system-content disclosure;
-- no forced false certainty.
-
-## Pi acceptance criteria
-
-Pi becomes the first official AI transport only if the spike demonstrates:
-
-- clean Bun usage;
-- packed Node consumer usage;
-- Next.js server build compatibility;
-- useful multi-provider behavior through one adapter;
-- workable abort/timeout behavior;
-- structured result parsing + Zod validation;
-- no need for Pi agent/session machinery;
-- no Pi-specific public types leaking into Precall core;
-- acceptable package impact.
-
-If Pi fails primarily on structured output or runtime behavior, keep `AIAdapter` and use a direct provider implementation instead.
-
-No core redesign should be necessary.
+The real email provider remains absent. Research, budget analysis, multi-provider fallback, and agent infrastructure remain deferred.
 
 ## Multi-provider fallback
 

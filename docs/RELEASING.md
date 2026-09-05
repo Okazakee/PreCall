@@ -208,3 +208,18 @@ Before first public publish, explicitly settle:
 - exact Bun support policy;
 - first real AI transport;
 - first real email transport.
+
+## Optional AI integration package contract
+
+The first built-in AI integration is optional and exported from `./langchain`. It uses direct `@langchain/core@1.2.9` model abstractions plus the `langsmith` trace-context boundary; consumers provide compatible optional peers and the concrete provider package/model instance. Neither peer is imported by the root entrypoint.
+
+Packed-package verification must continue to prove:
+
+- the root import and custom `AIAdapter` flow work without `@langchain/core`;
+- the explicit `./langchain` subpath imports with compatible `@langchain/core` and `langsmith` peers installed;
+- Node and Bun runtime imports succeed;
+- NodeNext TypeScript declarations compile;
+- root and integration runtime/declaration files are present;
+- source, tests, docs, temporary consumers, secrets, and media are absent.
+
+The live AI harness is not part of `check`, CI, or package validation. It requires explicit opt-in and credentials and may never run during normal release validation.
