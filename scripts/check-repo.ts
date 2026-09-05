@@ -14,10 +14,10 @@ export const REQUIRED_SCRIPTS = [
   "test:watch",
   "test:coverage",
   "build",
+  "package:check",
   "check",
   "check:repo",
 ] as const;
-
 export const REQUIRED_FILES = [
   "biome.json",
   ".oxlintrc.json",
@@ -25,8 +25,9 @@ export const REQUIRED_FILES = [
   "tsdown.config.ts",
   "bun.lock",
   "src/index.ts",
+  "src/precall.ts",
+  "scripts/check-package.ts",
 ] as const;
-
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 type PackageJson = {

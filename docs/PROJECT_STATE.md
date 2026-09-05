@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 9 — Internal email transport and delivery orchestration complete; ready for the first public API.**
+**Phase 10/11 — Public facade and packed-package consumer contract complete; ready for the Pi/provider compatibility spike.**
 
-The repository composes a detached normalized request snapshot, renders an internal deterministic brief, creates a separate output-permitted JSON attachment artifact, packages those artifacts into an internal logical email representation, and can deliver that package through a provider-neutral internal transport boundary. No real provider or public processing API exists yet.
+The repository now exposes a deliberately minimal public `createPrecall()` facade with stateless `process()` and `deliver()` methods. It preserves the detached request/result pipeline, supports consumer-supplied AI and email adapters, and verifies the actual packed private package under Node, Bun, and TypeScript declaration consumers. No real provider exists.
 
 ## Deterministic default renderer
 
@@ -25,7 +25,7 @@ Implemented in the internal `src/presentation/render.ts` module:
 
 `includeInOutput=false` guarantees direct omission from the renderer and attachment source projections. If that field was deliberately sent to AI, free-form AI analysis may still contain derived information; strong non-disclosure requires excluding the field from AI input upstream.
 
-The internal `EmailTransport` boundary and delivery orchestration now exist. No real email is sent, no provider SDK exists, and the package root remains intentionally empty.
+The internal email transport and delivery orchestration remain provider-neutral. The package root now intentionally exports the public facade, canonical intake error, and only the types required to configure or implement supported extension points. No real email or AI provider exists.
 
 ## Output-permitted submission attachment
 
@@ -186,17 +186,21 @@ submission
 → DeliveryOutcome
 ```
 
-Fallback:
+Public facade:
 
 ```text
-AI fails / output invalid
-→ analysis unavailable
-→ raw fallback result
-→ deterministic email packaging
-→ delivery may still proceed
+createPrecall(config)
+        ↓
+precall.process({ submission, signal? })
+        ↓
+PreCallResult
+        ↓
+precall.deliver({ result, transport, recipient, email?, signal? })
+        ↓
+DeliveryOutcome
 ```
 
-Delivery remains separate from processing: `PreCallResult` is never extended with delivery state or mutated by the delivery boundary.
+The configured facade snapshots trusted field and limit configuration at creation, captures the adapter reference, stores no request state, and supports concurrent calls. Delivery remains separate from processing: `PreCallResult` is never extended with delivery state or mutated by the public boundary.
 
 ## Current implementation stack
 
@@ -238,8 +242,8 @@ Edge portability is desirable, but not an MVP support claim.
 
 ### Settled direction
 
-- core will own a narrow `AIAdapter`;
-- the adapter will receive only the already-filtered analysis input;
+- the public facade owns a narrow `AIAdapter`;
+- the adapter receives only the already-filtered analysis input;
 - AI output will remain untrusted until Zod validation;
 - no generic agent framework belongs in core;
 - no multi-provider fallback engine belongs in MVP.
@@ -275,7 +279,8 @@ Settled behavior:
 - ordinary transport errors map to `{ status: "failed", reason: "transport_error" }` without exposing raw errors;
 - cancellation propagates its exact reason and is not converted to a failed delivery;
 - delivery makes one transport attempt and returns a separate `DeliveryOutcome`;
-- no real provider, provider SDK, or public delivery API exists.
+- public `precall.deliver()` is a thin wrapper over the internal delivery boundary;
+- no real provider or provider SDK exists.
 
 ## Security state
 
@@ -319,27 +324,22 @@ Use fake external adapters in ordinary CI.
 
 ## CI baseline
 
-Day-one quality:
+The repository contract now covers:
 
 ```text
 frozen Bun install
-→ repo contract
-→ lint/check
+→ repository contract
+→ format
+→ lint
 → typecheck
-→ unit/integration tests
+→ tests
 → build
+→ packed-package consumer smoke
 ```
 
-After public API exists:
+The package smoke packs the existing `dist` artifact into an OS temporary directory, validates metadata and contents, installs offline, and runs the consumer under Node and Bun plus a NodeNext declaration check. CI runs it after the existing build.
 
-```text
-pack npm artifact
-→ clean consumer install
-→ Bun smoke
-→ Node smoke
-```
-
-Add Next.js server example/build smoke when that integration exists.
+No real provider credentials or network access are required.
 
 ## Simplifications intentionally made
 
@@ -357,17 +357,17 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, and internal-delivery phases:
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, and package-contract phases:
 
 - exact minimum Node version;
+- first real AI transport/provider;
 - first real email provider/transport;
-- whether Pi passes the future provider spike;
+- whether Pi passes the provider spike;
 - exact npm package name;
 - permanent product/repository name;
 - open-source license;
-- exact release tooling beyond the settled flow;
-- whether `process()` alone is sufficient initially or whether a convenience combined API is immediately useful.
+- exact release tooling beyond the settled flow.
 
 ## Immediate next action
 
-Expose the first intentional public `createPrecall()` / `process()` API and prove a complete fake-adapter/fake-transport end-to-end consumer flow.
+Run the Pi/provider compatibility spike against the stable public/core contracts, then implement the first real AI adapter only if structured-output, runtime, abort, and package constraints pass.

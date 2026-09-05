@@ -415,25 +415,55 @@ function ownValueIfPresent(target: object, key: string): unknown {
   return descriptor.value;
 }
 
-/** Validate, detach, and normalize a configured submission in definition order. */
-export function normalizeSubmission(
+/** Resolve trusted intake configuration once for a configured facade. */
+export interface ResolvedIntakeConfiguration {
+  readonly limits: IntakeLimits;
+  readonly definitions: ReadonlyMap<string, ResolvedFieldDefinition>;
+}
+
+export function resolveIntakeConfiguration(
   definitions: unknown,
-  submission: unknown,
   limitOverrides: unknown = {},
-): NormalizedSubmission {
+): ResolvedIntakeConfiguration {
   const limits = resolveLimits(limitOverrides);
-  const definitionMap = resolveDefinitions(definitions, limits);
-  const { snapshot, values } = cloneSubmission(submission, limits);
+  return { limits, definitions: resolveDefinitions(definitions, limits) };
+}
+
+function normalizeResolvedSubmission(
+  configuration: ResolvedIntakeConfiguration,
+  submission: unknown,
+): NormalizedSubmission {
+  const { snapshot, values } = cloneSubmission(submission, configuration.limits);
 
   for (const key of values.keys()) {
-    if (!definitionMap.has(key)) fail("invalid_submission");
+    if (!configuration.definitions.has(key)) fail("invalid_submission");
   }
   const fields: NormalizedField[] = [];
-  for (const [key, definition] of definitionMap) {
+  for (const [key, definition] of configuration.definitions) {
     const value = values.get(key);
     if (value !== undefined) {
       fields.push(normalizedField(definition, value));
     }
   }
   return { original: snapshot, fields };
+}
+
+/** Validate, detach, and normalize a configured submission in definition order. */
+export function normalizeSubmission(
+  definitions: unknown,
+  submission: unknown,
+  limitOverrides: unknown = {},
+): NormalizedSubmission {
+  return normalizeResolvedSubmission(
+    resolveIntakeConfiguration(definitions, limitOverrides),
+    submission,
+  );
+}
+
+/** Normalize a submission against a previously validated trusted configuration. */
+export function normalizeSubmissionWithConfiguration(
+  configuration: ResolvedIntakeConfiguration,
+  submission: unknown,
+): NormalizedSubmission {
+  return normalizeResolvedSubmission(configuration, submission);
 }

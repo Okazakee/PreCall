@@ -205,18 +205,37 @@ Implemented:
 
 ## Phase 10 — Public API and fake end-to-end flow
 
-Implement the first intentional public `createPrecall()` / `process()` API and prove a complete consumer flow using fake AI and email adapters. Keep the internal delivery boundary provider-neutral and keep `src/index.ts` limited to deliberate exports.
+**Status: complete**
+
+Implemented:
+
+- public `createPrecall()` factory;
+- stateless configured `Precall` facade with `process()` and `deliver()`;
+- creation-time validation and snapshotting of trusted fields and limits;
+- raw structured submissions entering only through canonical intake validation;
+- public AI and email adapter extension points with unknown AI output;
+- explicit trusted recipient and separate `DeliveryOutcome`;
+- representative fake-backed process → result → delivery integration coverage;
+- explicit root exports without low-level pipeline helpers.
+
+**Milestone:** A consumer can configure fields and fake adapters, process raw structured input, inspect `PreCallResult`, and deliver it through a fake transport.
 
 ## Phase 11 — Package contract
 
-After public API is real:
+**Status: complete**
 
-- build;
-- npm pack;
-- validate artifact;
-- clean-consumer install;
-- Bun smoke;
-- Node smoke.
+Implemented:
+
+- existing `dist` artifact packed with Bun without rebuilding inside the smoke;
+- tarball metadata, root export targets, `private`, and `files: ["dist"]` validation;
+- forbidden source/test/docs/temp/secret/media path rejection;
+- offline installation into an OS temporary consumer;
+- Node and Bun runtime smoke;
+- NodeNext TypeScript declaration consumer smoke;
+- `package:check` included in `check` and CI.
+
+**Milestone:** The actual packed private package installs, imports, runs, and exposes usable declarations.
+
 ## Phase 12 — Next.js integration proof
 
 Add a small example using:
@@ -233,9 +252,9 @@ A full demo application is unnecessary.
 
 ## Phase 13 — Pi AI spike
 
-After the fake-adapter core is green:
+**Status: next**
 
-Test a small Pi-based AI transport.
+Run a small Pi/provider compatibility spike against the stable public adapter contract.
 
 Acceptance criteria are defined in `AI.md`.
 

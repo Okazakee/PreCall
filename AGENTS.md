@@ -9,7 +9,7 @@
 
 ## Bootstrap and tooling
 
-- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; intake and AI-visible projection remain internal while the processing API is still being established.
+- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; `createPrecall()` is the intentional public facade while low-level intake, analysis, presentation, and delivery helpers remain internal.
 - Use Bun for package management and tooling. Use Zod 4 for runtime validation.
 - TypeScript is strict: retain `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `isolatedModules`; do not weaken compiler settings to make code pass.
 - Do not couple the core to a framework, database, or provider without an explicit project decision. Avoid speculative abstractions, extra packages, and generic agent/plugin infrastructure.
@@ -28,6 +28,7 @@
 - Professional-facing submission artifacts must be constructed from normalized fields using positive `includeInOutput === true` allowlisting; never serialize `request.original` directly.
 - Email packaging must reuse the deterministic renderer and submission artifact; it must not rerun AI, derive recipients from client input, or introduce provider-specific delivery logic.
 - Delivery must use a trusted explicit recipient, reject empty/whitespace and CR/LF-containing values, suppress ordinary transport errors, propagate caller cancellation, attempt the transport once, and never mutate `PreCallResult` or add delivery state; provider logic remains outside the core.
+- The package root must use explicit minimal exports: `createPrecall` and `IntakeValidationError` as runtime values, plus only the public facade, adapter, result, delivery, and presentation types required by consumers. Never use `export *` or expose low-level pipeline helpers/schemas.
 
 ## Changes and verification
 

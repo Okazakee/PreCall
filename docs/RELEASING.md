@@ -56,35 +56,40 @@ Use concurrency cancellation for obsolete runs where appropriate.
 
 ### Quality job
 
-Expected flow:
+The current CI flow is:
 
 ```text
 checkout
 → setup pinned Bun
 → bun install --frozen-lockfile
 → repository contract check
-→ lint/check
+→ format check
+→ lint
 → typecheck
 → bun test
 → build
+→ setup Node 22.22.0
+→ package:check
 ```
+
+`package:check` consumes the existing build, packs the actual private package into an OS temporary directory, validates metadata and contents, installs offline into a clean consumer, runs Node and Bun runtime smoke, and compiles a NodeNext TypeScript declaration consumer. It does not publish, run lifecycle scripts, or use network access.
 
 No database, Docker, real AI, or real email service is required for the MVP library.
 
 ## Package contract job
 
-Once the public package API exists:
+The packed package is now a required repository contract, not a future release-only check:
 
 ```text
-build
-→ pack the actual npm artifact
-→ inspect/validate package
-→ install tarball into clean consumer
-→ import public API
-→ execute fake-adapter smoke
+existing dist
+→ bun pm pack --ignore-scripts
+→ inspect tarball and export metadata
+→ offline clean-consumer install
+→ Node + Bun public API smoke
+→ NodeNext declaration smoke
 ```
 
-This is a core engineering practice: prove what consumers install, not only the source checkout.
+This proves what consumers install, not only the source checkout.
 
 ## Runtime smoke
 

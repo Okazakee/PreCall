@@ -300,6 +300,36 @@ The internal delivery boundary accepts the recipient explicitly from the consumi
 
 One transport attempt maps ordinary transport errors to `transport_error` without exposing raw errors or provider metadata. Cancellation remains cancellation and is not a failed delivery outcome.
 
+### D-081 — Public API is a stateless configured facade
+
+**Status:** Settled
+
+Consumers use `createPrecall(config)` to obtain `process()` and `deliver()` methods without orchestrating internal pipeline stages. The instance stores trusted configuration only and no per-request state.
+
+### D-082 — Trusted configuration is snapshotted at creation
+
+**Status:** Settled
+
+Field definitions and intake limits are validated and detached during `createPrecall()`. Later mutation of caller-owned configuration cannot change privacy or limit behavior.
+
+### D-083 — Public adapters remain semantic extension points
+
+**Status:** Settled
+
+Consumers implement `AIAdapter` and `EmailTransport`; AI output remains `unknown` until strict core validation, and delivery receives an explicit trusted recipient.
+
+### D-084 — Low-level pipeline helpers remain internal
+
+**Status:** Settled
+
+The package root exports only the intentional facade, canonical intake error, and types required for supported extension points. Schemas and implementation helpers are not public bypasses.
+
+### D-085 — Packed consumer verification is a repository gate
+
+**Status:** Settled
+
+`package:check` validates the private tarball, offline consumer installation, Node/Bun runtime behavior, and NodeNext declarations without publishing or network access.
+
 
 ## Architecture
 

@@ -36,6 +36,16 @@ future research content
 ```
 
 The public API should enforce this distinction by construction.
+The public facade enforces the same separation by construction:
+
+- `createPrecall()` accepts trusted application configuration;
+- `process()` accepts only the untrusted submission payload;
+- field definitions and limits are validated and snapshotted at creation;
+- later caller mutation cannot change privacy policy or intake limits;
+- each call owns independent normalized/result state;
+- `deliver()` accepts its recipient and transport explicitly.
+
+The package root does not export normalizers, projection builders, schemas, renderers, packagers, or delivery helpers that could bypass these boundaries. `AIAdapter` output remains `unknown` until strict core validation.
 
 ## Threat/owner split
 

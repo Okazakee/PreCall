@@ -158,7 +158,7 @@ It does not call AI or perform I/O. Successful and unavailable analysis branches
 
 ### 9. Email as first destination
 
-MVP includes deterministic logical email packaging as an internal content boundary. It does not send email or resolve recipients.
+MVP includes deterministic logical email packaging and a public delivery entrypoint backed by a caller-supplied `EmailTransport`. The core does not resolve recipients or select a provider; the consumer supplies the trusted recipient and transport.
 
 ```ts
 type RenderedEmail = {
@@ -170,6 +170,8 @@ type RenderedEmail = {
 ```
 
 `createRenderedEmail(result, options?)` reuses the existing deterministic renderer and output-permitted submission attachment builder. The fixed subject contains no client or AI interpolation.
+
+The public `createPrecall()` facade composes raw structured submissions into `PreCallResult` values and exposes `deliver()` as a separate operation. Configuration is validated and snapshotted at creation; processing does not automatically send email.
 
 ### 10. Output-permitted submission attachment
 

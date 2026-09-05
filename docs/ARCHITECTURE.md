@@ -163,37 +163,34 @@ An email transport can fail while the structured result remains valid and availa
 
 ## Public API direction
 
-Current preferred API shape:
+The first intentional public facade is:
 
 ```ts
-const precall = createPrecall(config)
+const precall = createPrecall({
+  ai,
+  fields,
+  limits,
+})
 
 const result = await precall.process({
   submission,
   signal,
 })
+
+const delivery = await precall.deliver({
+  result,
+  transport,
+  recipient,
+  email,
+  signal,
+})
 ```
 
-Architecturally, delivery remains separate:
+`createPrecall()` validates trusted adapter/configuration inputs and snapshots field definitions and limits at creation. The returned instance stores no per-request state and safely supports concurrent `process()` calls. `process()` accepts only untrusted submission data and delegates to the existing normalization and analysis boundaries. `deliver()` delegates to the existing delivery boundary; it does not duplicate recipient validation, packaging, failure mapping, or abort handling.
 
-```ts
-await deliverPreCallResult(transport, recipient, result, emailOptions, signal)
-```
+The root package exports `createPrecall` and `IntakeValidationError` as runtime values. It exports only the types required to configure the facade or implement the semantic AI/email extension points. Schemas, normalizers, renderers, packagers, result composers, and delivery helpers remain internal.
 
-A convenience combined call may be added if implementation proves it useful, but it is not necessary to prove the MVP.
-
-The configured instance must remain stateless between requests.
-
-Do not design APIs like:
-
-```text
-setSubmission()
-analyze()
-send()
-reset()
-```
-
-because shared server instances must be safe for concurrent calls.
+The packed-package smoke verifies this public contract from the actual tarball under Node and Bun and compiles a NodeNext TypeScript consumer against the generated declarations.
 
 ## Trusted versus untrusted configuration
 
@@ -214,7 +211,7 @@ Client fields must not be able to alter:
 
 ## AI boundary
 
-The core owns a small internal AI interface:
+`AIAdapter` is a public semantic extension point:
 
 ```ts
 interface AIAdapter {
@@ -222,7 +219,7 @@ interface AIAdapter {
 }
 ```
 
-`AIAnalysisRequest` contains only the privacy-filtered `AnalysisInput` and an optional caller `AbortSignal`. The adapter output remains unknown until `AnalysisResultSchema` validates it. `runAnalysis()` makes at most one attempt and returns either a schema-parsed succeeded result or an explicit unavailable code for no input, adapter error, or invalid output. Caller cancellation propagates rather than becoming fallback.
+The adapter receives only the privacy-filtered `AnalysisInput` and an optional caller `AbortSignal`. The output remains `unknown` until `AnalysisResultSchema` validates it. `runAnalysis()` makes at most one attempt and returns either a schema-parsed succeeded result or an explicit unavailable code for no input, adapter error, or invalid output. Caller cancellation propagates rather than becoming fallback.
 
 ## Email packaging and transport architecture
 
@@ -281,10 +278,9 @@ MVP does not need:
 - built-in database;
 - HTTP framework;
 - job queue;
-- event bus;
-- dependency-injection framework;
-- agent framework;
-- vector database;
-- generic middleware system;
-- plugin marketplace architecture;
+- real AI provider;
+- real email provider;
+- Pi integration before the compatibility spike;
+- provider SDK;
+- retry/fallback graph;
 - workflow engine.

@@ -23,8 +23,9 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "build": "tsdown",
+    "package:check": "bun scripts/check-package.ts",
     "check:repo": "bun scripts/check-repo.ts",
-    "check": "bun run check:repo && bun run format:check && bun run lint:ci && bun run typecheck && bun run test && bun run build"
+    "check": "bun run check:repo && bun run format:check && bun run lint:ci && bun run typecheck && bun run test && bun run build && bun run package:check"
   },
   "dependencies": {
     "zod": "^4.0.0"

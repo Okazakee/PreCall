@@ -13,6 +13,7 @@ const expectedScripts = [
   "test:watch",
   "test:coverage",
   "build",
+  "package:check",
   "check",
   "check:repo",
 ];
@@ -24,6 +25,8 @@ const expectedFiles = [
   "tsdown.config.ts",
   "bun.lock",
   "src/index.ts",
+  "src/precall.ts",
+  "scripts/check-package.ts",
 ];
 
 test("the repository satisfies its bootstrap contract", () => {

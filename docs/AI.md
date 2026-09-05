@@ -86,9 +86,9 @@ The schema keeps facts and inferences structurally distinct, requires non-empty 
 
 Zod remains the source of truth for runtime validation, inferred types, and provider-facing JSON Schema conversion. The internal execution layer receives `AnalysisInput`, while future concrete adapters may use the generated schema internally; no provider or model call exists yet.
 
-## Implemented AIAdapter boundary
+## Implemented public AIAdapter boundary
 
-The internal `AIAdapter` in `src/analysis/run.ts` is deliberately semantic:
+`AIAdapter` is a public semantic extension point implemented by consumers:
 
 ```ts
 interface AIAdapter {
@@ -124,11 +124,12 @@ Its ordinary outcomes are:
 - caller cancellation propagates before invocation, during adapter execution, and after output parsing rather than becoming fallback.
 
 No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists in this slice. The adapter is invoked at most once, and accepted output is the schema-parsed value rather than the adapter-owned object.
-Email delivery consumes the already-composed `PreCallResult` through deterministic packaging; it never calls AI, changes analysis state, or makes AI fallback results undeliverable. The internal email transport remains provider-neutral and is not a model/provider implementation.
+
+Public delivery consumes the already-composed `PreCallResult` through deterministic packaging; it never calls AI, changes analysis state, or makes AI fallback results undeliverable. The internal email transport remains provider-neutral and is not a model/provider implementation.
 
 ## Adapter ownership
 
-The adapter owns only the future transport boundary: given permitted analysis input, it may attempt to produce the structured analysis output. It does not own:
+The AI adapter owns only semantic analysis execution: given permitted analysis input, it may attempt to produce structured analysis output. It does not own:
 
 - field privacy;
 - prompt-injection policy;
@@ -158,7 +159,7 @@ no_input / adapter_error / invalid_output
 → analysis.reason preserves the machine-readable reason
 ```
 
-The result contains no intermediate `AnalysisInput`, provider metadata, processing state, or delivery state. No public processing API exists yet.
+The public `createPrecall()` facade is the consumer entrypoint for processing. It returns the same minimal `PreCallResult` without intermediate `AnalysisInput`, provider metadata, processing state, or delivery state.
 
 ## Deterministic presentation boundary
 

@@ -222,6 +222,21 @@ Deterministic fake-transport tests must prove:
 - exactly one transport attempt occurs;
 - delivery leaves the original `PreCallResult` unchanged and separate.
 
+## Public facade tests
+
+The public contract tests must import from `src/index.ts` only and prove:
+
+- representative raw structured submissions produce succeeded `PreCallResult` values;
+- private AI fields are absent from `AnalysisInput` but can remain in permitted professional output;
+- AI exceptions and malformed output remain unavailable analysis outcomes;
+- invalid submissions and invalid creation configuration preserve `IntakeValidationError`;
+- fields, limits, and adapter references are snapshotted at `createPrecall()`;
+- one configured instance handles concurrent submissions without state leakage;
+- public process and delivery signals preserve identity and abort behavior;
+- delivery failure preserves the result and maps to `transport_error`;
+- disabled attachments and cross-instance delivery work;
+- the runtime namespace contains only intentional value exports.
+
 ## Real provider tests
 
 Ordinary pull-request CI should not require paid AI or email credentials.
@@ -244,21 +259,18 @@ They are supplementary, not a replacement for deterministic fakes.
 
 ## Package-contract testing
 
-Source tests are not enough.
+The packed-package contract is implemented and runs in `package:check`:
 
-CI should pack the actual npm artifact and test a clean consumer.
+- build the artifact before the smoke;
+- pack the actual private package with Bun;
+- verify root runtime/declaration files and export metadata;
+- reject source, test, docs, temporary, secret-like, and media paths;
+- install the tarball into an OS temporary consumer offline;
+- execute the public process/delivery flow under Node and Bun;
+- compile a NodeNext TypeScript consumer against packed declarations;
+- clean only the smoke-owned temporary directory.
 
-Goals:
-
-- verify exports;
-- verify declarations;
-- verify required runtime files exist;
-- verify no accidental source-tree dependency;
-- verify installed package behavior.
-
-Useful tools may include `publint` and `@arethetypeswrong/cli` if they add value during implementation.
-
-Do not adopt tooling solely because another project uses it.
+Source tests alone are not sufficient; the installed artifact is the release boundary.
 
 ## Runtime smoke tests
 

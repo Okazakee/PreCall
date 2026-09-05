@@ -1,6 +1,6 @@
 # Data Model
 
-This document describes the current implemented intake and AI-visible projection models alongside the conceptual future analysis model. The intake and projection APIs remain internal while the package is still establishing its intentional public processing API.
+This document describes the current implemented intake, public facade, AI-visible projection, result, presentation, and delivery models alongside the conceptual future analysis model. Low-level intake, projection, and pipeline helpers remain internal while the configured public facade is the supported entrypoint.
 
 ## 1. Field definition
 
@@ -431,7 +431,41 @@ type RenderedEmail = {
 
 `createRenderedEmail(result, options?)` calls `renderPreCallResult()` once and, unless `attachRawSubmission === false`, calls `createSubmissionAttachment()` once. The default and explicit `true` behavior includes exactly one attachment; explicit `false` returns no attachments without changing the subject or bodies. The package contains no recipient, headers, provider, or delivery state and remains internal.
 
-## 26. Schema philosophy
+## 26. Public facade contracts
+
+The package root intentionally exposes the configured facade and supported semantic extension-point types, but not low-level pipeline helpers or schemas:
+
+```ts
+type PrecallConfig = {
+  ai: AIAdapter
+  fields: readonly FieldDefinition[]
+  limits?: IntakeLimitOverrides
+}
+
+type ProcessRequest = {
+  submission: unknown
+  signal?: AbortSignal
+}
+
+type DeliverRequest = {
+  result: PreCallResult
+  transport: EmailTransport
+  recipient: string
+  email?: EmailPackagingOptions
+  signal?: AbortSignal
+}
+
+interface Precall {
+  process(request: ProcessRequest): Promise<PreCallResult>
+  deliver(request: DeliverRequest): Promise<DeliveryOutcome>
+}
+
+declare function createPrecall(config: PrecallConfig): Precall
+```
+
+`createPrecall()` validates trusted configuration and snapshots fields and limits at creation. Each `process()` call validates and detaches its untrusted submission against that snapshot. The configured instance stores no request state and is safe for concurrent calls. `deliver()` is a thin wrapper over the existing delivery boundary and does not require a result to originate from the same instance.
+
+## 27. Schema philosophy
 
 Prefer:
 
