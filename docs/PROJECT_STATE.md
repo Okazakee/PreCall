@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 13/14 — Optional LangChain AI and Resend email integrations complete; ready for first public package preparation.**
+**Phase 14 — First public package preparation complete; publication pending.**
 
-The provider bake-offs are complete. The core remains provider-neutral while optional `./langchain` and `./resend` integrations provide direct provider-backed adapters. Deterministic offline integration tests, built-in AI/delivery E2E tests, live harnesses, and packed-package consumer checks pass.
+The package identity, license, runtime floor, npm artifact contract, safe dry-run, and tag-only OIDC release workflow are settled. The package is not published.
 
 ## Deterministic default renderer
 
@@ -145,13 +145,13 @@ Completed baseline:
 
 No framework, database, provider SDK, email queue, or provider registry was added to the core. Optional direct integrations remain isolated behind explicit package subpaths.
 
-## Permanent name
+## Public package identity and release state
 
-Not selected.
+The permanent product/repository name is **PreCall**, the npm package is **`@okazakee/precall`**, and the current version is **0.1.0**. The package and repository use Apache-2.0, ESM-only exports, Node.js >=22.14.0, and Bun >=1.3.14. Registry technical availability is not scope ownership verification; npm publication has not occurred.
 
-Do not assume a permanent product, repository, or npm package name.
+The release artifact must contain `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure, while excluding source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, `./langchain`, and `./resend` remain separate exports; LangChain peers are optional and the Resend integration has no Resend SDK dependency.
 
-Working technical names such as `PreCallResult` may be used internally until naming is settled.
+`bun run release:check` validates metadata, license, version, and optional exact semver tag equality. `bun run release:dry-run` uses one npm-generated candidate for package checks and npm's dry-run publish validation, with no credentials or publication. The tag-only workflow uses Node 22.22.0/npm 11.14.1, Bun 1.3.14, and npm trusted publishing/OIDC. First-publish npm authentication/2FA bootstrap and trusted-publisher configuration are owner actions and were not performed.
 
 ## Current product target
 
@@ -343,7 +343,7 @@ frozen Bun install
 → packed-package consumer smoke
 ```
 
-The package smoke packs the existing `dist` artifact into an OS temporary directory, validates metadata and contents, installs offline, and runs the consumer under Node and Bun plus a NodeNext declaration check. CI runs it after the existing build.
+The package smoke uses npm's packing view and can inspect the same candidate selected for release. It validates metadata, README/LICENSE, complete `dist` closure, and forbidden paths, installs offline, and runs the consumer under Node and Bun plus NodeNext declaration checks. CI runs it after the existing build.
 
 No real provider credentials or network access are required.
 
@@ -363,14 +363,8 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, package-contract, optional-AI, and optional-email phases:
-
-- exact minimum Node version;
-- exact npm package name;
-- permanent product/repository name;
-- open-source license;
-- exact release tooling beyond the settled flow.
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, package-contract, optional-AI, optional-email, and public-release-preparation phases.
 
 ## Immediate next action
 
-Prepare the first public package: settle permanent naming, license, runtime/version policy, package metadata, release workflow, and publish dry-run.
+Owner bootstrap remains before publication: configure npm trusted publishing and first scoped-public package authentication/2FA, then push a reviewed `v0.1.0` tag. No publication, tag, or GitHub Release has been performed.

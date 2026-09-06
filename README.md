@@ -1,29 +1,30 @@
 # PreCall
 
-PreCall is an early-stage service-intake library intended for open-source development. The package exposes a minimal provider-neutral `createPrecall()` facade with `process()` and `deliver()` methods, backed by intake, privacy-filtered analysis, reusable results, deterministic email packaging, and provider-neutral delivery.
+PreCall is a provider-neutral service-intake library. It exposes a minimal `createPrecall()` facade with `process()` and `deliver()` methods, backed by intake validation, privacy-filtered analysis, reusable results, deterministic email packaging, and provider-neutral delivery.
 
-## Documentation
+The public package is **`@okazakee/precall`**, version **0.1.0**, and is not yet published. Registry availability and scope ownership are not inferred from HTTP checks; the first publish must be bootstrapped by the package owner.
 
-- [Reference documentation](docs/README.md)
-- [Stable product principles](docs/PRODUCT.md)
-- [Current project state](docs/PROJECT_STATE.md)
-- [AI integration decision](docs/AI.md)
+## Requirements and installation
+
+- Node.js **22.14.0 or newer**;
+- Bun **1.3.14 or newer** (also the development package manager);
+- ESM only (`type: module`), with no CommonJS entrypoint.
+
+After publication, install it with:
+
+```sh
+npm install @okazakee/precall
+```
+
+Until then, use the repository checkout and `bun install` for development.
 
 ## Usage
 
 ```ts
-import { createPrecall } from "precall";
+import { createPrecall } from "@okazakee/precall";
 
-const precall = createPrecall({
-  ai,
-  fields,
-  limits,
-});
-
-const result = await precall.process({
-  submission,
-});
-
+const precall = createPrecall({ ai, fields, limits });
+const result = await precall.process({ submission });
 const delivery = await precall.deliver({
   result,
   transport,
@@ -31,15 +32,15 @@ const delivery = await precall.deliver({
 });
 ```
 
-`ai` and `transport` are consumer-supplied semantic adapters. The package validates and snapshots trusted field/limit configuration at creation, preserves the submitted request in `PreCallResult`, and keeps delivery outcome separate. A custom `AIAdapter` remains supported.
+`ai` and `transport` are consumer-supplied semantic adapters. The package validates and snapshots trusted field/limit configuration at creation, preserves the submitted request in `PreCallResult`, and keeps delivery outcome separate from processing. If AI enrichment is unavailable, the result remains usable with an explicit no-AI fallback; delivery failures are reported independently.
 
 ### Optional LangChain integration
 
 The optional `./langchain` subpath adapts a consumer-owned LangChain model instance. Install compatible optional `@langchain/core` and `langsmith` peers, configure the provider/model in the consuming application, and keep credentials outside PreCall:
 
 ```ts
-import { createPrecall } from "precall";
-import { createLangChainAIAdapter } from "precall/langchain";
+import { createPrecall } from "@okazakee/precall";
+import { createLangChainAIAdapter } from "@okazakee/precall/langchain";
 
 const ai = createLangChainAIAdapter({ model });
 const precall = createPrecall({ ai, fields });
@@ -53,7 +54,7 @@ The adapter performs one structured model operation using the canonical PreCall 
 The optional `./resend` subpath provides the first built-in `EmailTransport`. Configure the trusted sender and API key in application configuration; do not derive either from client submissions:
 
 ```ts
-import { createResendEmailTransport } from "precall/resend";
+import { createResendEmailTransport } from "@okazakee/precall/resend";
 
 const transport = createResendEmailTransport({
   apiKey,
@@ -67,27 +68,24 @@ await precall.deliver({
 });
 ```
 
-The transport uses one fixed Resend API request and reuses the existing rendered HTML, text, and permitted `submission.json` attachment. Custom `EmailTransport` implementations remain supported.
+The transport uses one fixed Resend API request and reuses the existing rendered HTML, text, and permitted `submission.json` attachment. Custom `EmailTransport` implementations remain supported; the Resend SDK is not a package dependency.
 
-## Development
+## Development and release checks
 
-Bun is used for package management and tooling.
-
-Install dependencies with:
+Bun is used for package management and tooling:
 
 ```sh
 bun install
-```
-
-Verified package scripts:
-
-```sh
-bun run format:check
-bun run lint:ci
-bun run typecheck
-bun run test
-bun run build
 bun run check
 ```
 
-The repository has completed bootstrap, intake normalization, privacy-filtered analysis input, strict analysis schema, fake-adapter analysis execution, reusable result composition, deterministic rendering/email packaging, provider-neutral delivery orchestration, the public facade, packed Node/Bun/declaration verification, the LangChain model-layer bake-off, the optional LangChain adapter, the Resend provider bake-off, the optional Resend transport, offline provider/E2E coverage, and opt-in AI/email harnesses. The next milestone is first public package preparation.
+The package contract packs the actual npm artifact and checks metadata, Apache-2.0 licensing, all generated runtime/declaration files, clean Node/Bun consumers, optional subpaths, and NodeNext declarations. Release validation is credential-free:
+
+```sh
+bun run release:check
+bun run release:dry-run
+```
+
+`release:dry-run` builds and inspects one npm-generated tarball, then runs npm's real `npm publish <tarball> --dry-run --ignore-scripts --access public --provenance` command with an empty temporary npm user config. It never publishes, creates a tag, or creates a GitHub Release. Actual publication is limited to the tag-triggered OIDC workflow after npm trusted-publisher setup.
+
+See [reference documentation](docs/README.md), [releasing](docs/RELEASING.md), and [security](docs/SECURITY.md) for the complete contract.

@@ -328,7 +328,7 @@ The package root exports only the intentional facade, canonical intake error, an
 
 **Status:** Settled
 
-`package:check` validates the private tarball, offline consumer installation, Node/Bun runtime behavior, and NodeNext declarations without publishing or network access.
+`package:check` validates the public npm-generated tarball, offline consumer installation, Node/Bun runtime behavior, and NodeNext declarations without publishing or network access.
 
 
 ## Architecture
@@ -620,3 +620,20 @@ The adapter sends exactly one `POST` to `https://api.resend.com/emails`, uses ex
 **Status:** Settled
 
 `bun run live-email:check` requires `PRECALL_LIVE_EMAIL=1` plus explicit API key, sender, and recipient variables. It uses deterministic synthetic PreCall data, sends one message, never runs in ordinary checks or CI, and was not run without private credentials.
+### D-095 — Public package identity and license
+
+**Status:** Settled
+
+The public product/repository is **PreCall**, the npm package is **`@okazakee/precall`**, the first version is **0.1.0**, and the exact repository license is Apache-2.0. npm scope ownership is not inferred from registry availability and the package is not published.
+
+### D-096 — Runtime and module policy
+
+**Status:** Settled
+
+The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14. Development remains pinned to `bun@1.3.14`; no CommonJS entrypoint or provider SDK is added.
+
+### D-097 — Release artifact and OIDC workflow
+
+**Status:** Settled
+
+The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. First-publish authenticated/2FA bootstrap and npm trusted-publisher configuration are owner actions and were not performed.

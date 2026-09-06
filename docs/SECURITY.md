@@ -400,3 +400,10 @@ The live AI harness is not a security or quality guarantee for model behavior. I
 The adapter rejects enabled LangChain/LangSmith tracing/verbose modes and consumer models with `verbose: true` before sending intake, then runs the invocation in an isolated callback context. Consumer-installed model callbacks remain an explicit consumer trust decision.
 
 The Resend transport is also isolated behind `./resend`. It validates and snapshots explicit `apiKey`/`from` configuration, rejects sender line breaks, never reads environment variables, uses only `https://api.resend.com/emails`, forwards the trusted delivery recipient and `AbortSignal`, makes one fetch attempt, encodes existing attachment bytes once, and exposes only opaque transport errors. Its deterministic fetch seam is internal and does not mutate global network state.
+## Package and release security
+
+The public package is **`@okazakee/precall` 0.1.0**, Apache-2.0, ESM-only, with Node.js >=22.14.0 and Bun >=1.3.14 floors. It is not published; registry technical availability does not verify scope ownership.
+
+The npm-generated tarball is the release boundary. `package:check` requires `package.json`, README, LICENSE, and every generated `dist` runtime/declaration entrypoint, and rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, optional LangChain peers, and the SDK-free Resend boundary are checked independently.
+
+`release:dry-run` runs npm's actual public `publish --dry-run --ignore-scripts --provenance` against one inspected candidate with an empty temporary npm user config. It performs no npm authentication, publication, tag creation, or GitHub Release. The tag-only workflow uses npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release only after successful publication. First-publish account authentication/2FA and trusted-publisher setup are explicit owner actions and were not performed.

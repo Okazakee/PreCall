@@ -9,7 +9,7 @@
 
 ## Bootstrap and tooling
 
-- Keep the current deliverable as one private ESM package with `src/index.ts` as its sole root entry point; `createPrecall()` is the intentional public facade while low-level intake, analysis, presentation, and delivery helpers remain internal.
+- Keep the current deliverable as one public ESM package, `@okazakee/precall` 0.1.0, with `src/index.ts` as its sole root entry point; `createPrecall()` is the intentional public facade while low-level intake, analysis, presentation, and delivery helpers remain internal.
 - Use Bun for package management and tooling. Use Zod 4 for runtime validation.
 - TypeScript is strict: retain `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `isolatedModules`; do not weaken compiler settings to make code pass.
 - Do not couple the core to a framework, database, or provider without an explicit project decision. Avoid speculative abstractions, extra packages, and generic agent/plugin infrastructure.

@@ -6,7 +6,7 @@ This project is an open-source AI-assisted service-intake engine for professiona
 
 Its primary job is to transform a raw or incomplete inquiry into a structured **internal pre-call brief** so the professional enters discovery better prepared.
 
-The permanent product name has not yet been selected.
+The permanent product name is **PreCall**.
 
 ## Core principle
 

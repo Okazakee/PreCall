@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "precall",
+      "name": "@okazakee/precall",
       "dependencies": {
         "zod": "^4.0.0",
       },

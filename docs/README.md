@@ -1,8 +1,10 @@
 # Project Reference Documentation
 
-This directory is the consolidated reference set for the unnamed AI-assisted service-intake project.
+This directory is the consolidated reference set for the **PreCall** project.
 
-The product's permanent name has **not** been selected. Names such as `PreCallResult` are working technical names, not a product-brand decision.
+The public package identity is **`@okazakee/precall`**, version **0.1.0**. The repository and npm package are Apache-2.0 licensed. The package is ESM-only and supports Node.js >=22.14.0 and Bun >=1.3.14.
+
+The package is release-ready but **not published**. See [releasing](RELEASING.md) for the credential-free dry-run and tag-only OIDC workflow.
 
 ## How to use these files
 

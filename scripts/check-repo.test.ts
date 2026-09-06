@@ -14,11 +14,13 @@ const expectedScripts = [
   "test:coverage",
   "build",
   "package:check",
+  "release:check",
+  "release:dry-run",
   "check",
   "check:repo",
   "live-ai:check",
   "live-email:check",
-];
+] as const;
 
 const expectedFiles = [
   "biome.json",
@@ -37,7 +39,7 @@ test("the repository satisfies its bootstrap contract", () => {
   expect(result.ok).toBe(true);
   expect(result.errors).toEqual([]);
   expect(result.packageManager).toBe("bun@1.3.14");
-  expect(result.isPrivate).toBe(true);
+  expect(result.isPrivate).toBe(false);
   expect(result.missingScripts).toEqual([]);
   expect(result.scripts).toHaveLength(expectedScripts.length);
   for (const scriptName of expectedScripts) {

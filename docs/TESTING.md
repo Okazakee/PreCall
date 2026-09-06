@@ -259,18 +259,18 @@ They are supplementary, not a replacement for deterministic fakes.
 
 ## Package-contract testing
 
-The packed-package contract is implemented and runs in `package:check`:
+The packed public npm-package contract is implemented and runs in `package:check`:
 
 - build the artifact before the smoke;
-- pack the actual private package with Bun;
-- verify root runtime/declaration files and export metadata;
-- reject source, test, docs, temporary, secret-like, and media paths;
-- install the tarball into an OS temporary consumer offline;
+- use npm's packing view and optionally inspect a supplied candidate tarball;
+- verify exact public metadata, Apache-2.0 license, README/LICENSE, exports, and complete `dist` closure;
+- reject source, tests, docs, scripts, `.github`, temporary, secret-like, and media paths;
+- install the candidate into OS-temporary consumers offline;
 - execute the public process/delivery flow under Node and Bun;
-- compile a NodeNext TypeScript consumer against packed declarations;
-- clean only the smoke-owned temporary directory.
+- compile NodeNext TypeScript consumers for root, `./langchain`, and `./resend`;
+- clean only smoke-owned temporary directories.
 
-Source tests alone are not sufficient; the installed artifact is the release boundary.
+Source tests alone are not sufficient; the npm-generated artifact is the release boundary.
 
 ## Runtime smoke tests
 
@@ -363,3 +363,6 @@ The test does not make paid calls. LangChain's provider-level retry behavior is 
 `src/integration.test.ts` composes the built-in LangChain adapter with the public facade and delivery boundary. It covers successful AI plus fake email, AI failure plus successful Resend mapping, successful AI plus provider failure, result independence, and private-field separation across model input, rendered email, and `submission.json`.
 
 `bun run live-email:check` is deliberately separate from `check` and CI. Without `PRECALL_LIVE_EMAIL=1` it performs no network call. Opt-in requires explicit Resend API key, sender, and recipient variables and sends one deterministic synthetic message only. Full live AI plus email was not run.
+## Release validation
+
+`bun run release:check` validates the public metadata, Apache-2.0 license, version 0.1.0, and optional exact semver tag equality. `bun run release:dry-run` builds and checks one npm-generated candidate, then executes npm's real `publish --dry-run --ignore-scripts --access public --provenance` with a temporary empty npm user config. The successful dry-run result is validation only: no credential, publication, tag, or GitHub Release is created.

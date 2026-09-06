@@ -224,17 +224,9 @@ Implemented:
 
 **Status: complete**
 
-Implemented:
+The npm-generated public artifact is packed and verified by `package:check`. The contract validates exact public metadata, Apache-2.0 licensing, README/LICENSE inclusion, complete generated runtime/declaration closure, and forbidden repository-only paths. It installs the candidate into clean offline consumers, verifies Node and Bun runtime behavior, and compiles NodeNext TypeScript declarations for every public subpath.
 
-- existing `dist` artifact packed with Bun without rebuilding inside the smoke;
-- tarball metadata, root export targets, `private`, and `files: ["dist"]` validation;
-- forbidden source/test/docs/temp/secret/media path rejection;
-- offline installation into an OS temporary consumer;
-- Node and Bun runtime smoke;
-- NodeNext TypeScript declaration consumer smoke;
-- `package:check` included in `check` and CI.
-
-**Milestone:** The actual packed private package installs, imports, runs, and exposes usable declarations.
+**Milestone:** The actual public package artifact installs, imports, runs, and exposes usable declarations.
 
 ## Phase 12 — Next.js integration proof
 
@@ -271,31 +263,26 @@ Implemented:
 
 **Milestone:** Both first external boundaries now exist as optional integrations while the core remains provider-neutral.
 
-## Next implementation batch
-
-Prepare the first public package: settle permanent naming, license, runtime/version policy, package metadata, release workflow, and publish dry-run.
-
 ## Phase 14 — First public package preparation
 
-Before publishing, settle:
+**Status: complete; publication pending**
 
-- permanent product/repository name;
-- exact npm package name;
-- license;
-- minimum supported Node version;
-- exact Bun support policy;
+Settled:
 
-Add release workflow:
+- product/repository name **PreCall**;
+- npm package **`@okazakee/precall`**;
+- Apache-2.0 license;
+- version **0.1.0**;
+- ESM-only policy;
+- Node.js >=22.14.0 and Bun >=1.3.14 runtime floors;
+- npm artifact contract and safe dry-run command;
+- tag-only trusted-publisher/OIDC workflow.
 
-```text
-vX.Y.Z tag
-→ version verification
-→ frozen install
-→ full checks
-→ package/runtime validation
-→ trusted npm publish
-→ GitHub Release
-```
+The package is not published. First npm scoped-public-publish authentication/2FA bootstrap and trusted-publisher configuration remain owner actions. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
+
+## Next milestone
+
+Perform the deliberate first public release/bootstrap: confirm npm scope ownership, configure the trusted publisher and protected `npm` environment, create and push the reviewed `v0.1.0` tag, verify OIDC publication, and create the first GitHub Release.
 
 # After MVP
 

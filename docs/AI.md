@@ -31,7 +31,7 @@ Do not split this into multiple model calls or a skill orchestrator until a conc
 
 The AI request must structurally distinguish:
 
-- trusted Precall analysis instructions;
+- trusted PreCall analysis instructions;
 - untrusted but permitted client submission data.
 
 A client may submit text such as:
@@ -171,7 +171,7 @@ Email packaging consumes the existing `PreCallResult` through the renderer and a
 
 ## Structured output
 
-Precall owns the Zod `AnalysisResult` schema.
+PreCall owns the Zod `AnalysisResult` schema.
 
 Preferred flow:
 
@@ -186,7 +186,7 @@ Zod schema
 
 If the provider supports native structured output, an adapter may use it.
 
-The public Precall architecture must not depend on one provider-specific structured-output mechanism.
+The public PreCall architecture must not depend on one provider-specific structured-output mechanism.
 
 MVP does not need a generalized provider-capabilities framework.
 
@@ -209,7 +209,7 @@ The September 2026 bake-off evaluated exactly:
 | Providers | Broad catalog, including OpenAI, Anthropic, Google, OpenRouter, Ollama, and gateways | Model/provider choice remains in consumer-owned LangChain provider packages |
 | Credentials | Explicit keys supported, but also automatic env/OAuth/auth resolution | Direct provider models accept explicit credentials; adapter does not configure provider credentials or opt into tracing |
 | Bun | Bun engine declared and deterministic mock model available | Bun works through the tested package path; provider packages remain consumer-selected |
-| Node | No Node engine promise; exports ESM TypeScript source | Compiled ESM/CJS and declarations; core requires Node >=20 |
+| Node | No Node engine promise; exports ESM TypeScript source | Compiled ESM and declarations; package requires Node >=22.14.0 |
 | Footprint | 542 files, about 7.1 MB unpacked, five lockstep Pi dependencies | `@langchain/core` is broad (about 7.6 MB unpacked) but remains optional; full `langchain`/agents are not used |
 | Offline testing | Public mock model | Public `@langchain/core/testing` fake model and runnable seam |
 

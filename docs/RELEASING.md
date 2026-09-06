@@ -72,17 +72,17 @@ checkout
 → package:check
 ```
 
-`package:check` consumes the existing build, packs the actual private package into an OS temporary directory, validates metadata and contents, installs offline into a clean consumer, runs Node and Bun runtime smoke, and compiles a NodeNext TypeScript declaration consumer. It does not publish, run lifecycle scripts, or use network access.
+`package:check` consumes the existing build, packs the actual public package into an OS temporary directory with npm, validates metadata and contents, installs offline into a clean consumer, runs Node and Bun runtime smoke, and compiles a NodeNext TypeScript declaration consumer. It does not publish, run lifecycle scripts, or use network access.
 
 No database, Docker, real AI, or real email service is required for the MVP library.
 
 ## Package contract job
 
-The packed package is now a required repository contract, not a future release-only check:
+The packed-package contract is now a required repository contract, not a future release-only check:
 
 ```text
 existing dist
-→ bun pm pack --ignore-scripts
+→ npm pack --ignore-scripts
 → inspect tarball and export metadata
 → offline clean-consumer install
 → Node + Bun public API smoke
@@ -168,7 +168,7 @@ Preferred direction:
 - trusted publishing / OIDC where supported;
 - avoid long-lived publish tokens when possible.
 
-Exact npm package name is not settled.
+The exact public package name is `@okazakee/precall`.
 
 ## Versioning
 
@@ -196,18 +196,9 @@ Every dependency should justify:
 
 Provider SDKs and runtime-specific transports should not automatically contaminate the core import graph.
 
-## Release blockers not yet settled
+## Settled release decisions
 
-Before first public publish, explicitly settle:
-
-- permanent product/package name;
-- npm package name;
-- open-source license;
-- repository URL;
-- minimum supported Node version;
-- exact Bun support policy;
-- first real AI transport;
-- first real email transport.
+The first public package decisions are settled: PreCall / `@okazakee/precall`, Apache-2.0, version 0.1.0, Node.js >=22.14.0, Bun >=1.3.14, and optional LangChain/Resend integrations. The package remains unpublished pending owner bootstrap and the first tag-triggered OIDC release.
 
 ## Optional AI integration package contract
 
@@ -237,3 +228,12 @@ Packed-package verification must prove:
 - the Resend adapter uses the fixed official endpoint and does not expose arbitrary endpoint configuration.
 
 `live-email:check` is excluded from `check`, CI, and package validation. It requires explicit opt-in and credentials and was not run as part of ordinary validation.
+## Public release contract
+
+The release target is **`@okazakee/precall` 0.1.0**, hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. It is not published yet, and registry HTTP availability does not establish npm scope ownership. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
+
+`package:check` uses npm's packing view and validates one candidate tarball containing `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure. It rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. It then installs that candidate into clean offline Node/Bun consumers and compiles NodeNext declarations for the root, `./langchain`, and `./resend` exports. Optional LangChain peers remain isolated, and the Resend subpath includes no Resend SDK.
+
+Run `bun run release:check` for metadata, Apache-2.0 license, version, and optional tag checks. `bun run release:dry-run` builds and validates one npm-generated candidate, then invokes npm's actual dry-run publish command with an empty temporary npm user config and explicit public registry. It never authenticates, publishes, tags, or creates a GitHub Release.
+
+The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14. The npm `environment` must be configured with the first trusted publisher in npm package settings; npm's first scoped public publish and account 2FA/bootstrap require an authenticated owner action and are intentionally not performed here.

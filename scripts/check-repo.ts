@@ -15,6 +15,8 @@ export const REQUIRED_SCRIPTS = [
   "test:coverage",
   "build",
   "package:check",
+  "release:check",
+  "release:dry-run",
   "check",
   "check:repo",
 ] as const;
@@ -24,9 +26,14 @@ export const REQUIRED_FILES = [
   "tsconfig.json",
   "tsdown.config.ts",
   "bun.lock",
+  "LICENSE",
+  "README.md",
   "src/index.ts",
   "src/precall.ts",
   "scripts/check-package.ts",
+  "scripts/check-release.ts",
+  "scripts/check-release-tag.ts",
+  "scripts/release-dry-run.ts",
 ] as const;
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -47,7 +54,7 @@ export interface RepositoryCheckResult {
   errors: string[];
 }
 
-/** Check the files and metadata needed for this repository's bootstrap contract. */
+/** Check the files and metadata needed for this repository's public package contract. */
 export function checkRepository(rootDirectory: string = REPOSITORY_ROOT): RepositoryCheckResult {
   const root = resolve(rootDirectory);
   const errors: string[] = [];
@@ -76,10 +83,13 @@ export function checkRepository(rootDirectory: string = REPOSITORY_ROOT): Reposi
     errors.push(`packageManager must be exactly ${EXPECTED_PACKAGE_MANAGER}`);
   }
 
-  const isPrivate = typeof packageData?.private === "boolean" ? packageData.private : null;
-  if (isPrivate !== true) {
-    errors.push("package.json must set private to true");
-  }
+  const isPrivate =
+    packageData?.private === undefined
+      ? false
+      : typeof packageData.private === "boolean"
+        ? packageData.private
+        : null;
+  if (isPrivate !== false) errors.push("package.json must not be private");
 
   const packageScripts = packageData?.scripts;
   const scriptsObject =
@@ -90,11 +100,9 @@ export function checkRepository(rootDirectory: string = REPOSITORY_ROOT): Reposi
   const missingScripts = REQUIRED_SCRIPTS.filter(
     (name) => typeof scriptsObject?.[name] !== "string" || scriptsObject[name].trim() === "",
   );
-  if (scriptsObject === null) {
-    errors.push("package.json must define a scripts object");
-  } else if (missingScripts.length > 0) {
+  if (scriptsObject === null) errors.push("package.json must define a scripts object");
+  else if (missingScripts.length > 0)
     errors.push(`package.json is missing required scripts: ${missingScripts.join(", ")}`);
-  }
 
   const missingFiles = REQUIRED_FILES.filter(
     (relativePath) => !existsSync(join(root, relativePath)),
@@ -123,12 +131,8 @@ function runCli(): void {
   }
 
   console.error("Repository contract failed:");
-  for (const error of result.errors) {
-    console.error(`- ${error}`);
-  }
+  for (const error of result.errors) console.error(`- ${error}`);
   process.exitCode = 1;
 }
 
-if (import.meta.main) {
-  runCli();
-}
+if (import.meta.main) runCli();
