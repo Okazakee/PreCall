@@ -624,7 +624,7 @@ The adapter sends exactly one `POST` to `https://api.resend.com/emails`, uses ex
 
 **Status:** Settled
 
-The public product/repository is **PreCall**, the npm package is **`precall`**, the first final version is **0.1.0**, and the exact repository license is Apache-2.0. The new unscoped bootstrap `precall@0.1.0-bootstrap.0` is pending; final `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
+The public product/repository is **PreCall**, the npm package is **`precall`**, the first final version is **0.1.0**, and the exact repository license is Apache-2.0. The new unscoped bootstrap `precall@0.1.0-bootstrap.0` was deliberately published under the `bootstrap` dist-tag; npm's unintended `latest` assignment must be corrected before final release. Final `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
 
 ### D-096 — Runtime and module policy
 
@@ -636,7 +636,7 @@ The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14. Develop
 
 **Status:** Settled
 
-The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. The new unscoped bootstrap is pending and may be published only with the `bootstrap` dist-tag; stable `precall@0.1.0` remains reserved for final OIDC publication.
+The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. The new unscoped bootstrap was published manually as the single permitted non-OIDC bootstrap under `bootstrap`; final trusted-publisher configuration remains pending and the unintended `latest` assignment must be corrected.
 
 ### D-098 — Release admission binds source and candidate
 
