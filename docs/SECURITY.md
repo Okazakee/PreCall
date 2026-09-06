@@ -35,11 +35,11 @@ AI output
 future research content
 ```
 
-The public API should enforce this distinction by construction.
 The public facade enforces the same separation by construction:
 
 - `createPrecall()` accepts trusted application configuration;
 - `process()` accepts only the untrusted submission payload;
+- `submit()` accepts the untrusted submission separately from trusted delivery configuration;
 - field definitions and limits are validated and snapshotted at creation;
 - later caller mutation cannot change privacy policy or intake limits;
 - each call owns independent normalized/result state;
@@ -402,12 +402,12 @@ The adapter rejects enabled LangChain/LangSmith tracing/verbose modes and consum
 The Resend transport is also isolated behind `./resend`. It validates and snapshots explicit `apiKey`/`from` configuration, rejects sender line breaks, never reads environment variables, uses only `https://api.resend.com/emails`, forwards the trusted delivery recipient and `AbortSignal`, makes one fetch attempt, encodes existing attachment bytes once, and exposes only opaque transport errors. Its deterministic fetch seam is internal and does not mutate global network state.
 ## Package and release security
 
-The public package is **`precall`**, Apache-2.0, ESM-only, with Node.js >=22.14.0 and Bun >=1.3.14 floors. The unscoped bootstrap prerelease `precall@0.1.0-bootstrap.0` exists under `bootstrap`; final `precall@0.1.0` is not published. npm's unintended `latest` assignment to the bootstrap remains to be corrected. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
+The public package is **`precall`**, Apache-2.0, ESM-only, with Node.js >=22.14.0 and Bun >=1.3.14 floors. Stable `precall@0.1.0` is published and is the `latest` release. The unscoped `precall@0.1.0-bootstrap.0` remains historical release history under `bootstrap`. npm Trusted Publishing through GitHub Actions/OIDC is configured and verified for the release workflow, and the stable GitHub Release `v0.1.0` exists.
 
 The npm-generated tarball is the release boundary. `package:check` requires `package.json`, README, LICENSE, and every generated `dist` runtime/declaration entrypoint, and rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, optional LangChain peers, and the SDK-free Resend boundary are checked independently.
 
-`release:dry-run` runs npm's actual public `publish --dry-run --ignore-scripts --provenance` against one inspected candidate with an empty temporary npm user config. It performs no npm authentication, publication, tag creation, or GitHub Release. The tag-only workflow uses npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release only after successful publication. The bootstrap publication was a deliberate owner-authenticated exception; final trusted-publisher setup remains unconfigured.
+`release:dry-run` runs npm's actual public `publish --dry-run --ignore-scripts --provenance` against one inspected candidate with an empty temporary npm user config. It performs no npm authentication, publication, tag creation, or GitHub Release. The tag-only workflow uses npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release only after successful publication. The `v0.1.0` publication completed through that workflow.
 
 The hardened workflow treats the candidate and source identity as one security boundary. Full-history validation fetches `refs/tags/$GITHUB_REF_NAME` and `refs/heads/main`, then requires tag commit = checked-out `HEAD` = fetched `origin/main`. The uploaded set is exactly `candidate.tgz` and `release-manifest.json`; publish freshly checks out the tag, verifies manifest package/source/toolchain identity and candidate byte count/SHA-512, and publishes that exact file without rebuilding. npm `11.14.1` is an exact devDependency in `package.json` and `bun.lock`; the checked path is `node_modules/npm/bin/npm-cli.js`. No temporary-prefix or global npm bootstrap is used.
 
-GitHub-side release controls are configured and verified: environment `npm` exists with only the `v*.*.*` custom tag policy and requires the repository owner as reviewer with self-review permitted for the current single-maintainer repository; active `Protect release tags` and `Protect main` rulesets protect release refs and main against mutation/force updates while requiring the `bootstrap` CI check and pull-request approval. Replace self-review with an independent reviewer when available. The bootstrap version exists publicly, but its unintended `latest` dist-tag assignment must be corrected; npm scope/trusted-publisher publishing-access configuration and final `0.1.0` publication remain owner-controlled prerequisites.
+GitHub-side release controls are configured and verified: environment `npm` exists with only the `v*.*.*` custom tag policy and requires the repository owner as reviewer with self-review permitted for the current single-maintainer repository; active `Protect release tags` and `Protect main` rulesets protect release refs and main against mutation/force updates while requiring the `bootstrap` CI check and pull-request approval. The stable release is complete; future releases continue to use the protected workflow and OIDC without token fallback.

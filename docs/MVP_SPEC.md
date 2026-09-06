@@ -171,7 +171,7 @@ type RenderedEmail = {
 
 `createRenderedEmail(result, options?)` reuses the existing deterministic renderer and output-permitted submission attachment builder. The fixed subject contains no client or AI interpolation.
 
-The public `createPrecall()` facade composes raw structured submissions into `PreCallResult` values and exposes `deliver()` as a separate operation. Configuration is validated and snapshotted at creation; processing does not automatically send email.
+The public `createPrecall()` facade composes raw structured submissions into `PreCallResult` values and exposes `process()` and `deliver()` as separate operations. It also exposes `submit()` as an explicit convenience composition that performs both operations and returns `{ result: PreCallResult, delivery: DeliveryOutcome }`. Configuration is validated and snapshotted at creation; `process()` remains processing-only and does not automatically send email.
 
 ### 10. Output-permitted submission attachment
 

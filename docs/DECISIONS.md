@@ -645,3 +645,9 @@ The npm-generated artifact is the release boundary. Checks require package metad
 The tag commit, checked-out `HEAD`, and fetched `origin/main` must be the same full commit before a release candidate is admitted. Validation uploads only `candidate.tgz` and the canonical `release-manifest.json`, whose exact schema records package identity, source binding, pinned Bun/Node/npm versions, and candidate bytes/SHA-512. Publish rechecks those values after a fresh tag checkout and publishes the inspected candidate without rebuilding.
 
 The exact npm bootstrap is repository-controlled: `npm@11.14.1` is an exact devDependency resolved by Bun, and the workflow invokes `node ./node_modules/npm/bin/npm-cli.js`. Temporary-prefix and global npm installation are forbidden. GitHub-side release controls are configured separately: the `npm` environment is tag-restricted to `v*.*.*` and requires the repository owner as reviewer with self-review permitted for this single-maintainer repository, `Protect release tags` protects `v*.*.*`, and `Protect main` requires pull-request/CI admission without a routine bypass. Replace environment self-review with an independent reviewer when available. External npm trusted-publisher and account bootstrap settings remain operator actions.
+
+### D-099 — Submit composes processing and delivery
+
+**Status:** Settled
+
+The public facade provides `submit({ submission, transport, recipient, email?, signal? })` as the shortest normal process-and-deliver path. It composes the existing `process()` and `deliver()` boundaries and returns `{ result, delivery }`; it does not add delivery state to `PreCallResult`, introduce retries, or change fallback and cancellation semantics.

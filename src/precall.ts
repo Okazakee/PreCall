@@ -28,9 +28,23 @@ export type DeliverRequest = {
   signal?: AbortSignal;
 };
 
+export type SubmitRequest = {
+  submission: unknown;
+  transport: EmailTransport;
+  recipient: string;
+  email?: EmailPackagingOptions;
+  signal?: AbortSignal;
+};
+
+export type SubmitOutcome = {
+  result: PreCallResult;
+  delivery: DeliveryOutcome;
+};
+
 export interface Precall {
   process(request: ProcessRequest): Promise<PreCallResult>;
   deliver(request: DeliverRequest): Promise<DeliveryOutcome>;
+  submit(request: SubmitRequest): Promise<SubmitOutcome>;
 }
 
 export function createPrecall(config: PrecallConfig): Precall {
@@ -45,7 +59,7 @@ export function createPrecall(config: PrecallConfig): Precall {
 
   const intake = resolveIntakeConfiguration(config.fields, config.limits);
 
-  return {
+  const precall: Precall = {
     async process(request: ProcessRequest): Promise<PreCallResult> {
       const signal = request.signal;
       signal?.throwIfAborted();
@@ -62,5 +76,11 @@ export function createPrecall(config: PrecallConfig): Precall {
         request.signal,
       );
     },
+    async submit(request: SubmitRequest): Promise<SubmitOutcome> {
+      const result = await precall.process(request);
+      const delivery = await precall.deliver({ ...request, result });
+      return { result, delivery };
+    },
   };
+  return precall;
 }

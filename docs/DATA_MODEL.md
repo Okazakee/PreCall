@@ -455,15 +455,29 @@ type DeliverRequest = {
   signal?: AbortSignal
 }
 
+type SubmitRequest = {
+  submission: unknown
+  transport: EmailTransport
+  recipient: string
+  email?: EmailPackagingOptions
+  signal?: AbortSignal
+}
+
+type SubmitOutcome = {
+  result: PreCallResult
+  delivery: DeliveryOutcome
+}
+
 interface Precall {
   process(request: ProcessRequest): Promise<PreCallResult>
   deliver(request: DeliverRequest): Promise<DeliveryOutcome>
+  submit(request: SubmitRequest): Promise<SubmitOutcome>
 }
 
 declare function createPrecall(config: PrecallConfig): Precall
 ```
 
-`createPrecall()` validates trusted configuration and snapshots fields and limits at creation. Each `process()` call validates and detaches its untrusted submission against that snapshot. The configured instance stores no request state and is safe for concurrent calls. `deliver()` is a thin wrapper over the existing delivery boundary and does not require a result to originate from the same instance.
+`createPrecall()` validates trusted configuration and snapshots fields and limits at creation. Each `process()` call validates and detaches its untrusted submission against that snapshot. `deliver()` remains a thin wrapper over the existing delivery boundary. `submit()` explicitly composes `process()` and `deliver()` without adding delivery state to `PreCallResult`; all three operations are safe for concurrent calls.
 
 ## 27. Schema philosophy
 

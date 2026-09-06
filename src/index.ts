@@ -23,6 +23,8 @@ export type {
   Precall,
   PrecallConfig,
   ProcessRequest,
+  SubmitOutcome,
+  SubmitRequest,
 } from "./precall.js";
 export { createPrecall } from "./precall.js";
 export type { SubmissionAttachment } from "./presentation/attachment.js";

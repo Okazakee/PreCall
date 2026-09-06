@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 14 — First public package bootstrap complete; final publication pending.**
+**Phase 15 — Stable release and default-flow clarity complete.**
 
-The package identity, license, runtime floor, npm artifact contract, safe dry-run, and tag-only OIDC release workflow are settled. The new unscoped `precall@0.1.0-bootstrap.0` bootstrap is published under `bootstrap`; npm also assigned it to `latest`, which must be corrected. Stable `precall@0.1.0` is not published. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
+The stable `precall@0.1.0` package is published and is the `latest` release. The unscoped `precall@0.1.0-bootstrap.0` remains historical release history under `bootstrap`. npm Trusted Publishing through GitHub Actions/OIDC works for the release workflow, and the stable GitHub Release `v0.1.0` exists. The repository now also has a thin `submit()` convenience facade for the normal process-and-deliver path.
 
 ## Deterministic default renderer
 
@@ -147,7 +147,7 @@ No framework, database, provider SDK, email queue, or provider registry was adde
 
 ## Public package identity and release state
 
-The permanent product/repository name is **PreCall**, the npm package is **`precall`**, and the current source version is **0.1.0**. The package and repository use Apache-2.0, ESM-only exports, Node.js >=22.14.0, and Bun >=1.3.14. The new unscoped bootstrap prerelease `precall@0.1.0-bootstrap.0` exists under `bootstrap`; its unintended `latest` assignment remains to be corrected. Stable `precall@0.1.0` has not been published. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
+The permanent product/repository name is **PreCall**, the npm package is **`precall`**, and the current source version is **0.1.0**. The package and repository use Apache-2.0, ESM-only exports, Node.js >=22.14.0, and Bun >=1.3.14. Stable `precall@0.1.0` is published and is the `latest` release. The unscoped `precall@0.1.0-bootstrap.0` remains historical release history under `bootstrap`. npm Trusted Publishing through GitHub Actions/OIDC works for the release workflow, and the stable GitHub Release `v0.1.0` exists.
 
 The release artifact must contain `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure, while excluding source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, `./langchain`, and `./resend` remain separate exports; LangChain peers are optional and the Resend integration has no Resend SDK dependency.
 
@@ -191,6 +191,14 @@ Public facade:
 ```text
 createPrecall(config)
         ↓
+precall.submit({ submission, transport, recipient, email?, signal? })
+        ↓
+{ result: PreCallResult, delivery: DeliveryOutcome }
+```
+
+Advanced callers can use the underlying operations independently:
+
+```text
 precall.process({ submission, signal? })
         ↓
 PreCallResult
@@ -200,7 +208,7 @@ precall.deliver({ result, transport, recipient, email?, signal? })
 DeliveryOutcome
 ```
 
-The configured facade snapshots trusted field and limit configuration at creation, captures the adapter reference, stores no request state, and supports concurrent calls. Delivery remains separate from processing: `PreCallResult` is never extended with delivery state or mutated by the public boundary.
+The configured facade snapshots trusted field and limit configuration at creation, captures the adapter reference, stores no request state, and supports concurrent calls. `submit()` explicitly composes `process()` and `deliver()`; processing and delivery remain separate, and `PreCallResult` is never extended with delivery state or mutated by the public boundary.
 
 ## Current implementation stack
 
@@ -363,8 +371,8 @@ The project explicitly chose not to build these abstractions in v0:
 - configurable system prompts;
 - retries/repair workflow without evidence.
 
-These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, package-contract, optional-AI, optional-email, and public-release-preparation phases.
+These are not blockers for the current intake, projection, schema, analysis execution, core composition, deterministic rendering, submission-attachment, email-packaging, internal-delivery, public-facade, `submit()` convenience flow, package-contract, optional-AI, optional-email, and public-release phases.
 
 ## Immediate next action
 
-The next owner action is to remove npm's unintended `latest` assignment from the unscoped bootstrap, configure and verify the trusted publisher and package publishing-access policy, then push a reviewed `v0.1.0` tag only if that version remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is not part of this release and must not be mutated. The `npm` environment and repository rulesets are configured as recorded in `docs/RELEASING.md`; its single-maintainer reviewer policy permits owner self-approval and should be replaced with an independent reviewer when available. No final publication, release tag, or GitHub Release has been performed.
+The next feature phase is the small Next.js integration proof: validate the server-side developer experience with a Server Action and/or Route Handler without adding framework coupling to the core.
