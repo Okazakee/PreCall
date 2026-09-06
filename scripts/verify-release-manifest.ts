@@ -1,8 +1,16 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertArtifactIntegrity, parseReleaseManifest, RELEASE_TOOLCHAIN } from "./release-manifest.ts";
-import { assertSourceTagVersion, readGitSourceBinding, sourceBindingsEqual } from "./release-source.ts";
+import {
+  assertArtifactIntegrity,
+  parseReleaseManifest,
+  RELEASE_TOOLCHAIN,
+} from "./release-manifest.ts";
+import {
+  assertSourceTagVersion,
+  readGitSourceBinding,
+  sourceBindingsEqual,
+} from "./release-source.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 type PackageMetadata = { name?: unknown; version?: unknown };
@@ -10,7 +18,8 @@ type PackageMetadata = { name?: unknown; version?: unknown };
 function requiredOption(name: string): string {
   const index = process.argv.indexOf(name);
   const value = process.argv[index + 1];
-  if (index < 0 || value === undefined || value.length === 0) throw new Error(`${name} requires a value`);
+  if (index < 0 || value === undefined || value.length === 0)
+    throw new Error(`${name} requires a value`);
   return value;
 }
 
@@ -20,12 +29,19 @@ export async function verifyReleaseManifest(
   artifactPath: string,
 ): Promise<void> {
   const manifest = parseReleaseManifest(await readFile(manifestPath, "utf8"));
-  const metadata = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as PackageMetadata;
+  const metadata = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8"),
+  ) as PackageMetadata;
   const artifactDirectory = dirname(manifestPath);
-  const entries = (await readdir(artifactDirectory)).sort();
+  const entries = await readdir(artifactDirectory);
   const expectedEntries = ["candidate.tgz", "release-manifest.json"];
-  if (entries.length !== expectedEntries.length || entries.some((entry, index) => entry !== expectedEntries[index])) {
-    throw new Error("release artifact directory must contain only candidate.tgz and release-manifest.json");
+  if (
+    entries.length !== expectedEntries.length ||
+    expectedEntries.some((entry) => !entries.includes(entry))
+  ) {
+    throw new Error(
+      "release artifact directory must contain only candidate.tgz and release-manifest.json",
+    );
   }
   if (basename(artifactPath) !== "candidate.tgz") {
     throw new Error("release artifact path must name candidate.tgz");
@@ -49,12 +65,18 @@ export async function verifyReleaseManifest(
   assertSourceTagVersion(manifest.source, manifest.package.version);
   const source = readGitSourceBinding(tag);
   if (!sourceBindingsEqual(source, manifest.source)) {
-    throw new Error("release manifest source does not match the freshly checked-out tag and origin/main");
+    throw new Error(
+      "release manifest source does not match the freshly checked-out tag and origin/main",
+    );
   }
   assertArtifactIntegrity(manifest, await readFile(artifactPath));
   process.stdout.write("Release manifest, source identity, and artifact integrity passed.\n");
 }
 
 if (import.meta.main) {
-  await verifyReleaseManifest(requiredOption("--tag"), requiredOption("--manifest"), requiredOption("--artifact"));
+  await verifyReleaseManifest(
+    requiredOption("--tag"),
+    requiredOption("--manifest"),
+    requiredOption("--artifact"),
+  );
 }

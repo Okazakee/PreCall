@@ -24,6 +24,7 @@ type PackageMetadata = {
 
 const packageName = "@okazakee/precall";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const npmCli = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
 const packageVersion = "0.1.0";
 const description =
   "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.";
@@ -270,8 +271,8 @@ async function candidateTarball(packDirectory: string, supplied?: string): Promi
     return tarball;
   }
   const output = run(
-    "npm",
-    ["pack", "--ignore-scripts", "--json", "--pack-destination", packDirectory],
+    "node",
+    [npmCli, "pack", "--ignore-scripts", "--json", "--pack-destination", packDirectory],
     root,
   );
   const packed = parseJson<Array<{ filename?: unknown }>>(output, "npm pack output");

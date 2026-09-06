@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createReleaseManifest, RELEASE_ARTIFACT_NAME, RELEASE_TOOLCHAIN } from "./release-manifest.ts";
+import {
+  createReleaseManifest,
+  RELEASE_ARTIFACT_NAME,
+  RELEASE_TOOLCHAIN,
+} from "./release-manifest.ts";
 import { readGitSourceBinding } from "./release-source.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -12,14 +16,23 @@ type PackageMetadata = { name?: unknown; version?: unknown };
 function requiredOption(name: string): string {
   const index = process.argv.indexOf(name);
   const value = process.argv[index + 1];
-  if (index < 0 || value === undefined || value.length === 0) throw new Error(`${name} requires a value`);
+  if (index < 0 || value === undefined || value.length === 0)
+    throw new Error(`${name} requires a value`);
   return value;
 }
 
-export async function createManifest(tag: string, artifactPath: string, outputPath: string): Promise<void> {
-  const metadata = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as PackageMetadata;
+export async function createManifest(
+  tag: string,
+  artifactPath: string,
+  outputPath: string,
+): Promise<void> {
+  const metadata = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8"),
+  ) as PackageMetadata;
   if (typeof metadata.name !== "string" || typeof metadata.version !== "string") {
-    throw new Error("package.json must contain name and version before creating a release manifest");
+    throw new Error(
+      "package.json must contain name and version before creating a release manifest",
+    );
   }
   const artifact = await readFile(artifactPath);
   const manifest = createReleaseManifest({
@@ -37,5 +50,9 @@ export async function createManifest(tag: string, artifactPath: string, outputPa
 }
 
 if (import.meta.main) {
-  await createManifest(requiredOption("--tag"), requiredOption("--artifact"), requiredOption("--output"));
+  await createManifest(
+    requiredOption("--tag"),
+    requiredOption("--artifact"),
+    requiredOption("--output"),
+  );
 }

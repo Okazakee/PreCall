@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { assertSourceBinding, assertSourceCommits, sourceBindingsEqual, type SourceBinding } from "./release-source.ts";
+import {
+  assertSourceBinding,
+  assertSourceCommits,
+  type SourceBinding,
+  sourceBindingsEqual,
+} from "./release-source.ts";
 
 const commit = "a".repeat(40);
 const otherCommit = "b".repeat(40);
@@ -18,6 +23,8 @@ describe("release source binding", () => {
   });
 
   test("rejects a tag commit that differs from fetched origin/main", () => {
-    expect(() => assertSourceCommits({ ...source, mainCommit: otherCommit })).toThrow("differs from origin/main");
+    expect(() => assertSourceCommits({ ...source, mainCommit: otherCommit })).toThrow(
+      "differs from origin/main",
+    );
   });
 });

@@ -1,5 +1,11 @@
+import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { assertArtifactIntegrity, assertReleaseManifest, parseReleaseManifest, type ReleaseManifest } from "./release-manifest.ts";
+import {
+  assertArtifactIntegrity,
+  assertReleaseManifest,
+  parseReleaseManifest,
+  type ReleaseManifest,
+} from "./release-manifest.ts";
 
 const manifest: ReleaseManifest = {
   schemaVersion: 1,
@@ -17,21 +23,24 @@ describe("release manifest", () => {
 
   test("rejects extra top-level or nested keys", () => {
     expect(() => assertReleaseManifest({ ...manifest, extra: true })).toThrow("exactly");
-    expect(() => assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, extra: true } })).toThrow(
-      "exactly",
-    );
+    expect(() =>
+      assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, extra: true } }),
+    ).toThrow("exactly");
   });
 
   test("rejects wrong artifact identity, size, and hash encoding", () => {
-    expect(() => assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, name: "other.tgz" } })).toThrow(
-      "artifact.name",
-    );
-    expect(() => assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, bytes: -1 } })).toThrow(
-      "non-negative",
-    );
-    expect(() => assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, sha512: "A".repeat(128) } })).toThrow(
-      "lowercase hexadecimal",
-    );
+    expect(() =>
+      assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, name: "other.tgz" } }),
+    ).toThrow("artifact.name");
+    expect(() =>
+      assertReleaseManifest({ ...manifest, artifact: { ...manifest.artifact, bytes: -1 } }),
+    ).toThrow("non-negative");
+    expect(() =>
+      assertReleaseManifest({
+        ...manifest,
+        artifact: { ...manifest.artifact, sha512: "A".repeat(128) },
+      }),
+    ).toThrow("lowercase hexadecimal");
   });
 
   test("rejects a candidate whose bytes or digest differs from the manifest", () => {
