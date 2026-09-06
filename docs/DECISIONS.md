@@ -651,3 +651,9 @@ The exact npm bootstrap is repository-controlled: `npm@11.14.1` is an exact devD
 **Status:** Settled
 
 The public facade provides `submit({ submission, transport, recipient, email?, signal? })` as the shortest normal process-and-deliver path. It composes the existing `process()` and `deliver()` boundaries and returns `{ result, delivery }`; it does not add delivery state to `PreCallResult`, introduce retries, or change fallback and cancellation semantics.
+
+### D-100 — Release-control review requirements removed
+
+**Status:** Settled
+
+The manual GitHub environment approval was removed from the `npm` environment. Required approving reviews and latest-push approval were also removed for the single-maintainer workflow. Pull-request admission and strict required `bootstrap` status checks remain, as do deletion, non-fast-forward/force-update, and release-tag protections. OIDC Trusted Publishing and release semantics are unchanged; future tag releases publish automatically after validation. This supersedes only the reviewer-specific portions of the earlier release-control decision.

@@ -35,6 +35,8 @@ AI output
 future research content
 ```
 
+The public API should enforce this distinction by construction.
+
 The public facade enforces the same separation by construction:
 
 - `createPrecall()` accepts trusted application configuration;
@@ -410,4 +412,4 @@ The npm-generated tarball is the release boundary. `package:check` requires `pac
 
 The hardened workflow treats the candidate and source identity as one security boundary. Full-history validation fetches `refs/tags/$GITHUB_REF_NAME` and `refs/heads/main`, then requires tag commit = checked-out `HEAD` = fetched `origin/main`. The uploaded set is exactly `candidate.tgz` and `release-manifest.json`; publish freshly checks out the tag, verifies manifest package/source/toolchain identity and candidate byte count/SHA-512, and publishes that exact file without rebuilding. npm `11.14.1` is an exact devDependency in `package.json` and `bun.lock`; the checked path is `node_modules/npm/bin/npm-cli.js`. No temporary-prefix or global npm bootstrap is used.
 
-GitHub-side release controls are configured and verified: environment `npm` exists with only the `v*.*.*` custom tag policy and requires the repository owner as reviewer with self-review permitted for the current single-maintainer repository; active `Protect release tags` and `Protect main` rulesets protect release refs and main against mutation/force updates while requiring the `bootstrap` CI check and pull-request approval. The stable release is complete; future releases continue to use the protected workflow and OIDC without token fallback.
+GitHub-side release controls are configured and verified: environment `npm` remains associated with the release workflow without manual reviewer approval; active `Protect release tags` and `Protect main` rulesets protect release refs and main against deletion and non-fast-forward/force updates. Main changes still require a PR and the strict required `bootstrap` status check, while approving reviews and latest-push approval are not required for the single-maintainer workflow. Future tag releases publish automatically after validation through npm Trusted Publishing/OIDC without token fallback. The stable release is complete.

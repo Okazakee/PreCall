@@ -250,11 +250,12 @@ The repository owner configured these controls through GitHub's owner-controlled
 
 - environment `npm` exists with custom tag deployment policy `v*.*.*`;
 - environment secrets are not required;
-- active `Protect release tags` ruleset targets `refs/tags/v*.*.*` and protects creation, update, and deletion, with the repository owner as the designated release-manager bypass actor;
-- active `Protect main` ruleset targets `refs/heads/main`, blocks deletion and force updates, requires pull requests, one approval, latest-push approval, stale-review dismissal, and the `bootstrap` CI status check;
-- environment `npm` has the repository owner as its required reviewer with self-review permitted because this is currently a single-maintainer repository; replace this with an independent release approver when available.
+- active `Protect release tags` ruleset targets `refs/tags/v*.*.*` and protects creation, update, and deletion;
+- active `Protect main` ruleset targets `refs/heads/main`, requires pull requests and the required `bootstrap` status check, and retains strict status-check, deletion, and non-fast-forward/force-update protection;
+- main pull requests do not require an approving review or latest-push approval;
+- environment `npm` remains associated with the release workflow and no longer requires manual reviewer approval.
 
 The npm trusted-publisher association is configured and verified for the release workflow. The bootstrap package remains under the `bootstrap` dist-tag, while `latest` points to stable `0.1.0`; the historical scoped bootstrap package is not mutated.
 
-The `v0.1.0` release is complete. Future releases must continue to use the reviewed tag-triggered workflow, its protected `npm` environment, immutable source/candidate checks, and npm Trusted Publishing/OIDC without token fallback.
+The `v0.1.0` release is complete. Future tag releases publish automatically after validation through the protected workflow and npm Trusted Publishing/OIDC, without token fallback or manual GitHub environment approval.
 

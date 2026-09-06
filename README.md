@@ -34,20 +34,20 @@ AI prepares the human. It does not quote, sell, estimate, create a client-facing
 
 ## Install
 
-PreCall `0.1.0` is available as the stable `precall` package:
+PreCall `0.1.0` is available as the stable `precall` package. Bun is the recommended package manager and runtime for this project:
 
 ```sh
-npm install precall
+bun add precall
 ```
 
-The package is ESM-only and supports Node.js `22.14.0+` and Bun `1.3.14+`.
+npm, pnpm, and yarn can also install the npm package. Node.js `22.14.0+` is supported for compatibility; Bun `1.3.14+` is the primary runtime path.
 
 ## Quick start
 
-The normal path uses the optional LangChain adapter and Resend transport. Provider credentials, sender configuration, and the professional recipient are application configuration; keep them outside the submitted client data.
+One concrete setup uses the optional LangChain adapter and Resend transport. The root library remains provider-neutral, and custom `AIAdapter` and `EmailTransport` implementations are supported. Provider credentials, sender configuration, and the professional recipient are application configuration; keep them outside the submitted client data.
 
 ```sh
-npm install precall @langchain/core @langchain/openai langsmith
+bun add precall @langchain/core @langchain/openai langsmith
 ```
 
 ```ts
@@ -58,14 +58,20 @@ import { createResendEmailTransport } from "precall/resend";
 
 const openAIKey = process.env.OPENAI_API_KEY;
 const resendKey = process.env.RESEND_API_KEY;
+const modelName = process.env.OPENAI_MODEL;
 const recipient = process.env.PRECALL_RECIPIENT;
-if (openAIKey === undefined || resendKey === undefined || recipient === undefined) {
+if (
+  openAIKey === undefined ||
+  resendKey === undefined ||
+  modelName === undefined ||
+  recipient === undefined
+) {
   throw new Error("Missing server configuration");
 }
 
 const model = new ChatOpenAI({
   apiKey: openAIKey,
-  model: "gpt-4o-mini",
+  model: modelName,
   maxRetries: 0,
   configuration: { baseURL: "https://api.openai.com/v1" },
 });
