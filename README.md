@@ -1,30 +1,260 @@
-# PreCall
+<div align="center">
+  <h1>PreCall</h1>
+  <p><strong>Turn inquiries into better discovery calls.</strong></p>
+  <p>
+    <a href="https://www.npmjs.com/package/precall"><img src="https://img.shields.io/npm/v/precall?label=npm" alt="npm version"></a>
+    <a href="https://github.com/Okazakee/PreCall/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Okazakee/PreCall/ci.yml?branch=main&label=CI" alt="CI status"></a>
+    <a href="https://github.com/Okazakee/PreCall/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3DB8FF" alt="Apache-2.0 license"></a>
+  </p>
+</div>
 
-PreCall is a provider-neutral service-intake library. It exposes a minimal `createPrecall()` facade with `process()` and `deliver()` methods, backed by intake validation, privacy-filtered analysis, reusable results, deterministic email packaging, and provider-neutral delivery.
+PreCall takes a structured client inquiry, sends only the fields you explicitly allow to AI, turns the analysis into an internal pre-call brief, and can email that brief to the professional.
 
-The public package is **`precall`**, version **`0.1.0`**. The bootstrap **`precall@0.1.0-bootstrap.0`** has been published under the `bootstrap` dist-tag; final `precall@0.1.0` remains unpublished. npm also assigned `latest` to the bootstrap and that unintended tag must be corrected before final release. The historical scoped bootstrap **`@okazakee/precall@0.1.0-bootstrap.0`** is registry history only and must not be mutated.
+If AI is unavailable, the inquiry is not lost. The accepted request remains preserved, a fallback brief can still be rendered, and delivery can still be attempted.
 
-## Requirements and installation
-
-- Node.js **22.14.0 or newer**;
-- Bun **1.3.14 or newer** (also the development package manager);
-- ESM only (`type: module`), with no CommonJS entrypoint.
-
-After publication, install it with:
-
-```sh
-npm install precall
+```text
+client form
+    ↓
+PreCall
+    ↓
+AI-assisted pre-call brief
+    ↓
+your inbox
 ```
 
-Until then, use the repository checkout and `bun install` for development.
+```text
+AI unavailable
+    ↓
+original inquiry preserved
+    ↓
+fallback brief/email still usable
+```
 
-## Usage
+AI prepares the human. It does not quote, sell, estimate, create a client-facing proposal, or replace the discovery call.
+
+## Install
+
+PreCall `0.1.0` is available as the stable `precall` package. Bun is the recommended package manager and runtime for this project:
+
+```sh
+bun add precall
+```
+
+npm, pnpm, and yarn can also install the npm package. Node.js `22.14.0+` is supported for compatibility; Bun `1.3.14+` is the primary runtime path.
+
+## Quick start
+
+One concrete setup uses the optional LangChain adapter and Resend transport. The root library remains provider-neutral, and custom `AIAdapter` and `EmailTransport` implementations are supported. Provider credentials, sender configuration, and the professional recipient are application configuration; keep them outside the submitted client data.
+
+```sh
+bun add precall @langchain/core @langchain/openai langsmith
+```
+
+```ts
+import { ChatOpenAI } from "@langchain/openai";
+import { createPrecall } from "precall";
+import { createLangChainAIAdapter } from "precall/langchain";
+import { createResendEmailTransport } from "precall/resend";
+
+const openAIKey = process.env.OPENAI_API_KEY;
+const resendKey = process.env.RESEND_API_KEY;
+const modelName = process.env.OPENAI_MODEL;
+const recipient = process.env.PRECALL_RECIPIENT;
+if (
+  openAIKey === undefined ||
+  resendKey === undefined ||
+  modelName === undefined ||
+  recipient === undefined
+) {
+  throw new Error("Missing server configuration");
+}
+
+const model = new ChatOpenAI({
+  apiKey: openAIKey,
+  model: modelName,
+  maxRetries: 0,
+  configuration: { baseURL: "https://api.openai.com/v1" },
+});
+
+const precall = createPrecall({
+  ai: createLangChainAIAdapter({ model }),
+  fields: [
+    {
+      key: "email",
+      label: "Email",
+      sendToAI: false,
+      includeInOutput: true,
+    },
+    {
+      key: "project",
+      label: "Project",
+      sendToAI: true,
+      includeInOutput: true,
+    },
+    {
+      key: "budget",
+      label: "Budget",
+      sendToAI: true,
+      includeInOutput: true,
+    },
+  ],
+});
+
+const transport = createResendEmailTransport({
+  apiKey: resendKey,
+  from: "briefs@example.com",
+});
+const formData = {
+  email: "client@example.com",
+  project: "A booking workflow for a small studio",
+  budget: "Around €15k",
+};
+
+const outcome = await precall.submit({
+  submission: formData,
+  transport,
+  recipient,
+});
+
+if (outcome.delivery.status === "failed") {
+  // Keep outcome.result for application-owned handling or later delivery.
+  throw new Error("The pre-call brief could not be delivered");
+}
+
+const { result } = outcome;
+```
+
+Only fields explicitly permitted with `sendToAI: true` cross the AI boundary. A field can be visible in the professional output while remaining hidden from AI, as with `email` above. Use `includeInOutput: false` for submitted values that must not appear in the default brief or `submission.json` attachment.
+
+### What the result contains
+
+`outcome.result` is a reusable `PreCallResult` containing the detached request snapshot and either a validated structured analysis or an explicit unavailable state. `outcome.delivery` is a separate `DeliveryOutcome` with `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`.
+
+AI output is accepted only after strict validation. An adapter exception or invalid analysis becomes unavailable analysis; it does not erase the request or prevent the email attempt. A transport error remains a delivery failure and is not silently replaced with another transport.
+
+## What can I customize?
+
+PreCall owns the intake-to-brief boundaries, but your application owns the form, endpoint, credentials, storage, and business context.
+
+### Configure directly
+
+`createPrecall()` lets you configure:
+
+- form field definitions and labels;
+- which fields may go to AI with `sendToAI`;
+- which fields may appear in the brief and `submission.json` with `includeInOutput`;
+- sensitive-field policy;
+- intake limits;
+- the AI implementation through `AIAdapter`;
+- the delivery implementation through `EmailTransport`;
+- the trusted delivery recipient;
+- whether the output-permitted submission attachment is included.
+
+### Replace integrations
+
+LangChain and Resend are ready-made optional integrations, not required architecture. A custom adapter means a small object that connects PreCall to a service your application owns.
+
+For example, this is a consumer-owned AI service call, not a PreCall API:
+
+```ts
+import { createPrecall, type AIAdapter } from "precall";
+
+const ai: AIAdapter = {
+  async generateAnalysis({ input, signal }) {
+    // Placeholder consumer code: call your own AI service here.
+    return myAIService.analyze(input, { signal });
+  },
+};
+
+const precall = createPrecall({
+  ai,
+  fields,
+});
+```
+
+PreCall validates the submission first, applies field privacy, and gives the adapter only the permitted `AnalysisInput`. The adapter may use any model, provider, or service the application owns and returns an unknown candidate. PreCall validates that candidate against its canonical analysis contract. Adapter failure becomes the existing explicit no-AI fallback.
+
+A custom email transport receives the rendered email and only needs to deliver it:
+
+```ts
+import type { EmailTransport } from "precall";
+
+const transport: EmailTransport = {
+  async send({ recipient, email, signal }) {
+    // Placeholder consumer code: call your own email provider here.
+    await myEmailProvider.send({
+      to: recipient,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      signal,
+    });
+  },
+};
+```
+
+PreCall has already created the HTML/text brief and permitted submission attachment. Resend is one included option; a custom transport can connect Postmark, SES, an internal mail service, or another provider without changing the PreCall core.
+
+### What is not configurable yet?
+
+PreCall `0.1.x` does **not** currently expose first-class configuration for:
+
+- custom system prompts or arbitrary analysis instructions;
+- budget/pricing strategy, hourly/day/fixed-price rules, minimum project size, or margin/uncertainty buffers;
+- research strategy;
+- modular/custom analysis skills or per-skill models;
+- AI tool, agent, or multi-step workflows.
+
+The built-in LangChain adapter performs PreCall's standard library-owned pre-call analysis. A custom `AIAdapter` can technically implement different model behavior, but it is primarily the provider/execution boundary—not the intended place to combine provider integration, all business rules, prompt policy, and analysis semantics. The core also has no structured budget-analysis result contract yet.
+
+Budget decision support and modular analysis skills are planned capabilities, but their configuration API is not settled. A future design may combine deterministic professional rules, the existing intake/result, AI reasoning where appropriate, and explicit uncertainty while remaining decision support rather than automatic quotation.
+
+```text
+Future concept — not current API
+```
+
+```ts
+createPrecall({
+  ai,
+  fields,
+  // Future concept only — not implemented:
+  skills: {
+    budget: {
+      // professional-specific rules/configuration
+    },
+  },
+});
+```
+
+### Capability map
+
+| Need | Today |
+| --- | --- |
+| Control what AI sees | `fields[].sendToAI` |
+| Control what appears in output | `fields[].includeInOutput` |
+| Change AI provider/model | LangChain model or custom `AIAdapter` |
+| Change email provider | Resend or custom `EmailTransport` |
+| Change recipient | `submit()` / `deliver()` |
+| Change intake limits | `createPrecall({ limits })` |
+| Change attachment behavior | `email.attachRawSubmission` |
+| Custom prompt/instructions | Not first-class yet |
+| Budget/pricing strategy | Not implemented yet |
+| Research | Not implemented yet |
+| Custom analysis skills | Not implemented yet |
+
+## Use the lower-level API
+
+`submit()` is the shortest process-and-deliver path. Use `process()` and `deliver()` separately when you need to inspect or store the result, render or package it differently, or deliver it later:
 
 ```ts
 import { createPrecall } from "precall";
 
 const precall = createPrecall({ ai, fields, limits });
-const result = await precall.process({ submission });
+
+const result = await precall.process({
+  submission,
+});
+
 const delivery = await precall.deliver({
   result,
   transport,
@@ -32,60 +262,25 @@ const delivery = await precall.deliver({
 });
 ```
 
-`ai` and `transport` are consumer-supplied semantic adapters. The package validates and snapshots trusted field/limit configuration at creation, preserves the submitted request in `PreCallResult`, and keeps delivery outcome separate from processing. If AI enrichment is unavailable, the result remains usable with an explicit no-AI fallback; delivery failures are reported independently.
+`process()` remains processing-only. `deliver()` remains delivery-only. `submit()` is an explicit convenience method that composes those two existing operations; it does not merge delivery state into `PreCallResult`.
 
-### Optional LangChain integration
+## AI and delivery integrations
 
-The optional `./langchain` subpath adapts a consumer-owned LangChain model instance. Install compatible optional `@langchain/core` and `langsmith` peers, configure the provider/model in the consuming application, and keep credentials outside PreCall:
+The root package is provider-neutral. Implement `AIAdapter` and `EmailTransport` yourself, or use the optional integrations:
 
-```ts
-import { createPrecall } from "precall";
-import { createLangChainAIAdapter } from "precall/langchain";
+- [`precall/langchain`](src/langchain.ts) adapts a consumer-owned LangChain model with one structured invocation. It does not browse, use tools, quote, estimate, or replace discovery.
+- [`precall/resend`](src/resend.ts) sends the existing rendered email through Resend's fixed API endpoint. It adds no Resend SDK dependency to the core package.
 
-const ai = createLangChainAIAdapter({ model });
-const precall = createPrecall({ ai, fields });
-const result = await precall.process({ submission });
-```
+The consumer owns the form, validation around its endpoint, trusted recipient, credentials, storage, and abuse controls. PreCall owns intake validation, field-policy enforcement, AI-output validation, deterministic fallback presentation, and provider-neutral delivery semantics.
 
-The adapter performs one structured model operation using the canonical PreCall analysis schema. It does not browse, execute tools, quote, estimate, or replace discovery. The root package remains usable without installing LangChain.
-
-### Optional Resend email integration
-
-The optional `./resend` subpath provides the first built-in `EmailTransport`. Configure the trusted sender and API key in application configuration; do not derive either from client submissions:
-
-```ts
-import { createResendEmailTransport } from "precall/resend";
-
-const transport = createResendEmailTransport({
-  apiKey,
-  from: "briefs@example.com",
-});
-
-await precall.deliver({
-  result,
-  transport,
-  recipient: "professional@example.com",
-});
-```
-
-The transport uses one fixed Resend API request and reuses the existing rendered HTML, text, and permitted `submission.json` attachment. Custom `EmailTransport` implementations remain supported; the Resend SDK is not a package dependency.
-
-## Development and release checks
-
-Bun is used for package management and tooling:
+## Development
 
 ```sh
 bun install
 bun run check
-```
-
-The package contract packs the actual npm artifact and checks metadata, Apache-2.0 licensing, all generated runtime/declaration files, clean Node/Bun consumers, optional subpaths, and NodeNext declarations. Release validation is credential-free:
-
-```sh
 bun run release:check
-bun run release:dry-run
 ```
 
-`release:dry-run` builds and inspects one npm-generated tarball, then runs npm's real `npm publish <tarball> --dry-run --ignore-scripts --access public --provenance` command with an empty temporary npm user config. It never publishes, creates a tag, or creates a GitHub Release. Actual publication is limited to the tag-triggered OIDC workflow after npm trusted-publisher setup.
+`bun run check` runs the repository contract, formatting and lint checks, typechecking, tests, build, and packed-package verification. Release checks are credential-free and do not publish, create tags, or create GitHub Releases.
 
-See [reference documentation](docs/README.md), [releasing](docs/RELEASING.md), and [security](docs/SECURITY.md) for the complete contract.
+See the [reference documentation](docs/README.md), [architecture](docs/ARCHITECTURE.md), [security model](docs/SECURITY.md), and [release policy](docs/RELEASING.md) for deeper implementation and trust-boundary details.

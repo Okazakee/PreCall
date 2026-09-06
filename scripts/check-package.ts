@@ -195,31 +195,56 @@ const ai = { generateAnalysis: async ({ input }) => {
   return analysis;
 } };
 const precall = createPrecall({ ai, fields: [{ key: "message", label: "Message" }] });
-const result = await precall.process({ submission: { message: "hello" } });
-if (result.analysis.status !== "succeeded") throw new Error("processing did not succeed");
 let sent = false;
-const outcome = await precall.deliver({
-  result, recipient: "consumer@example.com",
+const submitted = await precall.submit({
+  submission: { message: "hello" },
+  recipient: "consumer@example.com",
   transport: { send: async (request) => {
     if (request.recipient !== "consumer@example.com") throw new Error("wrong recipient");
     if (request.email.subject !== "Pre-Call Brief") throw new Error("wrong subject");
     sent = true;
   } },
 });
-if (!sent || outcome.status !== "sent") throw new Error("delivery did not succeed");
+if (
+  !sent ||
+  submitted.result.analysis.status !== "succeeded" ||
+  submitted.delivery.status !== "sent"
+) throw new Error("submit did not succeed");
 `;
 }
 
 function typeConsumerSource(name: string): string {
   return `
-import type { PrecallConfig, AIAdapter, EmailTransport, PreCallResult, DeliveryOutcome } from ${JSON.stringify(name)};
+import type {
+  AIAdapter,
+  DeliveryOutcome,
+  EmailTransport,
+  PreCallResult,
+  Precall,
+  PrecallConfig,
+  SubmitOutcome,
+  SubmitRequest,
+} from ${JSON.stringify(name)};
 const ai: AIAdapter = { generateAnalysis: async () => ({}) };
 const transport: EmailTransport = { send: async (request) => { request.recipient; request.email.subject; } };
 const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }] };
-function consume(result: PreCallResult, outcome: DeliveryOutcome): void {
-  result.analysis; outcome.status; config.fields; transport.send;
-}
-consume;
+const submitRequest: SubmitRequest = {
+  submission: { message: "hello" },
+  transport,
+  recipient: "consumer@example.com",
+};
+declare const precall: Precall;
+const result = {} as PreCallResult;
+const processResult: Promise<PreCallResult> = precall.process({
+  submission: { message: "hello" },
+});
+const deliveryResult: Promise<DeliveryOutcome> = precall.deliver({
+  result,
+  transport,
+  recipient: "consumer@example.com",
+});
+const submitResult: Promise<SubmitOutcome> = precall.submit(submitRequest);
+processResult; deliveryResult; submitResult; config.fields; transport.send;
 `;
 }
 

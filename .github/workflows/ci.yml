@@ -14,7 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  bootstrap:
+  check:
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

@@ -236,6 +236,120 @@ describe("public Precall facade", () => {
     });
     expect(request?.email.attachments).toEqual([]);
   });
+  test("submit orchestrates processing and delivery while preserving field privacy", async () => {
+    let seenInput: AnalysisInput | undefined;
+    let sent: EmailDeliveryRequest | undefined;
+    const precall = createPrecall({
+      ai: {
+        generateAnalysis: async ({ input }) => {
+          seenInput = input;
+          return validAnalysis;
+        },
+      },
+      fields: [
+        { key: "project", label: "Project", sendToAI: true },
+        { key: "email", label: "Email", sendToAI: false, includeInOutput: true },
+        { key: "internal", label: "Internal", sendToAI: false, includeInOutput: false },
+      ],
+    });
+
+    const outcome = await precall.submit({
+      submission: {
+        project: "Booking workflow",
+        email: "owner@example.com",
+        internal: "do not expose",
+      },
+      transport: {
+        send: async (request) => {
+          sent = request;
+        },
+      },
+      recipient: "professional@example.com",
+    });
+
+    expect(outcome.result.analysis.status).toBe("succeeded");
+    expect(outcome.delivery).toEqual({ status: "sent" });
+    expect(seenInput?.fields.map((field) => field.key)).toEqual(["project"]);
+    expect(sent?.recipient).toBe("professional@example.com");
+    expect(sent?.email.subject).toBe("Pre-Call Brief");
+    expect(sent?.email.text).toContain("owner@example.com");
+    expect(sent?.email.text).not.toContain("do not expose");
+  });
+
+  test("submit still delivers a fallback when AI is unavailable", async () => {
+    let sent: EmailDeliveryRequest | undefined;
+    const precall = createPrecall({
+      ai: {
+        generateAnalysis: async () => {
+          throw new Error("provider unavailable");
+        },
+      },
+      fields: [{ key: "message", label: "Message", sendToAI: true }],
+    });
+
+    const outcome = await precall.submit({
+      submission: { message: "Please improve our intake form." },
+      transport: {
+        send: async (request) => {
+          sent = request;
+        },
+      },
+      recipient: "professional@example.com",
+    });
+
+    expect(outcome.result.analysis).toEqual({ status: "unavailable", reason: "adapter_error" });
+    expect(outcome.delivery).toEqual({ status: "sent" });
+    expect(sent?.email.text).toContain("AI analysis was unavailable");
+    expect(sent?.email.text).toContain("Please improve our intake form.");
+  });
+
+  test("submit returns the result when transport fails", async () => {
+    const precall = createPrecall({ ai: adapterReturning(), fields });
+
+    const outcome = await precall.submit({
+      submission: { message: "hello", email: "owner@example.com" },
+      transport: {
+        send: async () => {
+          throw new Error("offline");
+        },
+      },
+      recipient: "professional@example.com",
+    });
+
+    expect(outcome.result.analysis.status).toBe("succeeded");
+    expect(outcome.delivery).toEqual({ status: "failed", reason: "transport_error" });
+  });
+
+  test("submit preserves cancellation before processing or delivery", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let aiCalls = 0;
+    let transportCalls = 0;
+    const precall = createPrecall({
+      ai: {
+        generateAnalysis: async () => {
+          aiCalls += 1;
+          return validAnalysis;
+        },
+      },
+      fields: [{ key: "message", label: "Message" }],
+    });
+
+    await expect(
+      precall.submit({
+        submission: { message: "cancelled" },
+        transport: {
+          send: async () => {
+            transportCalls += 1;
+          },
+        },
+        recipient: "professional@example.com",
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow();
+    expect(aiCalls).toBe(0);
+    expect(transportCalls).toBe(0);
+  });
 
   test("exposes only intentional runtime values", () => {
     const runtimeKeys = Object.keys(publicApi);

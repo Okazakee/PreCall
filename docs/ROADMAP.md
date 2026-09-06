@@ -263,29 +263,36 @@ Implemented:
 
 **Milestone:** Both first external boundaries now exist as optional integrations while the core remains provider-neutral.
 
-## Phase 14 — First public package preparation
+## Phase 14 — First public package release
 
-**Status: identity rename and unscoped bootstrap complete; final publication pending**
+**Status: complete**
 
-Settled:
+Completed:
 
-- product/repository name **PreCall**;
-- npm package **`precall`**;
-- Apache-2.0 license;
-- version **0.1.0**;
-- ESM-only policy;
-- Node.js >=22.14.0 and Bun >=1.3.14 runtime floors;
-- npm artifact contract and safe dry-run command;
-- tag-only trusted-publisher/OIDC workflow;
-- full-ref source admission requiring tag commit = checked-out `HEAD` = `origin/main`;
-- canonical two-file candidate (`candidate.tgz` plus `release-manifest.json`) with byte/hash identity;
-- exact npm `11.14.1` devDependency and repository CLI path, with no temporary/global npm bootstrap.
+- stable package **`precall@0.1.0`** published as the `latest` release;
+- historical bootstrap retained under the `bootstrap` dist-tag;
+- npm Trusted Publishing through GitHub Actions/OIDC verified;
+- stable GitHub Release **`v0.1.0`** created;
+- release workflow remains tag-only, source-bound, and token-free.
 
-The unscoped bootstrap `precall@0.1.0-bootstrap.0` is published under the `bootstrap` dist-tag, but npm also assigned it to `latest`; that unintended `latest` assignment must be removed before final release setup. Stable `precall@0.1.0` remains unpublished. Trusted-publisher configuration and publishing-access verification remain owner actions. The GitHub `npm` environment and main/release-tag rulesets are configured, with owner self-review currently permitted because the repository has one maintainer; replace self-review with an independent reviewer when available. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
+## Phase 15 — Default-flow clarity
+
+**Status: complete**
+
+Completed:
+
+- added the thin `precall.submit()` convenience operation for process-and-deliver;
+- preserved `process()` as processing-only and `deliver()` as delivery-only;
+- returned `{ result, delivery }` so processing and transport outcomes remain inspectable;
+- covered successful analysis, unavailable AI, transport failure, privacy, and cancellation paths;
+- rewrote the README around the client inquiry → brief → conversation outcome;
+- documented the explicit AI/output field policies and the fallback path.
+
+**Milestone:** A developer encountering PreCall can start with one clear working flow while retaining the existing lower-level boundaries.
 
 ## Next milestone
 
-Complete the final public release: correct the bootstrap dist-tags, configure and verify the trusted publisher and publishing-access policy, then create and push a reviewed `v0.1.0` tag only if that version remains unpublished; verify OIDC publication and create the first GitHub Release.
+Complete the small Next.js integration proof with a Server Action and/or Route Handler. Keep framework-specific code outside the core.
 
 # After MVP
 

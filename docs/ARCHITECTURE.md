@@ -163,7 +163,7 @@ An email transport can fail while the structured result remains valid and availa
 
 ## Public API direction
 
-The first intentional public facade is:
+The configured facade offers a short process-and-deliver operation:
 
 ```ts
 const precall = createPrecall({
@@ -172,6 +172,20 @@ const precall = createPrecall({
   limits,
 })
 
+const outcome = await precall.submit({
+  submission,
+  transport,
+  recipient,
+  email,
+  signal,
+})
+```
+
+`outcome` contains `{ result: PreCallResult, delivery: DeliveryOutcome }`.
+
+The underlying operations remain first-class for callers that need separate control:
+
+```ts
 const result = await precall.process({
   submission,
   signal,
@@ -186,7 +200,7 @@ const delivery = await precall.deliver({
 })
 ```
 
-`createPrecall()` validates trusted adapter/configuration inputs and snapshots field definitions and limits at creation. The returned instance stores no per-request state and safely supports concurrent `process()` calls. `process()` accepts only untrusted submission data and delegates to the existing normalization and analysis boundaries. `deliver()` delegates to the existing delivery boundary; it does not duplicate recipient validation, packaging, failure mapping, or abort handling.
+`createPrecall()` validates trusted adapter/configuration inputs and snapshots field definitions and limits at creation. The returned instance stores no per-request state and safely supports concurrent calls. `process()` accepts only untrusted submission data and delegates to the existing normalization and analysis boundaries. `deliver()` delegates to the existing delivery boundary; it does not duplicate recipient validation, packaging, failure mapping, or abort handling. `submit()` is a thin explicit composition of those two operations and does not move delivery state into `PreCallResult`.
 
 The root package exports `createPrecall` and `IntakeValidationError` as runtime values. It exports only the types required to configure the facade or implement the semantic AI/email extension points. Schemas, normalizers, renderers, packagers, result composers, and delivery helpers remain internal.
 
