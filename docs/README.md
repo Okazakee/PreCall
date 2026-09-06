@@ -2,9 +2,9 @@
 
 This directory is the consolidated reference set for the **PreCall** project.
 
-The public package identity is **`@okazakee/precall`**, version **0.1.0**. The repository and npm package are Apache-2.0 licensed. The package is ESM-only and supports Node.js >=22.14.0 and Bun >=1.3.14.
+The public package identity is **`precall`**, version **0.1.0**. The repository and npm package are Apache-2.0 licensed. The package is ESM-only and supports Node.js >=22.14.0 and Bun >=1.3.14.
 
-The package is release-ready but **not published**. See [releasing](RELEASING.md) for the credential-free dry-run and tag-only OIDC workflow.
+Stable **`precall@0.1.0`** remains unpublished, and the new unscoped **`precall@0.1.0-bootstrap.0`** bootstrap is pending. The historical scoped **`@okazakee/precall@0.1.0-bootstrap.0`** package is registry history only and must not be mutated.
 
 ## How to use these files
 

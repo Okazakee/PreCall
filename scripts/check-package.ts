@@ -22,7 +22,7 @@ type PackageMetadata = {
   peerDependenciesMeta?: unknown;
 };
 
-const packageName = "@okazakee/precall";
+const packageName = "precall";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const npmCli = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
 const packageVersion = "0.1.0";

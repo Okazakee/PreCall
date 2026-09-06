@@ -1,5 +1,5 @@
 {
-  "name": "@okazakee/precall",
+  "name": "precall",
   "version": "0.1.0",
   "description": "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.",
   "keywords": [

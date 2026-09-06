@@ -9,7 +9,7 @@ import {
 
 const manifest: ReleaseManifest = {
   schemaVersion: 1,
-  package: { name: "@okazakee/precall", version: "0.1.0" },
+  package: { name: "precall", version: "0.1.0" },
   source: { tag: "v0.1.0", commit: "a".repeat(40), mainCommit: "a".repeat(40) },
   toolchain: { bun: "1.3.14", node: "22.22.0", npm: "11.14.1" },
   artifact: { name: "candidate.tgz", bytes: 17, sha512: "a".repeat(128) },

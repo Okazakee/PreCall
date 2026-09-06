@@ -2,7 +2,7 @@
 
 PreCall is a provider-neutral service-intake library. It exposes a minimal `createPrecall()` facade with `process()` and `deliver()` methods, backed by intake validation, privacy-filtered analysis, reusable results, deterministic email packaging, and provider-neutral delivery.
 
-The public package is **`@okazakee/precall`**, version **0.1.0**, and is not yet published. Registry availability and scope ownership are not inferred from HTTP checks; the first publish must be bootstrapped by the package owner.
+The public package is **`precall`**, version **`0.1.0`**, and is not yet published. The new unscoped bootstrap **`precall@0.1.0-bootstrap.0`** is pending. The historical scoped bootstrap **`@okazakee/precall@0.1.0-bootstrap.0`** is registry history only and must not be mutated.
 
 ## Requirements and installation
 
@@ -13,7 +13,7 @@ The public package is **`@okazakee/precall`**, version **0.1.0**, and is not yet
 After publication, install it with:
 
 ```sh
-npm install @okazakee/precall
+npm install precall
 ```
 
 Until then, use the repository checkout and `bun install` for development.
@@ -21,7 +21,7 @@ Until then, use the repository checkout and `bun install` for development.
 ## Usage
 
 ```ts
-import { createPrecall } from "@okazakee/precall";
+import { createPrecall } from "precall";
 
 const precall = createPrecall({ ai, fields, limits });
 const result = await precall.process({ submission });
@@ -39,8 +39,8 @@ const delivery = await precall.deliver({
 The optional `./langchain` subpath adapts a consumer-owned LangChain model instance. Install compatible optional `@langchain/core` and `langsmith` peers, configure the provider/model in the consuming application, and keep credentials outside PreCall:
 
 ```ts
-import { createPrecall } from "@okazakee/precall";
-import { createLangChainAIAdapter } from "@okazakee/precall/langchain";
+import { createPrecall } from "precall";
+import { createLangChainAIAdapter } from "precall/langchain";
 
 const ai = createLangChainAIAdapter({ model });
 const precall = createPrecall({ ai, fields });
@@ -54,7 +54,7 @@ The adapter performs one structured model operation using the canonical PreCall 
 The optional `./resend` subpath provides the first built-in `EmailTransport`. Configure the trusted sender and API key in application configuration; do not derive either from client submissions:
 
 ```ts
-import { createResendEmailTransport } from "@okazakee/precall/resend";
+import { createResendEmailTransport } from "precall/resend";
 
 const transport = createResendEmailTransport({
   apiKey,
