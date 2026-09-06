@@ -251,7 +251,7 @@ The repository owner configured these controls through GitHub's owner-controlled
 - environment `npm` exists with custom tag deployment policy `v*.*.*`;
 - environment secrets are not required;
 - active `Protect release tags` ruleset targets `refs/tags/v*.*.*` and protects creation, update, and deletion;
-- active `Protect main` ruleset targets `refs/heads/main`, requires pull requests and the required `bootstrap` status check, and retains strict status-check, deletion, and non-fast-forward/force-update protection;
+- active `Protect main` ruleset targets `refs/heads/main`, requires pull requests and the required `check` status check, and retains strict status-check, deletion, and non-fast-forward/force-update protection;
 - main pull requests do not require an approving review or latest-push approval;
 - environment `npm` remains associated with the release workflow and no longer requires manual reviewer approval.
 
