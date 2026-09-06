@@ -132,6 +132,116 @@ Only fields explicitly permitted with `sendToAI: true` cross the AI boundary. A 
 
 AI output is accepted only after strict validation. An adapter exception or invalid analysis becomes unavailable analysis; it does not erase the request or prevent the email attempt. A transport error remains a delivery failure and is not silently replaced with another transport.
 
+## What can I customize?
+
+PreCall owns the intake-to-brief boundaries, but your application owns the form, endpoint, credentials, storage, and business context.
+
+### Configure directly
+
+`createPrecall()` lets you configure:
+
+- form field definitions and labels;
+- which fields may go to AI with `sendToAI`;
+- which fields may appear in the brief and `submission.json` with `includeInOutput`;
+- sensitive-field policy;
+- intake limits;
+- the AI implementation through `AIAdapter`;
+- the delivery implementation through `EmailTransport`;
+- the trusted delivery recipient;
+- whether the output-permitted submission attachment is included.
+
+### Replace integrations
+
+LangChain and Resend are ready-made optional integrations, not required architecture. A custom adapter means a small object that connects PreCall to a service your application owns.
+
+For example, this is a consumer-owned AI service call, not a PreCall API:
+
+```ts
+import { createPrecall, type AIAdapter } from "precall";
+
+const ai: AIAdapter = {
+  async generateAnalysis({ input, signal }) {
+    // Placeholder consumer code: call your own AI service here.
+    return myAIService.analyze(input, { signal });
+  },
+};
+
+const precall = createPrecall({
+  ai,
+  fields,
+});
+```
+
+PreCall validates the submission first, applies field privacy, and gives the adapter only the permitted `AnalysisInput`. The adapter may use any model, provider, or service the application owns and returns an unknown candidate. PreCall validates that candidate against its canonical analysis contract. Adapter failure becomes the existing explicit no-AI fallback.
+
+A custom email transport receives the rendered email and only needs to deliver it:
+
+```ts
+import type { EmailTransport } from "precall";
+
+const transport: EmailTransport = {
+  async send({ recipient, email, signal }) {
+    // Placeholder consumer code: call your own email provider here.
+    await myEmailProvider.send({
+      to: recipient,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      signal,
+    });
+  },
+};
+```
+
+PreCall has already created the HTML/text brief and permitted submission attachment. Resend is one included option; a custom transport can connect Postmark, SES, an internal mail service, or another provider without changing the PreCall core.
+
+### What is not configurable yet?
+
+PreCall `0.1.x` does **not** currently expose first-class configuration for:
+
+- custom system prompts or arbitrary analysis instructions;
+- budget/pricing strategy, hourly/day/fixed-price rules, minimum project size, or margin/uncertainty buffers;
+- research strategy;
+- modular/custom analysis skills or per-skill models;
+- AI tool, agent, or multi-step workflows.
+
+The built-in LangChain adapter performs PreCall's standard library-owned pre-call analysis. A custom `AIAdapter` can technically implement different model behavior, but it is primarily the provider/execution boundary—not the intended place to combine provider integration, all business rules, prompt policy, and analysis semantics. The core also has no structured budget-analysis result contract yet.
+
+Budget decision support and modular analysis skills are planned capabilities, but their configuration API is not settled. A future design may combine deterministic professional rules, the existing intake/result, AI reasoning where appropriate, and explicit uncertainty while remaining decision support rather than automatic quotation.
+
+```text
+Future concept — not current API
+```
+
+```ts
+createPrecall({
+  ai,
+  fields,
+  // Future concept only — not implemented:
+  skills: {
+    budget: {
+      // professional-specific rules/configuration
+    },
+  },
+});
+```
+
+### Capability map
+
+| Need | Today |
+| --- | --- |
+| Control what AI sees | `fields[].sendToAI` |
+| Control what appears in output | `fields[].includeInOutput` |
+| Change AI provider/model | LangChain model or custom `AIAdapter` |
+| Change email provider | Resend or custom `EmailTransport` |
+| Change recipient | `submit()` / `deliver()` |
+| Change intake limits | `createPrecall({ limits })` |
+| Change attachment behavior | `email.attachRawSubmission` |
+| Custom prompt/instructions | Not first-class yet |
+| Budget/pricing strategy | Not implemented yet |
+| Research | Not implemented yet |
+| Custom analysis skills | Not implemented yet |
+
 ## Use the lower-level API
 
 `submit()` is the shortest process-and-deliver path. Use `process()` and `deliver()` separately when you need to inspect or store the result, render or package it differently, or deliver it later:
