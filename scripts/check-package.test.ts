@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,9 +19,16 @@ test("rejects an unexpected npm archive entry", async () => {
         cp(join(root, file), join(packageRoot, file)),
       ),
     );
-    const distEntries = await readdir(join(root, "dist"));
+    const distEntries = [
+      "index.js",
+      "index.d.ts",
+      "langchain.js",
+      "langchain.d.ts",
+      "resend.js",
+      "resend.d.ts",
+    ];
     await Promise.all(
-      distEntries.map((file) => cp(join(root, "dist", file), join(packageRoot, "dist", file))),
+      distEntries.map((file) => writeFile(join(packageRoot, "dist", file), "test")),
     );
     await writeFile(join(packageRoot, ".npmrc"), "registry=https://evil.example\n");
 
