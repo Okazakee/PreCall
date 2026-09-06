@@ -281,7 +281,7 @@ Settled:
 - canonical two-file candidate (`candidate.tgz` plus `release-manifest.json`) with byte/hash identity;
 - exact npm `11.14.1` devDependency and repository CLI path, with no temporary/global npm bootstrap.
 
-The package is not published. First npm scoped-public-publish authentication/2FA bootstrap and trusted-publisher configuration remain owner actions. The workflow never auto-bumps versions, creates tags, or publishes on main pushes. External GitHub/npm settings are not represented as configured repository facts.
+The package is not published. First npm scoped-public-publish authentication/2FA bootstrap and trusted-publisher configuration remain owner actions. The GitHub `npm` environment and main/release-tag rulesets are configured, with owner self-review currently permitted because the repository has one maintainer; replace self-review with an independent reviewer when available. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
 
 ## Next milestone
 

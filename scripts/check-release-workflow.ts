@@ -27,8 +27,13 @@ export function assertReleaseWorkflow(workflow: string): void {
   if (workflow.includes("RUNNER_TEMP/npm-prefix") || /npm\s+i\b/gu.test(workflow)) {
     throw new Error("release workflow must not use a temporary or global npm bootstrap");
   }
-  if (workflow.includes("candidate.tgz.sha512") || occurrences(workflow, /npm-cli\.js\s+pack/gu) !== 1) {
-    throw new Error("release workflow must pack exactly one candidate and upload the canonical manifest");
+  if (
+    workflow.includes("candidate.tgz.sha512") ||
+    occurrences(workflow, /npm-cli\.js\s+pack/gu) !== 1
+  ) {
+    throw new Error(
+      "release workflow must pack exactly one candidate and upload the canonical manifest",
+    );
   }
   if (!workflow.includes("verify-release-manifest.ts")) {
     throw new Error("release workflow must verify manifest and artifact identity before publish");

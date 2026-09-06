@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const npmCli = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
 
 function run(
   command: string,
@@ -50,8 +51,8 @@ async function releaseDryRun(): Promise<void> {
     run("bun", ["run", "release:check"]);
     run("bun", ["run", "build"]);
     const output = run(
-      "npm",
-      ["pack", root, "--ignore-scripts", "--json", "--pack-destination", packDirectory],
+      "node",
+      [npmCli, "pack", root, "--ignore-scripts", "--json", "--pack-destination", packDirectory],
       { cwd: temporaryCwd, env: npmEnv },
     );
     const packed = JSON.parse(output) as Array<{ filename?: unknown }>;
@@ -62,8 +63,9 @@ async function releaseDryRun(): Promise<void> {
     await readFile(tarball);
     run("bun", ["scripts/check-package.ts", tarball]);
     run(
-      "npm",
+      "node",
       [
+        npmCli,
         "publish",
         tarball,
         "--dry-run",

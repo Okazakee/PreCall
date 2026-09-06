@@ -244,9 +244,22 @@ The release workflow checks out the pushed tag with full history, fetches both t
 
 The current npm bootstrap finding is concrete: npm `11.14.1` is an exact `devDependency` resolved in `bun.lock`, and the repository CLI is available at `node_modules/npm/bin/npm-cli.js` after `bun install --frozen-lockfile`. The workflow invokes that path through Node. It does not install npm into a temporary prefix, use a global npm install, or rely on a runner-provided npm version.
 
-Operator checklist before the first release:
+## Verified GitHub release controls
 
-- Confirm the external npm trusted-publisher/OIDC and protected `npm` environment settings; this repository does not claim those settings are configured.
+The repository owner configured these controls through GitHub's owner-controlled API:
+
+- environment `npm` exists with custom tag deployment policy `v*.*.*`;
+- environment secrets are not required;
+- active `Protect release tags` ruleset targets `refs/tags/v*.*.*` and protects creation, update, and deletion, with the repository owner as the designated release-manager bypass actor;
+- active `Protect main` ruleset targets `refs/heads/main`, blocks deletion and force updates, requires pull requests, one approval, latest-push approval, stale-review dismissal, and the `bootstrap` CI status check;
+- environment `npm` has the repository owner as its required reviewer with self-review permitted because this is currently a single-maintainer repository; replace this with an independent release approver when available.
+
+The npm trusted-publisher association cannot be verified from the repository and must be configured in npm package settings after scope ownership and first-package bootstrap are complete.
+
+Operator checklist before the first release:
 - Confirm npm scope ownership and first scoped-public-publish account/2FA bootstrap with an authenticated owner action.
+- Configure and verify the npm trusted publisher for GitHub Actions, `Okazakee`, `PreCall`, `release.yml`, environment `npm`, with direct `npm publish` allowed and no token fallback.
+- Verify the existing `npm` environment's tag-only policy and reviewer/self-review policy; add an independent reviewer when available.
 - Review the exact tag and its source binding to `origin/main`; do not create a tag or publish from a local checkout.
 - Trigger only the reviewed `v0.1.0` tag workflow, inspect candidate and manifest checks, and verify the OIDC publication result.
+

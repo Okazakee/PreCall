@@ -5,7 +5,8 @@ import { readGitSourceBinding, sourceBindingsEqual } from "./release-source.ts";
 function requiredOption(name: string): string {
   const index = process.argv.indexOf(name);
   const value = process.argv[index + 1];
-  if (index < 0 || value === undefined || value.length === 0) throw new Error(`${name} requires a value`);
+  if (index < 0 || value === undefined || value.length === 0)
+    throw new Error(`${name} requires a value`);
   return value;
 }
 
@@ -14,7 +15,9 @@ export async function checkReleaseSource(tag: string, manifestPath?: string): Pr
   if (manifestPath !== undefined) {
     const manifest = parseReleaseManifest(await readFile(manifestPath, "utf8"));
     if (!sourceBindingsEqual(source, manifest.source)) {
-      throw new Error("release manifest source does not match the tag, HEAD, and origin/main checkout");
+      throw new Error(
+        "release manifest source does not match the tag, HEAD, and origin/main checkout",
+      );
     }
   }
   process.stdout.write(

@@ -33,15 +33,15 @@ function assertObject(value: unknown, description: string): asserts value is Jso
 }
 
 function assertKeys(value: JsonObject, expected: readonly string[], description: string): void {
-  const actual = Object.keys(value).sort();
-  const keys = [...expected].sort();
-  if (actual.length !== keys.length || actual.some((key, index) => key !== keys[index])) {
+  const actual = Object.keys(value);
+  if (actual.length !== expected.length || expected.some((key) => !actual.includes(key))) {
     throw new Error(`${description} must contain exactly: ${expected.join(", ")}`);
   }
 }
 
 function assertString(value: unknown, description: string): asserts value is string {
-  if (typeof value !== "string" || value.length === 0) throw new Error(`${description} must be non-empty`);
+  if (typeof value !== "string" || value.length === 0)
+    throw new Error(`${description} must be non-empty`);
 }
 
 /** Validate and narrow the canonical release-manifest contract. */
@@ -59,7 +59,8 @@ export function assertReleaseManifest(value: unknown): asserts value is ReleaseM
 
   assertObject(value.toolchain, "release manifest toolchain");
   assertKeys(value.toolchain, TOOLCHAIN_KEYS, "release manifest toolchain");
-  for (const key of TOOLCHAIN_KEYS) assertString(value.toolchain[key], `release manifest toolchain.${key}`);
+  for (const key of TOOLCHAIN_KEYS)
+    assertString(value.toolchain[key], `release manifest toolchain.${key}`);
 
   assertObject(value.artifact, "release manifest artifact");
   assertKeys(value.artifact, ARTIFACT_KEYS, "release manifest artifact");
@@ -74,7 +75,9 @@ export function assertReleaseManifest(value: unknown): asserts value is ReleaseM
     throw new Error("release manifest artifact.bytes must be a non-negative safe integer");
   }
   if (typeof value.artifact.sha512 !== "string" || !SHA512.test(value.artifact.sha512)) {
-    throw new Error("release manifest artifact.sha512 must be 128 lowercase hexadecimal characters");
+    throw new Error(
+      "release manifest artifact.sha512 must be 128 lowercase hexadecimal characters",
+    );
   }
 }
 

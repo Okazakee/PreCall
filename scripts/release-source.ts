@@ -13,9 +13,8 @@ const SOURCE_KEYS = ["tag", "commit", "mainCommit"] as const;
 type RecordValue = Record<string, unknown>;
 
 function assertExactKeys(value: RecordValue, keys: readonly string[], description: string): void {
-  const actual = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+  const actual = Object.keys(value);
+  if (actual.length !== keys.length || keys.some((key) => !actual.includes(key))) {
     throw new Error(`${description} must contain exactly: ${keys.join(", ")}`);
   }
 }
@@ -42,7 +41,9 @@ export function assertSourceBinding(value: unknown): asserts value is SourceBind
 
 /** Return whether two already-validated source identities are exactly equal. */
 export function sourceBindingsEqual(left: SourceBinding, right: SourceBinding): boolean {
-  return left.tag === right.tag && left.commit === right.commit && left.mainCommit === right.mainCommit;
+  return (
+    left.tag === right.tag && left.commit === right.commit && left.mainCommit === right.mainCommit
+  );
 }
 
 /** Assert that a tag commit, checkout, and fetched main commit are one source identity. */
@@ -68,10 +69,16 @@ function git(cwd: string, ref: string): string {
 /** Read the tag, checked-out HEAD, and fetched origin/main identities from a checkout. */
 export function readGitSourceBinding(tag: string, cwd = process.cwd()): SourceBinding {
   if (parseReleaseTag(tag) === null) throw new Error(`invalid release tag: ${tag}`);
-  const source = { tag, commit: git(cwd, `refs/tags/${tag}^{commit}`), mainCommit: git(cwd, "refs/remotes/origin/main") };
+  const source = {
+    tag,
+    commit: git(cwd, `refs/tags/${tag}^{commit}`),
+    mainCommit: git(cwd, "refs/remotes/origin/main"),
+  };
   const head = git(cwd, "HEAD");
   if (source.commit !== head) {
-    throw new Error(`release tag ${tag} commit ${source.commit} differs from checked-out HEAD ${head}`);
+    throw new Error(
+      `release tag ${tag} commit ${source.commit} differs from checked-out HEAD ${head}`,
+    );
   }
   assertSourceCommits(source);
   return source;
