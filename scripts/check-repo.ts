@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
+import { checkReleaseWorkflow } from "./check-release-workflow.ts";
 export const EXPECTED_PACKAGE_MANAGER = "bun@1.3.14" as const;
 
 export const REQUIRED_SCRIPTS = [
@@ -33,7 +33,14 @@ export const REQUIRED_FILES = [
   "scripts/check-package.ts",
   "scripts/check-release.ts",
   "scripts/check-release-tag.ts",
+  "scripts/release-manifest.ts",
+  "scripts/release-source.ts",
+  "scripts/check-release-source.ts",
+  "scripts/check-release-workflow.ts",
+  "scripts/create-release-manifest.ts",
+  "scripts/verify-release-manifest.ts",
   "scripts/release-dry-run.ts",
+  ".github/workflows/release.yml",
 ] as const;
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -109,6 +116,13 @@ export function checkRepository(rootDirectory: string = REPOSITORY_ROOT): Reposi
   );
   if (missingFiles.length > 0) {
     errors.push(`required files are missing: ${missingFiles.join(", ")}`);
+  }
+
+  try {
+    checkReleaseWorkflow(root);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`release workflow contract failed: ${message}`);
   }
 
   return {

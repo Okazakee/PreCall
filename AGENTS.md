@@ -36,6 +36,14 @@
 - Assert observable invariants, and never weaken tests or CI to accommodate an implementation.
 - Keep presentation/delivery separate from the reusable structured result; do not make a destination or provider own analysis.
 
+## Release hardening
+
+- Treat a release source as admitted only when the pushed tag commit, checked-out `HEAD`, and fetched `origin/main` are the same full commit.
+- Release validation creates one inspected `candidate.tgz` and canonical `release-manifest.json`; publish must verify both before using the exact candidate and must not rebuild it.
+- Keep the manifest schema strict: exact keys for schema, package, source, toolchain, and artifact; artifact bytes and lowercase SHA-512 are required.
+- Pin npm as the exact `11.14.1` devDependency and invoke `node ./node_modules/npm/bin/npm-cli.js` after frozen Bun installation. Never add a temporary-prefix or global npm bootstrap.
+- Do not state that external npm trusted-publisher, protected-environment, or GitHub settings are configured unless verified through the relevant owner-controlled system.
+
 ## Git safety
 
 - Never use destructive Git operations, discard existing work, rewrite history, or commit unless explicitly requested.

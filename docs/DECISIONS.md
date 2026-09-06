@@ -637,3 +637,11 @@ The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14. Develop
 **Status:** Settled
 
 The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. First-publish authenticated/2FA bootstrap and npm trusted-publisher configuration are owner actions and were not performed.
+
+### D-098 — Release admission binds source and candidate
+
+**Status:** Settled
+
+The tag commit, checked-out `HEAD`, and fetched `origin/main` must be the same full commit before a release candidate is admitted. Validation uploads only `candidate.tgz` and the canonical `release-manifest.json`, whose exact schema records package identity, source binding, pinned Bun/Node/npm versions, and candidate bytes/SHA-512. Publish rechecks those values after a fresh tag checkout and publishes the inspected candidate without rebuilding.
+
+The exact npm bootstrap is repository-controlled: `npm@11.14.1` is an exact devDependency resolved by Bun, and the workflow invokes `node ./node_modules/npm/bin/npm-cli.js`. Temporary-prefix and global npm installation are forbidden. External npm trusted-publisher, protected-environment, and account bootstrap settings remain operator actions; their configuration is not asserted here.

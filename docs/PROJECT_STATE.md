@@ -151,7 +151,7 @@ The permanent product/repository name is **PreCall**, the npm package is **`@oka
 
 The release artifact must contain `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure, while excluding source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, `./langchain`, and `./resend` remain separate exports; LangChain peers are optional and the Resend integration has no Resend SDK dependency.
 
-`bun run release:check` validates metadata, license, version, and optional exact semver tag equality. `bun run release:dry-run` uses one npm-generated candidate for package checks and npm's dry-run publish validation, with no credentials or publication. The tag-only workflow uses Node 22.22.0/npm 11.14.1, Bun 1.3.14, and npm trusted publishing/OIDC. First-publish npm authentication/2FA bootstrap and trusted-publisher configuration are owner actions and were not performed.
+`bun run release:check` validates metadata, license, version, and optional exact semver tag equality. `bun run release:dry-run` uses one npm-generated candidate for package checks and npm's dry-run publish validation, with no credentials or publication. The tag-only workflow now fetches full refs and requires tag commit = checked-out `HEAD` = `origin/main`; it uploads only `candidate.tgz` and `release-manifest.json`, then freshly rechecks source, manifest, and artifact bytes/SHA-512 before publishing without rebuilding. npm `11.14.1` is an exact devDependency resolved in `bun.lock`, invoked via `node_modules/npm/bin/npm-cli.js`; temporary-prefix/global npm installation is not used. Trusted-publisher/OIDC and protected-environment settings remain external operator actions and are not claimed as configured.
 
 ## Current product target
 
@@ -367,4 +367,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Owner bootstrap remains before publication: configure npm trusted publishing and first scoped-public package authentication/2FA, then push a reviewed `v0.1.0` tag. No publication, tag, or GitHub Release has been performed.
+Owner bootstrap remains before publication: confirm external npm trusted publishing and protected `npm` environment settings, then complete first scoped-public package authentication/2FA and push a reviewed `v0.1.0` tag. No publication, tag, or GitHub Release has been performed.

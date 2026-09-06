@@ -237,3 +237,16 @@ The release target is **`@okazakee/precall` 0.1.0**, hosted by the `Okazakee/Pre
 Run `bun run release:check` for metadata, Apache-2.0 license, version, and optional tag checks. `bun run release:dry-run` builds and validates one npm-generated candidate, then invokes npm's actual dry-run publish command with an empty temporary npm user config and explicit public registry. It never authenticates, publishes, tags, or creates a GitHub Release.
 
 The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14. The npm `environment` must be configured with the first trusted publisher in npm package settings; npm's first scoped public publish and account 2FA/bootstrap require an authenticated owner action and are intentionally not performed here.
+
+## Hardened candidate and source contract
+
+The release workflow checks out the pushed tag with full history, fetches both the tag and `origin/main`, and admits a candidate only when the tag commit, checked-out `HEAD`, and fetched `origin/main` are identical. Validation creates exactly one `candidate.tgz` and one canonical `release-manifest.json`; the manifest binds package identity, source (`tag`, `commit`, `mainCommit`), pinned toolchain versions, and candidate byte count/SHA-512. Publish downloads those two files, freshly checks out the tag, installs frozen dependencies, rechecks every binding and digest, then runs npm dry-run and exact publish without rebuilding or repacking.
+
+The current npm bootstrap finding is concrete: npm `11.14.1` is an exact `devDependency` resolved in `bun.lock`, and the repository CLI is available at `node_modules/npm/bin/npm-cli.js` after `bun install --frozen-lockfile`. The workflow invokes that path through Node. It does not install npm into a temporary prefix, use a global npm install, or rely on a runner-provided npm version.
+
+Operator checklist before the first release:
+
+- Confirm the external npm trusted-publisher/OIDC and protected `npm` environment settings; this repository does not claim those settings are configured.
+- Confirm npm scope ownership and first scoped-public-publish account/2FA bootstrap with an authenticated owner action.
+- Review the exact tag and its source binding to `origin/main`; do not create a tag or publish from a local checkout.
+- Trigger only the reviewed `v0.1.0` tag workflow, inspect candidate and manifest checks, and verify the OIDC publication result.
