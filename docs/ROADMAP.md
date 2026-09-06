@@ -265,12 +265,12 @@ Implemented:
 
 ## Phase 14 — First public package preparation
 
-**Status: bootstrap complete; final publication pending**
+**Status: identity rename complete; unscoped bootstrap pending; final publication pending**
 
 Settled:
 
 - product/repository name **PreCall**;
-- npm package **`@okazakee/precall`**;
+- npm package **`precall`**;
 - Apache-2.0 license;
 - version **0.1.0**;
 - ESM-only policy;
@@ -281,11 +281,11 @@ Settled:
 - canonical two-file candidate (`candidate.tgz` plus `release-manifest.json`) with byte/hash identity;
 - exact npm `11.14.1` devDependency and repository CLI path, with no temporary/global npm bootstrap.
 
-The bootstrap package `0.1.0-bootstrap.0` is published with the `bootstrap` dist-tag, but npm also assigned it to `latest`; that unintended `latest` assignment must be removed before final release setup. Trusted-publisher configuration and publishing-access verification remain owner actions. The GitHub `npm` environment and main/release-tag rulesets are configured, with owner self-review currently permitted because the repository has one maintainer; replace self-review with an independent reviewer when available. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
+The new unscoped bootstrap `precall@0.1.0-bootstrap.0` is pending and may be published only with the `bootstrap` dist-tag. Stable `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated. Trusted-publisher configuration and publishing-access verification remain owner actions. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
 
 ## Next milestone
 
-Complete the final public release: correct the bootstrap dist-tags, configure and verify the trusted publisher and publishing-access policy, then create and push a reviewed `v0.1.0` tag only if that version remains unpublished; verify OIDC publication and create the first GitHub Release.
+Publish only the new unscoped bootstrap under the `bootstrap` dist-tag, configure and verify npm trusted publishing/access controls, then create and push a reviewed `v0.1.0` tag only if that version remains unpublished; verify OIDC publication and create the first GitHub Release.
 
 # After MVP
 

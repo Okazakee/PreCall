@@ -168,7 +168,7 @@ Preferred direction:
 - trusted publishing / OIDC where supported;
 - avoid long-lived publish tokens when possible.
 
-The exact public package name is `@okazakee/precall`.
+The exact public package name is `precall`.
 
 ## Versioning
 
@@ -198,7 +198,7 @@ Provider SDKs and runtime-specific transports should not automatically contamina
 
 ## Settled release decisions
 
-The first public package decisions are settled: PreCall / `@okazakee/precall`, Apache-2.0, version 0.1.0, Node.js >=22.14.0, Bun >=1.3.14, and optional LangChain/Resend integrations. The one-time bootstrap prerelease `0.1.0-bootstrap.0` has been published with the `bootstrap` dist-tag; final `0.1.0` remains unpublished.
+The first public package decisions are settled: PreCall / `precall`, Apache-2.0, version 0.1.0, Node.js >=22.14.0, Bun >=1.3.14, and optional LangChain/Resend integrations. The new unscoped bootstrap `precall@0.1.0-bootstrap.0` is pending and may be published only with the `bootstrap` dist-tag; final `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
 
 ## Optional AI integration package contract
 
@@ -230,13 +230,13 @@ Packed-package verification must prove:
 `live-email:check` is excluded from `check`, CI, and package validation. It requires explicit opt-in and credentials and was not run as part of ordinary validation.
 ## Public release contract
 
-The release target is **`@okazakee/precall` 0.1.0**, hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. Only the bootstrap prerelease `0.1.0-bootstrap.0` is published; final `0.1.0` remains unpublished. Registry metadata does not establish npm scope ownership. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
+The release target is **`precall` 0.1.0**, hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. The new unscoped bootstrap `precall@0.1.0-bootstrap.0` is pending and may be published only with the `bootstrap` dist-tag; final `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
 
 `package:check` uses npm's packing view and validates one candidate tarball containing `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure. It rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. It then installs that candidate into clean offline Node/Bun consumers and compiles NodeNext declarations for the root, `./langchain`, and `./resend` exports. Optional LangChain peers remain isolated, and the Resend subpath includes no Resend SDK.
 
 Run `bun run release:check` for metadata, Apache-2.0 license, version, and optional tag checks. `bun run release:dry-run` builds and validates one npm-generated candidate, then invokes npm's actual dry-run publish command with an empty temporary npm user config and explicit public registry. It never authenticates, publishes, tags, or creates a GitHub Release.
 
-The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14. The npm `environment` still requires the first trusted publisher to be configured in npm package settings; the bootstrap publication was completed manually with the authenticated owner session.
+The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14. The npm `environment` still requires the trusted publisher to be configured in npm package settings; the pending unscoped bootstrap is separately authorized only under the `bootstrap` dist-tag.
 
 ## Hardened candidate and source contract
 
@@ -254,12 +254,12 @@ The repository owner configured these controls through GitHub's owner-controlled
 - active `Protect main` ruleset targets `refs/heads/main`, blocks deletion and force updates, requires pull requests, one approval, latest-push approval, stale-review dismissal, and the `bootstrap` CI status check;
 - environment `npm` has the repository owner as its required reviewer with self-review permitted because this is currently a single-maintainer repository; replace this with an independent release approver when available.
 
-The npm trusted-publisher association cannot be verified from the repository and remains unconfigured. The bootstrap package exists, but its first publication caused npm to assign `latest` to `0.1.0-bootstrap.0`; an authenticated owner must remove that unintended `latest` tag before final release setup continues.
+The npm trusted-publisher association cannot be verified from the repository and remains unconfigured. The historical scoped bootstrap is registry history only and must not be mutated; the new unscoped `precall@0.1.0-bootstrap.0` bootstrap remains pending.
 
 Operator checklist before the final release:
-- Correct the bootstrap dist-tags so `bootstrap` points to `0.1.0-bootstrap.0` and `latest` does not point to the bootstrap version.
+- Publish only `precall@0.1.0-bootstrap.0` with the `bootstrap` dist-tag; do not mutate the historical scoped package.
 - Configure and verify the npm trusted publisher for GitHub Actions, `Okazakee`, `PreCall`, `release.yml`, environment `npm`, with direct `npm publish` allowed and no token fallback.
 - Verify the existing `npm` environment's tag-only policy and reviewer/self-review policy; add an independent reviewer when available.
 - Review the exact tag and its source binding to `origin/main`; do not create a tag or publish from a local checkout.
-- Trigger only the reviewed `v0.1.0` tag workflow, inspect candidate and manifest checks, and verify the OIDC publication result.
+- Trigger only the reviewed `v0.1.0` tag workflow for final `precall@0.1.0`, inspect candidate and manifest checks, and verify the OIDC publication result.
 
