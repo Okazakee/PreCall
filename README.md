@@ -2,7 +2,7 @@
 
 PreCall is a provider-neutral service-intake library. It exposes a minimal `createPrecall()` facade with `process()` and `deliver()` methods, backed by intake validation, privacy-filtered analysis, reusable results, deterministic email packaging, and provider-neutral delivery.
 
-The public package is **`precall`**, version **`0.1.0`**, and is not yet published. The new unscoped bootstrap **`precall@0.1.0-bootstrap.0`** is pending. The historical scoped bootstrap **`@okazakee/precall@0.1.0-bootstrap.0`** is registry history only and must not be mutated.
+The public package is **`precall`**, version **`0.1.0`**. The bootstrap **`precall@0.1.0-bootstrap.0`** has been published under the `bootstrap` dist-tag; final `precall@0.1.0` remains unpublished. npm also assigned `latest` to the bootstrap and that unintended tag must be corrected before final release. The historical scoped bootstrap **`@okazakee/precall@0.1.0-bootstrap.0`** is registry history only and must not be mutated.
 
 ## Requirements and installation
 
