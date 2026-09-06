@@ -624,7 +624,7 @@ The adapter sends exactly one `POST` to `https://api.resend.com/emails`, uses ex
 
 **Status:** Settled
 
-The public product/repository is **PreCall**, the npm package is **`@okazakee/precall`**, the first version is **0.1.0**, and the exact repository license is Apache-2.0. npm scope ownership is not inferred from registry availability and the package is not published.
+The public product/repository is **PreCall**, the npm package is **`@okazakee/precall`**, the first final version is **0.1.0**, and the exact repository license is Apache-2.0. The bootstrap prerelease `0.1.0-bootstrap.0` was deliberately published under the `bootstrap` dist-tag; final `0.1.0` remains unpublished.
 
 ### D-096 — Runtime and module policy
 
@@ -636,7 +636,7 @@ The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14. Develop
 
 **Status:** Settled
 
-The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. First-publish authenticated/2FA bootstrap and npm trusted-publisher configuration are owner actions and were not performed.
+The npm-generated artifact is the release boundary. Checks require package metadata, README, LICENSE, and the complete `dist` runtime/declaration closure while excluding repository-only paths. Release dry-runs use one candidate and npm's actual `publish --dry-run` command without credentials or publication. Only pushed semver tags trigger publication; the workflow asserts version equality and uses npm trusted publishing/OIDC with immutable action refs. The bootstrap prerelease was published manually as the single permitted non-OIDC bootstrap; final trusted-publisher configuration remains pending.
 
 ### D-098 — Release admission binds source and candidate
 

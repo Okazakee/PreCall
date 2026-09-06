@@ -6,9 +6,9 @@ This file is the mutable snapshot of the project's current technical/product sta
 
 ## Current phase
 
-**Phase 14 — First public package preparation complete; publication pending.**
+**Phase 14 — First public package bootstrap complete; final publication pending.**
 
-The package identity, license, runtime floor, npm artifact contract, safe dry-run, and tag-only OIDC release workflow are settled. The package is not published.
+The package identity, license, runtime floor, npm artifact contract, safe dry-run, and tag-only OIDC release workflow are settled. The bootstrap prerelease `0.1.0-bootstrap.0` is published with the `bootstrap` dist-tag; final `0.1.0` is not published.
 
 ## Deterministic default renderer
 
@@ -147,7 +147,7 @@ No framework, database, provider SDK, email queue, or provider registry was adde
 
 ## Public package identity and release state
 
-The permanent product/repository name is **PreCall**, the npm package is **`@okazakee/precall`**, and the current version is **0.1.0**. The package and repository use Apache-2.0, ESM-only exports, Node.js >=22.14.0, and Bun >=1.3.14. Registry technical availability is not scope ownership verification; npm publication has not occurred.
+The permanent product/repository name is **PreCall**, the npm package is **`@okazakee/precall`**, and the current source version is **0.1.0**. The package and repository use Apache-2.0, ESM-only exports, Node.js >=22.14.0, and Bun >=1.3.14. The public bootstrap prerelease `0.1.0-bootstrap.0` exists; final `0.1.0` has not been published.
 
 The release artifact must contain `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure, while excluding source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, `./langchain`, and `./resend` remain separate exports; LangChain peers are optional and the Resend integration has no Resend SDK dependency.
 
@@ -367,4 +367,4 @@ These are not blockers for the current intake, projection, schema, analysis exec
 
 ## Immediate next action
 
-Owner bootstrap remains before publication: confirm npm scope ownership and choose the first-package bootstrap path, complete the required first scoped-public package authentication/2FA action, configure and verify the npm trusted publisher, then push a reviewed `v0.1.0` tag only if that version remains unpublished. The `npm` environment and repository rulesets are configured as recorded in `docs/RELEASING.md`; its single-maintainer reviewer policy permits owner self-approval and should be replaced with an independent reviewer when available. No publication, tag, or GitHub Release has been performed.
+The next owner action is to remove npm's unintended `latest` assignment from the bootstrap prerelease, configure and verify the trusted publisher, and verify the package publishing-access policy. Only after those checks should the owner push a reviewed `v0.1.0` tag if that version remains unpublished. The `npm` environment and repository rulesets are configured as recorded in `docs/RELEASING.md`; its single-maintainer reviewer policy permits owner self-approval and should be replaced with an independent reviewer when available. No final publication, release tag, or GitHub Release has been performed.
