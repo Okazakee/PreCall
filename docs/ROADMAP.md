@@ -265,7 +265,7 @@ Implemented:
 
 ## Phase 14 — First public package preparation
 
-**Status: complete; publication pending**
+**Status: bootstrap complete; final publication pending**
 
 Settled:
 
@@ -281,11 +281,11 @@ Settled:
 - canonical two-file candidate (`candidate.tgz` plus `release-manifest.json`) with byte/hash identity;
 - exact npm `11.14.1` devDependency and repository CLI path, with no temporary/global npm bootstrap.
 
-The package is not published. First npm scoped-public-publish authentication/2FA bootstrap must happen before trusted-publisher configuration because npm cannot configure a publisher for a package that does not yet exist; both remain owner actions. The GitHub `npm` environment and main/release-tag rulesets are configured, with owner self-review currently permitted because the repository has one maintainer; replace self-review with an independent reviewer when available. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
+The bootstrap package `0.1.0-bootstrap.0` is published with the `bootstrap` dist-tag, but npm also assigned it to `latest`; that unintended `latest` assignment must be removed before final release setup. Trusted-publisher configuration and publishing-access verification remain owner actions. The GitHub `npm` environment and main/release-tag rulesets are configured, with owner self-review currently permitted because the repository has one maintainer; replace self-review with an independent reviewer when available. The workflow never auto-bumps versions, creates tags, or publishes on main pushes.
 
 ## Next milestone
 
-Perform the deliberate first public release/bootstrap: confirm npm scope ownership, complete the required first-package bootstrap without assuming `v0.1.0` is still available, configure and verify the trusted publisher for the resulting package, then create and push a reviewed `v0.1.0` tag only if that version remains unpublished; verify OIDC publication and create the first GitHub Release.
+Complete the final public release: correct the bootstrap dist-tags, configure and verify the trusted publisher and publishing-access policy, then create and push a reviewed `v0.1.0` tag only if that version remains unpublished; verify OIDC publication and create the first GitHub Release.
 
 # After MVP
 
