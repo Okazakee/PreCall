@@ -230,17 +230,22 @@ The npm-generated public artifact is packed and verified by `package:check`. The
 
 ## Phase 12 — Next.js integration proof
 
-Add a small example using:
+**Status: complete**
 
-- Server Action and/or;
-- Route Handler.
+Implemented:
 
-Goal:
+- `examples/nextjs`, a small App Router application that consumes the public package by path and
+  calls `precall.submit()` from a Route Handler;
+- deterministic, credential-free AI and delivery adapters behind the public extension interfaces, so
+  the flow runs without a provider or email;
+- field configuration that demonstrates a field withheld from AI and a field omitted from the
+  professional-facing output;
+- Bun-first installation of the example from this repository, without workspaces and without another
+  published package;
+- a production `next build` gate (`bun run example:build`) wired into CI.
 
-- verify server-side developer experience;
-- catch package/bundling problems.
-
-A full demo application is unnecessary.
+**Milestone:** A plain Next.js consumer installs the package, compiles a server-side `submit()` call,
+and builds for production while the core stays framework-free.
 
 ## Phase 13 — AI provider abstraction and first real adapters
 
@@ -292,7 +297,9 @@ Completed:
 
 ## Next milestone
 
-Complete the small Next.js integration proof with a Server Action and/or Route Handler. Keep framework-specific code outside the core.
+The core flow is complete and released, and the first framework integration is proven. The next
+capability is not yet decided: budget/pricing decision support and modular analysis skills are the
+candidates recorded below, and neither configuration API is settled.
 
 # After MVP
 

@@ -459,11 +459,15 @@ No agent loop, session system, tool ecosystem, or generic agent framework is nee
 
 ### D-035 — Pi provider layer is a candidate, not yet committed
 
-**Status:** To validate
+**Status:** Superseded by D-086
 
 Evaluate a small Pi/provider-layer adapter behind `AIAdapter`.
 
 Do not make the full Pi agent harness part of the architecture.
+
+This candidate was later resolved by D-086, which selected the direct `@langchain/core` model layer
+for the first optional integration and rejected the Pi AI package for the packed Node consumer
+contract. The Pi/provider-layer direction is not current.
 
 ### D-036 — Fake adapter before real provider integration
 
@@ -657,3 +661,9 @@ The public facade provides `submit({ submission, transport, recipient, email?, s
 **Status:** Settled
 
 The manual GitHub environment approval was removed from the `npm` environment. Required approving reviews and latest-push approval were also removed for the single-maintainer workflow. Pull-request admission and strict required `check` status checks remain, as do deletion, non-fast-forward/force-update, and release-tag protections. OIDC Trusted Publishing and release semantics are unchanged; future tag releases publish automatically after validation. This supersedes only the reviewer-specific portions of the earlier release-control decision.
+
+### D-101 — The Next.js integration proof is a repository example
+
+**Status:** Settled
+
+The framework integration proof is `examples/nextjs` inside this repository: a small App Router consumer that installs the public package by path, calls `precall.submit()` from a server-side Route Handler, and runs a production `next build` in CI through `bun run example:build`. It is not a second published package, not a workspace, and not a browser test suite; the alternative of a separate published example package or a workspace layout was rejected because it would duplicate the release surface for a proof that must track this repository's build. Framework-specific code stays in the example, the published artifact keeps exactly its existing `dist` closure, and deterministic local adapters keep the demo free of credentials, provider cost, and outbound email.

@@ -57,6 +57,8 @@
     "test:coverage": "bun test --coverage",
     "build": "tsdown",
     "package:check": "bun scripts/check-package.ts",
+    "example:build": "bun scripts/build-example.ts",
+    "example:prepare": "bun scripts/build-example.ts --prepare",
     "release:check": "bun scripts/check-release.ts",
     "release:dry-run": "bun scripts/release-dry-run.ts",
     "live-ai:check": "bun scripts/live-ai.ts",

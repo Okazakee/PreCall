@@ -273,6 +273,12 @@ The root package is provider-neutral. Implement `AIAdapter` and `EmailTransport`
 
 The consumer owns the form, validation around its endpoint, trusted recipient, credentials, storage, and abuse controls. PreCall owns intake validation, field-policy enforcement, AI-output validation, deterministic fallback presentation, and provider-neutral delivery semantics.
 
+## Framework example
+
+[`examples/nextjs`](examples/nextjs) is a small App Router application that consumes the package from this repository, calls `precall.submit()` from a Route Handler, and doubles as the repository's production `next build` check (`bun run example:build`, also run in CI). It uses deterministic local adapters, so it runs without credentials, provider calls, or email.
+
+Framework-specific code belongs to the consuming application; the example adds no framework coupling to the core.
+
 ## Development
 
 ```sh

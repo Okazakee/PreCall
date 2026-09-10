@@ -1,0 +1,28 @@
+{
+  "name": "precall-nextjs-example",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Minimal Next.js consumer of the published precall package.",
+  "packageManager": "bun@1.3.14",
+  "engines": {
+    "node": ">=22.14.0",
+    "bun": ">=1.3.14"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "precall": "file:../..",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.0"
+  }
+}

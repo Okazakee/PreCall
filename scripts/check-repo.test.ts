@@ -14,6 +14,8 @@ const expectedScripts = [
   "test:coverage",
   "build",
   "package:check",
+  "example:build",
+  "example:prepare",
   "release:check",
   "release:dry-run",
   "check",
