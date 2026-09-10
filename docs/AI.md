@@ -42,90 +42,64 @@ That text remains data.
 
 Do not attempt to solve prompt injection with keyword blocklists.
 
-## Implemented AI-visible input boundary
+## AI-visible input boundary
 
-Phase 3 implements the internal deterministic projection from normalized intake to future analysis input:
+AI receives a deterministic projection of the normalized intake, never the submission: only
+permitted fields, selected by positive resolved `sendToAI === true` allowlisting, in
+field-definition order, deeply detached.
 
-```ts
-type AnalysisInputField = {
-  key: string
-  label: string
-  value: JsonValue
-  description?: string
-}
+Hidden fields are absent rather than redacted — no keys, labels, descriptions, values, or
+"hidden field" metadata for them. An all-private submission yields an empty field list without
+error. Permitted hostile-looking client text is preserved exactly as untrusted data; this
+boundary is not prompt-injection sanitization.
 
-type AnalysisInput = {
-  fields: AnalysisInputField[]
-}
-```
+The projection is internal, and it is the only intake-shaped data the adapter ever sees. Exact
+shapes and the invariants the projection must hold are stated once in
+[`DATA_MODEL.md`](DATA_MODEL.md); the implementation is `src/analysis/input.ts`.
 
-`createAnalysisInput()` iterates normalized fields in definition order and positively includes only fields whose resolved `sendToAI === true`. The projected payload contains no `original`, `sensitive`, `sendToAI`, or `includeInOutput` data. Hidden fields are absent rather than redacted, including their keys, labels, descriptions, and values.
+The processing boundary consumes the projection through the provider-neutral adapter contract;
+the optional LangChain model-layer adapter and deterministic prompt implement the first real
+analysis integration behind `./langchain`.
 
-Projected values are deeply detached from normalized intake. An all-private submission produces `{ fields: [] }`. Permitted hostile-looking client text is preserved exactly as untrusted data; this boundary does not solve prompt injection.
+## Structured result contract
 
-The projection remains internal. The processing boundary consumes it through the provider-neutral adapter contract; the optional LangChain model-layer adapter and deterministic prompt implement the first real analysis integration behind `./langchain`.
+PreCall owns the structured output contract and it is the final AI trust boundary: AI output is
+untrusted until it passes strict schema validation, which rejects unknown structure and
+unsupported provider metadata, keeps facts and inferences structurally distinct with required
+provenance, allows empty analysis sections while requiring at least one roadmap phase, and
+supports an explicit insufficiency state for roadmap and confidence.
 
-## Implemented structured result contract
+Structural validation never establishes semantic truth: accepted semantic strings remain
+untrusted content. The section-by-section contract and its invariants are stated once in
+[`DATA_MODEL.md`](DATA_MODEL.md); the schema is `src/analysis/result.ts`, and Zod remains the
+source of runtime validation, inferred types, and provider-facing JSON Schema conversion.
 
-`AnalysisResultSchema` in the internal `src/analysis/result.ts` module is the canonical Zod 4 contract for structured analysis output. It defines the strict root sections:
+## The AIAdapter boundary
 
-```text
-summary
-clarity
-facts
-inferences
-assumptions
-unknowns
-risks
-discoveryQuestions
-roadmap
-confidence
-```
+`AIAdapter` is a public semantic extension point implemented by consumers: given the
+already-filtered analysis input and an optional caller `AbortSignal`, it returns an untrusted
+candidate. `Promise<unknown>` is intentional — output is validated by the core, never trusted
+from the adapter.
 
-The schema keeps facts and inferences structurally distinct, requires non-empty provenance for both, permits empty analysis arrays, requires at least one roadmap phase, and supports `insufficient_information` for roadmap and confidence. Unknown properties and unsupported provider metadata are rejected. Semantic strings remain untrusted content even after structural validation.
+The adapter never receives the normalized submission, the authoritative `original`, field-policy
+metadata, prompt configuration, provider, model, tools, schema metadata, or usage data.
 
-Zod remains the source of truth for runtime validation, inferred types, and provider-facing JSON Schema conversion. The internal execution layer receives `AnalysisInput`, while future concrete adapters may use the generated schema internally; no provider or model call exists yet.
+The execution contract is one attempt with explicit outcomes:
 
-## Implemented public AIAdapter boundary
-
-`AIAdapter` is a public semantic extension point implemented by consumers:
-
-```ts
-interface AIAdapter {
-  generateAnalysis(request: AIAnalysisRequest): Promise<unknown>
-}
-
-interface AIAnalysisRequest {
-  input: AnalysisInput
-  signal?: AbortSignal
-}
-```
-
-The adapter receives only the already-filtered `AnalysisInput` and an optional caller signal. It never receives the normalized submission, authoritative `original`, field-policy metadata, prompt configuration, provider, model, tools, schema metadata, or usage data.
-
-`Promise<unknown>` is intentional. Adapter output remains untrusted until `AnalysisResultSchema.safeParse()` succeeds.
-
-`runAnalysis()` performs one attempt:
-
-```text
-AnalysisInput
-→ AIAdapter.generateAnalysis()
-→ unknown
-→ AnalysisResultSchema.safeParse()
-→ AnalysisExecutionResult
-```
-
-Its ordinary outcomes are:
-
-- empty `input.fields` skips the adapter as `no_input`;
+- empty AI-visible input skips the adapter entirely (`no_input`);
 - an ordinary adapter exception becomes `adapter_error` without exposing its details;
-- malformed or strict-schema-invalid output becomes `invalid_output` without repair or retry;
-- a successful schema parse becomes `succeeded` with the parsed result;
-- caller cancellation propagates before invocation, during adapter execution, and after output parsing rather than becoming fallback.
+- malformed or strict-schema-invalid output becomes `invalid_output`, without repair or retry;
+- a successful parse becomes the accepted, schema-parsed result;
+- caller cancellation propagates before invocation, during execution, and after parsing instead
+  of becoming a fallback.
 
-No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists in this slice. The adapter is invoked at most once, and accepted output is the schema-parsed value rather than the adapter-owned object.
+No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists
+in this boundary, and accepted output is the schema-parsed value rather than the adapter-owned
+object.
 
-Public delivery consumes the already-composed `PreCallResult` through deterministic packaging; it never calls AI, changes analysis state, or makes AI fallback results undeliverable. The internal email transport remains provider-neutral and is not a model/provider implementation.
+Public delivery consumes the already-composed `PreCallResult` through deterministic packaging; it
+never calls AI, changes analysis state, or makes AI fallback results undeliverable. The email
+transport remains provider-neutral and is not a model/provider implementation.
 
 ## Adapter ownership
 
@@ -146,28 +120,24 @@ The core owns the distinction between unknown adapter output, schema-validated s
 
 ## Composed core result
 
-`processNormalizedSubmission()` now composes the detached normalized request with `runAnalysis()` into an internal `PreCallResult`. The request snapshot and `AnalysisInput` derive from the same operation snapshot before the adapter await, so caller mutation cannot make the preserved request and analysis basis disagree.
+Composition pairs the detached normalized request with the analysis outcome into the reusable
+result. The request snapshot and the AI-visible input derive from the same operation snapshot,
+taken before the adapter await, so caller mutation cannot make the preserved request and the
+analysis basis describe different states. An unavailable analysis keeps the request and preserves
+the machine-readable reason.
 
-Analysis execution maps as follows:
+The public facade is the consumer entrypoint for processing and returns that same minimal result:
+no intermediate AI input, provider metadata, processing state, or delivery state. The invariants
+are stated in [`DATA_MODEL.md`](DATA_MODEL.md).
 
-```text
-succeeded
-→ analysis.status = "succeeded"
+## Presentation boundary
 
-no_input / adapter_error / invalid_output
-→ analysis.status = "unavailable"
-→ analysis.reason preserves the machine-readable reason
-```
+Presentation is a deterministic derivation of the result, not part of the AI path: it does not
+call AI, reinterpret analysis, or perform I/O, and email packaging reuses the same rendered
+artifacts without invoking the adapter or accepting provider-specific state.
 
-The public `createPrecall()` facade is the consumer entrypoint for processing. It returns the same minimal `PreCallResult` without intermediate `AnalysisInput`, provider metadata, processing state, or delivery state.
-
-## Deterministic presentation boundary
-
-The internal `src/presentation/render.ts` module consumes `PreCallResult` and returns `RenderedBrief` with deterministic HTML and plain text. It does not call AI, reinterpret analysis, or perform I/O. Successful and unavailable analysis are rendered through fixed sections; optional empty arrays are omitted, and direct source presentation uses only normalized fields with `includeInOutput === true`.
-
-The renderer escapes AI strings for HTML but cannot provide semantic taint tracking. An output-private field that was deliberately sent to AI may still influence free-form analysis text.
-The separate submission attachment builder does not consume AI output or call the adapter; it serializes only the output-permitted normalized submission fields.
-Email packaging consumes the existing `PreCallResult` through the renderer and attachment builder; it does not invoke AI or accept provider-specific state.
+The renderer escapes client and AI strings for HTML but cannot provide semantic taint tracking. An
+output-private field that was deliberately sent to AI may still influence free-form analysis text.
 
 ## Structured output
 
@@ -248,24 +218,32 @@ The adapter sets `maxRetries: 0` on every runnable invocation. Direct provider c
 
 ## Offline and live verification
 
-Offline tests use the public LangChain fake/runnable seam and the real PreCall facade. They cover representative and vague valid outputs, malformed output, provider errors, prompt/data separation, private-field absence, schema derivation, signal forwarding/abort, and one invocation.
+Offline tests are deterministic and use LangChain's public fake/runnable seam with the real PreCall
+facade, so they require no credentials or network. The test files own the specific cases they
+cover; the invariants they must defend are listed in [`TESTING.md`](TESTING.md).
 
-`bun run live-ai:check` is an explicit opt-in harness only. Without `PRECALL_LIVE_AI=1` it performs no network call. With opt-in it requires `PRECALL_LIVE_AI_PROVIDER=openai`, `PRECALL_LIVE_AI_MODEL`, and `PRECALL_LIVE_AI_API_KEY`, uses synthetic fitness-business data, dynamically loads `@langchain/openai`, and asserts stable structural invariants. It is not part of CI or `check`.
+`bun run live-ai:check` is an explicit opt-in harness only. Without `PRECALL_LIVE_AI=1` it performs
+no network call. With opt-in it requires explicit provider, model, and API-key variables, uses
+synthetic business data, and asserts stable structural invariants rather than model prose. It is
+not part of CI or `check`, and it has not been run without private credentials.
 
-The adapter rejects enabled LangChain/LangSmith tracing and verbose environment flags, consumer models with `verbose: true`, and inherited callback context before sending intake; it also pins the live OpenAI harness to the official API endpoint.
+The adapter rejects enabled LangChain/LangSmith tracing and verbose environment flags, consumer
+models configured with `verbose: true`, and inherited callback context before sending intake, and
+the live OpenAI harness is pinned to the official API endpoint.
 
-The first built-in email transport is now available separately through `./resend`. It is independent of the AI adapter and consumes the existing `RenderedEmail`/`EmailDeliveryRequest` contracts without rerunning analysis.
+The built-in email transport is available separately through `./resend`. It is independent of the
+AI adapter and consumes the existing rendered-email contracts without rerunning analysis.
 
-## Built-in AI plus delivery E2E
+## Built-in AI plus delivery end-to-end
 
-Offline integration tests use the real LangChain adapter, the public PreCall facade, and the real Resend request mapping with a deterministic fetch seam. They cover:
+Offline integration tests compose the real LangChain adapter, the public facade, and the real
+Resend request mapping behind a deterministic fetch seam: successful analysis with fake delivery,
+AI failure with successful provider mapping, successful analysis with provider failure, and
+private-field absence from AI input while the same field remains in permitted rendered output and
+the submission attachment.
 
-- successful LangChain analysis followed by fake email delivery;
-- LangChain failure followed by successful Resend request mapping;
-- successful LangChain analysis followed by Resend provider failure;
-- private-field absence from AI input while the same field remains in permitted rendered output and `submission.json`.
-
-The live AI and live email harnesses remain independent explicit opt-ins. Full live AI plus live email E2E was not run.
+The live AI and live email harnesses remain independent explicit opt-ins. Full live AI plus live
+email end-to-end has not been run.
 
 ## Email provider bake-off
 

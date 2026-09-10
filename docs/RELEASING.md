@@ -198,7 +198,11 @@ Provider SDKs and runtime-specific transports should not automatically contamina
 
 ## Settled release decisions
 
-The first public package decisions are settled: PreCall / `precall`, Apache-2.0, version 0.1.0, Node.js >=22.14.0, Bun >=1.3.14, and optional LangChain/Resend integrations. The unscoped bootstrap `precall@0.1.0-bootstrap.0` remains historical release history under the `bootstrap` dist-tag. Stable `precall@0.1.0` is published and is the `latest` release. npm Trusted Publishing through GitHub Actions/OIDC works for the release workflow, and the stable GitHub Release `v0.1.0` exists.
+The first public package decisions are settled: PreCall / `precall`, Apache-2.0, version 0.1.0,
+Node.js >=22.14.0, Bun >=1.3.14, and optional LangChain/Resend integrations. Publication must go
+through npm Trusted Publishing (GitHub Actions/OIDC), never a token fallback, and published
+versions and dist-tags are never rewritten. Current externally published state is recorded in
+[`PROJECT_STATE.md`](PROJECT_STATE.md).
 
 ## Optional AI integration package contract
 
@@ -230,7 +234,7 @@ Packed-package verification must prove:
 `live-email:check` is excluded from `check`, CI, and package validation. It requires explicit opt-in and credentials and was not run as part of ordinary validation.
 ## Public release contract
 
-The release target is **`precall` 0.1.0**, hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. Stable `precall@0.1.0` is published and is the `latest` release; the unscoped `precall@0.1.0-bootstrap.0` remains historical release history under the `bootstrap` dist-tag. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
+The release target is **`precall` 0.1.0**, hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
 
 `package:check` uses npm's packing view and validates one candidate tarball containing `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure. It rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. It then installs that candidate into clean offline Node/Bun consumers and compiles NodeNext declarations for the root, `./langchain`, and `./resend` exports. Optional LangChain peers remain isolated, and the Resend subpath includes no Resend SDK.
 

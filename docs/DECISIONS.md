@@ -624,7 +624,7 @@ The adapter sends exactly one `POST` to `https://api.resend.com/emails`, uses ex
 
 **Status:** Settled
 
-The public product/repository is **PreCall**, the npm package is **`precall`**, the first final version is **0.1.0**, and the exact repository license is Apache-2.0. The new unscoped bootstrap `precall@0.1.0-bootstrap.0` was deliberately published under the `bootstrap` dist-tag; npm's unintended `latest` assignment must be corrected before final release. Final `precall@0.1.0` remains unpublished. The historical scoped `@okazakee/precall@0.1.0-bootstrap.0` package is registry history only and must not be mutated.
+The public product/repository is **PreCall**, the npm package is **`precall`**, the first final version is **0.1.0**, and the exact repository license is Apache-2.0. Release history is immutable: a published version and its dist-tags are not rewritten, and the historical scoped `@okazakee/precall` name must not be recreated or mutated. Current published state and dist-tags belong to [`PROJECT_STATE.md`](PROJECT_STATE.md), not to this decision.
 
 ### D-096 — Runtime and module policy
 
