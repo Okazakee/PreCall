@@ -75,6 +75,7 @@ Throughout the docs:
 - **MVP** — required for the first usable implementation.
 - **Direction** — preferred approach, but still subject to implementation validation.
 - **To validate** — must be tested before becoming a compatibility or dependency commitment.
+- **Superseded** — replaced by a later decision, which wins.
 - **Deferred** — explicitly not part of MVP.
 - **Speculative** — possible future direction only.
 

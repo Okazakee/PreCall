@@ -95,9 +95,11 @@ root export does not eagerly load either optional integration.
 
 ## Runtime smoke tests
 
-The initial matrix is Bun and Node, using the packed package. Once a Next.js integration example
-exists, add a server build smoke test. Do not claim broad Edge compatibility until a real Edge
-test exists.
+The packed-package matrix remains Bun and Node. The Next.js example is a separate source-checkout
+smoke: `bun run example:build` builds the package, prepares the example, and runs a production
+`next build`, and the pull-request workflow runs it after the repository build. It proves that a
+server-side consumer resolves, compiles, bundles, and builds; it is not an end-to-end browser test.
+Do not claim broad Edge compatibility until a real Edge test exists.
 
 ## Repository contract
 

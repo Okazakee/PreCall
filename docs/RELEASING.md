@@ -93,16 +93,14 @@ This proves what consumers install, not only the source checkout.
 
 ## Runtime smoke
 
-Initial packed-consumer runtime checks:
+Packed-consumer runtime checks:
 
 - Bun;
 - Node.
 
-Add:
-
-- Next.js server example/build smoke
-
-once the example exists.
+The Next.js example production build is a source-checkout smoke and runs in the pull-request
+workflow, not in release validation: the example consumes this repository's build by path and is not
+part of the published artifact.
 
 Edge testing is added only when Edge compatibility becomes an actual claim.
 

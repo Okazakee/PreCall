@@ -1,0 +1,8 @@
+# The example consumes the local `precall` package from the repository root.
+#
+# Bun's default hoisted linker materializes a local directory dependency as a directory of
+# per-file symlinks, which Turbopack cannot use as a package boundary. The isolated linker
+# installs the package as a pnpm-style directory symlink backed by real files, so the example
+# resolves `precall` exactly like a consumer that installed it from the registry.
+[install]
+linker = "isolated"

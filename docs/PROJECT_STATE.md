@@ -18,8 +18,9 @@ Everything else has a better owner:
 PreCall is past its first public release. Intake and normalization, privacy filtering, the
 structured analysis contract, deterministic presentation, submission attachment, email
 packaging, provider-neutral delivery, the configured `createPrecall()` facade, and the `submit()`
-convenience flow are implemented and released. The next milestone is the small Next.js
-integration proof.
+convenience flow are implemented and released. The server-side Next.js integration proof exists as
+a repository example and is gated in CI. The next milestone is a capability decision rather than an
+implementation phase.
 
 ## Externally published release state
 
@@ -55,11 +56,9 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 - Budget/pricing decision support and modular analysis skills are planned capabilities whose
   configuration API is not settled. Any future design must remain decision support rather than
   automatic quotation.
-- The shape of the Next.js integration proof (documented example, test-only proof, or later a
-  separate package) is not decided.
 
 ## Immediate next action
 
-The next feature phase is the small Next.js integration proof: validate the server-side developer
-experience with a Server Action and/or Route Handler without adding framework coupling to the
-core.
+The next feature phase is undecided: budget/pricing decision support and modular analysis skills
+are the recorded candidates, and neither configuration API is settled. The Next.js integration
+proof is complete as a repository example ([`ROADMAP.md`](ROADMAP.md), Phase 12).
