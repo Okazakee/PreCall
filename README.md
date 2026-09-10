@@ -283,4 +283,6 @@ bun run release:check
 
 `bun run check` runs the repository contract, formatting and lint checks, typechecking, tests, build, and packed-package verification. Release checks are credential-free and do not publish, create tags, or create GitHub Releases.
 
+Contributors can build a local, gitignored code map for navigation with `npx -y @nanonets/graft@0.18.0 build`; coding-agent conventions live in [`AGENTS.md`](AGENTS.md).
+
 See the [reference documentation](docs/README.md), [architecture](docs/ARCHITECTURE.md), [security model](docs/SECURITY.md), and [release policy](docs/RELEASING.md) for deeper implementation and trust-boundary details.

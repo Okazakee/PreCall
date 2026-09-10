@@ -96,18 +96,15 @@ For MVP, this is one structured analysis operation.
 
 ### 4. Structured result
 
-Owns the reusable domain result.
+Owns the reusable domain result, `PreCallResult`.
 
-Working name:
-
-`PreCallResult`
+### 5. Presentation
 
 Transforms `PreCallResult` into human-readable output.
 
-Implemented default presentation:
+Default presentation:
 
-- `RenderedBrief` with deterministic HTML;
-- `RenderedBrief` with deterministic plain text;
+- deterministic HTML and deterministic plain text;
 - successful and unavailable analysis branches;
 - positive output-field projection from normalized fields.
 
@@ -127,7 +124,11 @@ Owns:
 - mapping ordinary transport failures to a stable `DeliveryOutcome`;
 - preserving caller cancellation as cancellation.
 
-The internal `deliverPreCallResult(transport, recipient, result, emailOptions?, signal?)` function returns `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`. It rejects empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, forwards a supplied signal by identity, and never mutates or adds delivery state to `PreCallResult`. The optional `./resend` implementation sits behind this unchanged boundary.
+The internal delivery boundary returns either a sent outcome or a transport failure. It rejects
+empty/whitespace and CR/LF-containing recipients, preserves valid recipients verbatim, forwards a
+supplied cancellation signal, makes exactly one transport attempt, and never mutates or adds
+delivery state to `PreCallResult`. The optional `./resend` implementation sits behind this
+unchanged boundary.
 
 ### 8. Storage
 
@@ -202,7 +203,9 @@ const delivery = await precall.deliver({
 
 `createPrecall()` validates trusted adapter/configuration inputs and snapshots field definitions and limits at creation. The returned instance stores no per-request state and safely supports concurrent calls. `process()` accepts only untrusted submission data and delegates to the existing normalization and analysis boundaries. `deliver()` delegates to the existing delivery boundary; it does not duplicate recipient validation, packaging, failure mapping, or abort handling. `submit()` is a thin explicit composition of those two operations and does not move delivery state into `PreCallResult`.
 
-The root package exports `createPrecall` and `IntakeValidationError` as runtime values. It exports only the types required to configure the facade or implement the semantic AI/email extension points. Schemas, normalizers, renderers, packagers, result composers, and delivery helpers remain internal.
+The package root keeps an intentionally minimal surface: the facade factory and its intake error
+as runtime values, plus only the types required to configure the facade or implement the semantic
+AI/email extension points. Schemas and low-level pipeline helpers stay internal.
 
 The packed-package smoke verifies this public contract from the actual tarball under Node and Bun and compiles a NodeNext TypeScript consumer against the generated declarations.
 

@@ -404,7 +404,10 @@ The adapter rejects enabled LangChain/LangSmith tracing/verbose modes and consum
 The Resend transport is also isolated behind `./resend`. It validates and snapshots explicit `apiKey`/`from` configuration, rejects sender line breaks, never reads environment variables, uses only `https://api.resend.com/emails`, forwards the trusted delivery recipient and `AbortSignal`, makes one fetch attempt, encodes existing attachment bytes once, and exposes only opaque transport errors. Its deterministic fetch seam is internal and does not mutate global network state.
 ## Package and release security
 
-The public package is **`precall`**, Apache-2.0, ESM-only, with Node.js >=22.14.0 and Bun >=1.3.14 floors. Stable `precall@0.1.0` is published and is the `latest` release. The unscoped `precall@0.1.0-bootstrap.0` remains historical release history under `bootstrap`. npm Trusted Publishing through GitHub Actions/OIDC is configured and verified for the release workflow, and the stable GitHub Release `v0.1.0` exists.
+The public package is **`precall`**, Apache-2.0, ESM-only, with Node.js and Bun runtime floors
+declared in `package.json`. Release admission, artifact verification, and trusted-publishing
+requirements are normative in [`RELEASING.md`](RELEASING.md); current externally published state
+is recorded in [`PROJECT_STATE.md`](PROJECT_STATE.md).
 
 The npm-generated tarball is the release boundary. `package:check` requires `package.json`, README, LICENSE, and every generated `dist` runtime/declaration entrypoint, and rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. Root, optional LangChain peers, and the SDK-free Resend boundary are checked independently.
 
@@ -412,4 +415,4 @@ The npm-generated tarball is the release boundary. `package:check` requires `pac
 
 The hardened workflow treats the candidate and source identity as one security boundary. Full-history validation fetches `refs/tags/$GITHUB_REF_NAME` and `refs/heads/main`, then requires tag commit = checked-out `HEAD` = fetched `origin/main`. The uploaded set is exactly `candidate.tgz` and `release-manifest.json`; publish freshly checks out the tag, verifies manifest package/source/toolchain identity and candidate byte count/SHA-512, and publishes that exact file without rebuilding. npm `11.14.1` is an exact devDependency in `package.json` and `bun.lock`; the checked path is `node_modules/npm/bin/npm-cli.js`. No temporary-prefix or global npm bootstrap is used.
 
-GitHub-side release controls are configured and verified: environment `npm` remains associated with the release workflow without manual reviewer approval; active `Protect release tags` and `Protect main` rulesets protect release refs and main against deletion and non-fast-forward/force updates. Main changes still require a PR and the strict required `check` status check, while approving reviews and latest-push approval are not required for the single-maintainer workflow. Future tag releases publish automatically after validation through npm Trusted Publishing/OIDC without token fallback. The stable release is complete.
+Publishing must continue through npm Trusted Publishing/OIDC with no token fallback, and release refs and `main` must remain protected against deletion and force updates, with `main` changes going through a pull request and the required `check` status. Current externally verified repository settings are recorded in [`PROJECT_STATE.md`](PROJECT_STATE.md).

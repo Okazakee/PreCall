@@ -1,33 +1,71 @@
 # Project Reference Documentation
 
-This directory is the consolidated reference set for the **PreCall** project.
+This directory is the consolidated reference set for the **PreCall** project. The public package
+identity, version, exports, license, runtime floors, and toolchain pins are defined by
+`package.json` and `bun.lock`; this directory does not restate them.
 
-The public package identity is **`precall`**, version **0.1.0**. The repository and npm package are Apache-2.0 licensed. The package is ESM-only and supports Node.js >=22.14.0 and Bun >=1.3.14.
+## Documentation ownership
 
-Stable **`precall@0.1.0`** is published and is the `latest` release. The unscoped **`precall@0.1.0-bootstrap.0`** bootstrap remains available under the `bootstrap` dist-tag as historical release history. npm Trusted Publishing through GitHub Actions/OIDC completed the stable publication, and the stable GitHub Release **`v0.1.0`** exists. Future releases must continue through OIDC, never token fallback.
+Not every file here is the same kind of thing. Three tiers exist, and knowing which tier a
+question belongs to is what keeps the documentation from drifting.
 
-## How to use these files
+### 1. Normative: intent, boundaries, and settled decisions
 
-Different files have different authority:
+- **[`PRODUCT.md`](PRODUCT.md)** — what PreCall should be, and its stable product principles and
+  boundaries. Wins over implementation convenience.
+- **[`SECURITY.md`](SECURITY.md)** — normative trust, privacy, and security responsibilities and
+  the split between core, consumer, and future subsystems.
+- **[`DECISIONS.md`](DECISIONS.md)** — important settled choices with rationale, including
+  deliberately rejected approaches.
+- **[`MVP_SPEC.md`](MVP_SPEC.md)** — the behavioral contract of the first usable version, for as
+  long as that contract is still the relevant one.
+- **[`RELEASING.md`](RELEASING.md)** — release policy and the external constraints publication
+  depends on.
 
-1. **`PRODUCT.md`** — stable product principles and boundaries.
-2. **`MVP_SPEC.md`** — expected first-version product behavior.
-3. **`ARCHITECTURE.md`** — current technical architecture and ownership boundaries.
-4. **`DATA_MODEL.md`** — current conceptual data model and schema direction.
-5. **`AI.md`** — AI boundary, provider strategy, structured-output rules, and current integration decisions.
-6. **`SECURITY.md`** — trust boundaries, privacy, rendering safety, abuse/cost responsibility split.
-7. **`TESTING.md`** — test philosophy, required invariants, CI package/runtime verification.
-8. **`RELEASING.md`** — CI/release/publishing policy.
-9. **`DECISIONS.md`** — explicit settled decisions and rationale.
-10. **`PROJECT_STATE.md`** — mutable current state, current stack, unresolved items, and next implementation step.
-11. **`ROADMAP.md`** — implementation sequence and future product phases.
+### 2. Mutable roadmap and external state
 
-When files disagree, use this precedence:
+- **[`PROJECT_STATE.md`](PROJECT_STATE.md)** — current milestone, externally published release
+  state, external configuration, unresolved decisions, and the immediate next action. Only state
+  that cannot be derived from the working tree belongs here.
+- **[`ROADMAP.md`](ROADMAP.md)** — intended future work and sequencing. Deferred material is not a
+  current requirement.
 
-- stable principles in `PRODUCT.md` win over implementation convenience;
-- newer explicit decisions in `DECISIONS.md` and `PROJECT_STATE.md` win over older mutable assumptions;
-- `MVP_SPEC.md` defines what belongs in the first usable version;
-- deferred ideas in `ROADMAP.md` are not current requirements.
+### 3. Current implementation truth
+
+Implementation facts are **not** owned by any document in this directory. They come from source,
+tests, and configuration, which are authoritative for how the code currently behaves.
+
+Navigation over that code — locating a module, tracing callers and blast radius, reading a file's
+API surface — is a derived, regenerable cache (Graft, wired into OMP through `.omp/mcp.json`; see
+[`../AGENTS.md`](../AGENTS.md)). A derived graph is a faster way to read the code; it is never
+authoritative for product intent, architectural rationale, or trust boundaries, and it does not
+replace any document above.
+
+This is why these documents describe responsibilities, boundaries, invariants, and rationale
+rather than inventories of current modules, APIs, or tests.
+
+## Supporting documents
+
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — responsibility boundaries, critical separations, and
+  runtime direction.
+- **[`DATA_MODEL.md`](DATA_MODEL.md)** — conceptual data model, invariants, and schema philosophy.
+  Exact shapes live in source.
+- **[`AI.md`](AI.md)** — the role of AI, its trust boundary, provider decisions, and
+  structured-output rules.
+- **[`TESTING.md`](TESTING.md)** — test philosophy, required invariants, and repository gates.
+
+## Precedence
+
+When sources disagree:
+
+1. stable principles in `PRODUCT.md` win over implementation convenience;
+2. `SECURITY.md` is normative for trust, privacy, and security responsibilities;
+3. newer explicit decisions in `DECISIONS.md` win over older mutable statements elsewhere,
+   including `PROJECT_STATE.md`;
+4. `MVP_SPEC.md` defines what belongs in the first usable version, while deferred ideas in
+   `ROADMAP.md` are not current requirements;
+5. for anything about current behavior, source, tests, and configuration win over every document
+   in this directory.
 
 ## Status terminology
 
@@ -42,6 +80,10 @@ Throughout the docs:
 
 ## North-star test
 
-A potential client submits an incomplete service request. Before speaking with them, the professional should be able to understand what was actually requested, what is known versus inferred, what is missing, what might be involved, what could go wrong, what is worth validating or researching, how uncertain the current understanding is, and what questions should be asked during discovery.
+A potential client submits an incomplete service request. Before speaking with them, the
+professional should be able to understand what was actually requested, what is known versus
+inferred, what is missing, what might be involved, what could go wrong, what is worth validating
+or researching, how uncertain the current understanding is, and what questions should be asked
+during discovery.
 
 The professional should finish the brief materially better prepared for the real conversation.
