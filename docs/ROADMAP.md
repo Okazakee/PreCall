@@ -315,9 +315,10 @@ Implemented:
 ## Next milestone
 
 The core flow is complete and released, and the first framework integration is proven. Preliminary
-cost estimation is implemented. The next capability remains undecided: professional-specific
-pricing strategy configuration and modular analysis skills are future candidates, and neither
-configuration API is settled.
+cost estimation is implemented and prepared for release as `precall@0.2.0`; the immediate next step
+is tagging that release so the tag-only workflow publishes it. The next capability remains
+undecided: professional-specific pricing strategy configuration and modular analysis skills are
+future candidates, and neither configuration API is settled.
 
 # After MVP
 

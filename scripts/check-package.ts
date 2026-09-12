@@ -25,7 +25,7 @@ type PackageMetadata = {
 const packageName = "precall";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const npmCli = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
-const packageVersion = "0.1.0";
+const packageVersion = "0.2.0";
 const description =
   "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.";
 const keywords = ["precall", "service-intake", "intake", "ai", "typescript", "email"];
@@ -210,6 +210,24 @@ if (
   submitted.result.analysis.status !== "succeeded" ||
   submitted.delivery.status !== "sent"
 ) throw new Error("submit did not succeed");
+const costPrecall = createPrecall({
+  ai: { generateAnalysis: async () => ({ ...analysis, costEstimate: {
+    status: "estimated",
+    items: [{ name: "Implementation", minAmount: 1000, maxAmount: 1500, reason: "Build the workflow." }],
+    rationale: "One bounded piece of work.",
+    assumptions: [],
+    confidence: { level: "medium", reason: "Details are incomplete." },
+  } }) },
+  fields: [{ key: "message", label: "Message" }],
+  costEstimation: { currency: "EUR" },
+});
+const costResult = await costPrecall.process({ submission: { message: "hello" } });
+if (
+  costResult.costEstimate?.status !== "estimated" ||
+  costResult.costEstimate.currency !== "EUR" ||
+  costResult.costEstimate.total.minAmount !== 1000 ||
+  costResult.costEstimate.total.maxAmount !== 1500
+) throw new Error("cost estimation did not work from the packed package");
 `;
 }
 
@@ -217,6 +235,8 @@ function typeConsumerSource(name: string): string {
   return `
 import type {
   AIAdapter,
+  CostEstimateState,
+  CostEstimationConfig,
   DeliveryOutcome,
   EmailTransport,
   PreCallResult,
@@ -227,7 +247,11 @@ import type {
 } from ${JSON.stringify(name)};
 const ai: AIAdapter = { generateAnalysis: async () => ({}) };
 const transport: EmailTransport = { send: async (request) => { request.recipient; request.email.subject; } };
-const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }] };
+const costEstimation: CostEstimationConfig = { currency: "EUR" };
+const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }], costEstimation };
+declare const estimate: CostEstimateState;
+const estimateTotal: { minAmount: number; maxAmount: number } | undefined =
+  estimate.status === "estimated" ? estimate.total : undefined;
 const submitRequest: SubmitRequest = {
   submission: { message: "hello" },
   transport,
@@ -244,7 +268,7 @@ const deliveryResult: Promise<DeliveryOutcome> = precall.deliver({
   recipient: "consumer@example.com",
 });
 const submitResult: Promise<SubmitOutcome> = precall.submit(submitRequest);
-processResult; deliveryResult; submitResult; config.fields; transport.send;
+processResult; deliveryResult; submitResult; config.fields; transport.send; costEstimation.currency; estimateTotal;
 `;
 }
 
