@@ -1,6 +1,6 @@
 # Project State
 
-**Last verified:** 2026-09-10
+**Last verified:** 2026-09-12
 
 This file is deliberately small. It records only mutable state that cannot be derived reliably
 from the working tree: external release state, external configuration, unresolved decisions, and
@@ -19,8 +19,12 @@ PreCall is past its first public release. Intake and normalization, privacy filt
 structured analysis contract, deterministic presentation, submission attachment, email
 packaging, provider-neutral delivery, the configured `createPrecall()` facade, the `submit()`
 convenience flow, and optional preliminary cost estimation are implemented. The server-side
-Next.js integration proof exists as a repository example and is gated in CI. Preliminary cost
-estimation is not part of a published release yet.
+Next.js integration proof exists as a repository example and is gated in CI.
+
+The repository is prepared for its next minor release, `precall@0.2.0`, which carries preliminary
+cost estimation. The package version, release checks, packed-package validation, and mutable
+release-state documentation target `0.2.0`; the version is not published, tagged, or released
+until the tag-only release workflow runs.
 
 ## Externally published release state
 
@@ -59,7 +63,10 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 
 ## Immediate next action
 
-Include the implemented preliminary cost estimation in a future semver release (the npm README
-comes from the published tarball, so README changes reach npm only with a release). After that,
-choose whether to pursue modular analysis skills or richer pricing strategy configuration;
-neither configuration API is settled.
+Tag the release-preparation commit on `main` as `v0.2.0` and push the tag so the tag-only release
+workflow validates the exact source binding and publishes `precall@0.2.0` through npm Trusted
+Publishing, then creates GitHub Release `v0.2.0`. The tag must point at the merge commit of the
+release-preparation pull request. After a successful publish, re-verify the registry and GitHub
+state and record the new published version, dist-tags, and release here and in
+[`ROADMAP.md`](ROADMAP.md). After that, choose whether to pursue modular analysis skills or richer
+pricing strategy configuration; neither configuration API is settled.

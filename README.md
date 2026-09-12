@@ -34,7 +34,7 @@ AI prepares the human. It never quotes, sells, or produces a client-facing propo
 
 ## Install
 
-PreCall `0.1.0` is available as the stable `precall` package. Bun is the recommended package manager and runtime for this project:
+PreCall is published to npm as the stable `precall` package. Bun is the recommended package manager and runtime for this project:
 
 ```sh
 bun add precall
@@ -207,7 +207,7 @@ PreCall has already created the HTML/text brief and permitted submission attachm
 
 ### What is not configurable yet?
 
-PreCall `0.1.x` does **not** currently expose first-class configuration for:
+PreCall does **not** currently expose first-class configuration for:
 
 - custom system prompts or arbitrary analysis instructions;
 - pricing strategy, hourly/day/fixed-price rules, minimum project size, rates, margins, uncertainty
