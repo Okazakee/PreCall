@@ -45,6 +45,21 @@ Privacy and the AI boundary:
 - direct output allowlisting never claims semantic redaction of AI free text;
 - privacy filtering never depends on model behavior.
 
+Cost-estimate enrichment:
+
+- disabled estimation preserves existing behavior and leaves `costEstimate` absent;
+- enabled estimates use core-computed totals, never provider-supplied totals;
+- whole non-negative amounts, range ordering, required entries, and strict object shapes reject
+  malformed candidates and unknown properties;
+- a malformed estimate does not invalidate a valid base analysis;
+- adapters that return only the legacy base analysis remain compatible;
+- valid `insufficient_information` output is accepted with its required missing information;
+- estimation never exposes fields excluded by the resolved `sendToAI` policy;
+- estimate names, reasons, rationale, assumptions, and confidence text are HTML-escaped;
+- email packaging inherits the rendered estimate section without changing it;
+- the enabled path makes one model invocation with the appropriate structured contract;
+- submitted content remains untrusted data in the prompt and never becomes trusted instructions.
+
 Prompt injection:
 
 - a deterministic hostile submission (text instructing the model to ignore previous instructions,

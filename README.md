@@ -8,7 +8,7 @@
   </p>
 </div>
 
-PreCall takes a structured client inquiry, sends only the fields you explicitly allow to AI, turns the analysis into an internal pre-call brief, and can email that brief to the professional.
+PreCall takes a structured client inquiry, sends only the fields you explicitly allow to AI, turns the analysis into an internal pre-call brief, and can email that brief to the professional. When enabled, it may also add a clearly preliminary internal cost range for professional review.
 
 If AI is unavailable, the inquiry is not lost. The accepted request remains preserved, a fallback brief can still be rendered, and delivery can still be attempted.
 
@@ -30,7 +30,7 @@ original inquiry preserved
 fallback brief/email still usable
 ```
 
-AI prepares the human. It does not quote, sell, estimate, create a client-facing proposal, or replace the discovery call.
+AI prepares the human. It never quotes, sells, or produces a client-facing proposal; when the consumer enables it, AI may produce a clearly preliminary internal cost range for the professional, but it does not replace the discovery call.
 
 ## Install
 
@@ -98,6 +98,7 @@ const precall = createPrecall({
       includeInOutput: true,
     },
   ],
+  costEstimation: { currency: "EUR" },
 });
 
 const transport = createResendEmailTransport({
@@ -128,9 +129,17 @@ Only fields explicitly permitted with `sendToAI: true` cross the AI boundary. A 
 
 ### What the result contains
 
-`outcome.result` is a reusable `PreCallResult` containing the detached request snapshot and either a validated structured analysis or an explicit unavailable state. `outcome.delivery` is a separate `DeliveryOutcome` with `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`.
+`outcome.result` is a reusable `PreCallResult` containing the detached request snapshot, a
+validated structured analysis or an explicit unavailable state, and — when enabled — a
+`costEstimate`. The estimate is either an itemized preliminary range, an explicit
+`insufficient_information` state, or an unavailable state. Omitting `costEstimation` preserves the
+analysis-only behavior and leaves the property absent. `outcome.delivery` is a separate
+`DeliveryOutcome` with `{ status: "sent" }` or `{ status: "failed", reason: "transport_error" }`.
 
-AI output is accepted only after strict validation. An adapter exception or invalid analysis becomes unavailable analysis; it does not erase the request or prevent the email attempt. A transport error remains a delivery failure and is not silently replaced with another transport.
+AI output is accepted only after strict validation. An adapter exception or invalid analysis
+becomes unavailable analysis; a malformed optional estimate is isolated from a valid analysis. It
+does not erase the request or prevent the email attempt. A transport error remains a delivery
+failure and is not silently replaced with another transport.
 
 ## What can I customize?
 
@@ -145,6 +154,7 @@ PreCall owns the intake-to-brief boundaries, but your application owns the form,
 - which fields may appear in the brief and `submission.json` with `includeInOutput`;
 - sensitive-field policy;
 - intake limits;
+- optional preliminary cost estimation with a trusted three-letter currency;
 - the AI implementation through `AIAdapter`;
 - the delivery implementation through `EmailTransport`;
 - the trusted delivery recipient;
@@ -172,7 +182,7 @@ const precall = createPrecall({
 });
 ```
 
-PreCall validates the submission first, applies field privacy, and gives the adapter only the permitted `AnalysisInput`. The adapter may use any model, provider, or service the application owns and returns an unknown candidate. PreCall validates that candidate against its canonical analysis contract. Adapter failure becomes the existing explicit no-AI fallback.
+PreCall validates the submission first, applies field privacy, and gives the adapter only the permitted `AnalysisInput`. The adapter may use any model, provider, or service the application owns and returns an unknown candidate. PreCall validates the canonical analysis and, when enabled, the optional cost candidate independently. An adapter that returns only the base analysis remains compatible; adapter failure becomes the existing explicit no-AI fallback.
 
 A custom email transport receives the rendered email and only needs to deliver it:
 
@@ -200,14 +210,22 @@ PreCall has already created the HTML/text brief and permitted submission attachm
 PreCall `0.1.x` does **not** currently expose first-class configuration for:
 
 - custom system prompts or arbitrary analysis instructions;
-- budget/pricing strategy, hourly/day/fixed-price rules, minimum project size, or margin/uncertainty buffers;
+- pricing strategy, hourly/day/fixed-price rules, minimum project size, rates, margins, uncertainty
+  buffers, or foreign-exchange conversion;
 - research strategy;
 - modular/custom analysis skills or per-skill models;
 - AI tool, agent, or multi-step workflows.
 
-The built-in LangChain adapter performs PreCall's standard library-owned pre-call analysis. A custom `AIAdapter` can technically implement different model behavior, but it is primarily the provider/execution boundary—not the intended place to combine provider integration, all business rules, prompt policy, and analysis semantics. The core also has no structured budget-analysis result contract yet.
+Preliminary cost estimation is implemented as an opt-in internal enrichment, but it is not a
+configurable pricing engine. The built-in LangChain adapter performs PreCall's standard analysis
+and, when enabled, the preliminary estimate; a custom `AIAdapter` can technically implement
+different model behavior, but it is primarily the provider/execution boundary—not the intended
+place to combine provider integration, all business rules, prompt policy, and analysis semantics.
 
-Budget decision support and modular analysis skills are planned capabilities, but their configuration API is not settled. A future design may combine deterministic professional rules, the existing intake/result, AI reasoning where appropriate, and explicit uncertainty while remaining decision support rather than automatic quotation.
+Budget decision support beyond this narrow preliminary estimate and modular analysis skills are
+planned capabilities, but their configuration APIs are not settled. A future design may combine
+deterministic professional rules, the existing intake/result, AI reasoning where appropriate, and
+explicit uncertainty while remaining decision support rather than automatic quotation.
 
 ```text
 Future concept — not current API
@@ -238,7 +256,8 @@ createPrecall({
 | Change intake limits | `createPrecall({ limits })` |
 | Change attachment behavior | `email.attachRawSubmission` |
 | Custom prompt/instructions | Not first-class yet |
-| Budget/pricing strategy | Not implemented yet |
+| Preliminary cost estimation | `createPrecall({ costEstimation: { currency } })` |
+| Pricing strategy, rates, margins, or FX | Not implemented yet |
 | Research | Not implemented yet |
 | Custom analysis skills | Not implemented yet |
 
@@ -268,7 +287,7 @@ const delivery = await precall.deliver({
 
 The root package is provider-neutral. Implement `AIAdapter` and `EmailTransport` yourself, or use the optional integrations:
 
-- [`precall/langchain`](src/langchain.ts) adapts a consumer-owned LangChain model with one structured invocation. It does not browse, use tools, quote, estimate, or replace discovery.
+- [`precall/langchain`](src/langchain.ts) adapts a consumer-owned LangChain model with one structured invocation. It does not browse, search, or use tools; when enabled, it may produce the internal preliminary cost estimate, and it never produces a quote or replaces discovery.
 - [`precall/resend`](src/resend.ts) sends the existing rendered email through Resend's fixed API endpoint. It adds no Resend SDK dependency to the core package.
 
 The consumer owns the form, validation around its endpoint, trusted recipient, credentials, storage, and abuse controls. PreCall owns intake validation, field-policy enforcement, AI-output validation, deterministic fallback presentation, and provider-neutral delivery semantics.

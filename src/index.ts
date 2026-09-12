@@ -7,6 +7,13 @@ export type {
   AIAdapter,
   AIAnalysisRequest,
 } from "./analysis/run.js";
+export type { CostEstimationConfig } from "./cost/config.js";
+export type {
+  CostEstimateConfidence,
+  CostEstimateItem,
+  CostEstimateState,
+  CostEstimateUnavailableReason,
+} from "./cost/result.js";
 export type {
   DeliveryOutcome,
   EmailDeliveryRequest,

@@ -15,12 +15,14 @@ NormalizedSubmission
         ↓
 detached operation snapshot
         ├→ reusable request state
-        ↓
-positive AI projection
-        ↓
-runAnalysis
-        ↓
-PreCallResult
+        └→ positive AI projection ─────────┐
+                                           │
+trusted optional cost-estimation config ───┤
+(snapshotted currency, when enabled)       ↓
+                                  one AI operation
+                                  (base analysis + optional estimate)
+                                           ↓
+PreCallResult { request, analysis, costEstimate? }
         ├→ deterministic brief renderer
         │       ├→ RenderedBrief.html
         │       └→ RenderedBrief.text
@@ -31,7 +33,14 @@ PreCallResult
         trusted recipient + EmailTransport
                 ↓
         DeliveryOutcome
+
 ```
+
+When enabled, preliminary cost estimation is one optional enrichment of that same AI operation,
+with a separately validated candidate boundary. The base analysis and estimate are validated
+independently; this is an intentionally isolated optional enrichment, not a generic partial-result
+framework. The core owns the configured currency and derives any estimate total from validated
+items before the composed result reaches deterministic presentation.
 
 Analysis failure follows a preserved-request branch:
 
@@ -157,6 +166,10 @@ The same result should later support other destinations without analysis reruns.
 ### Analysis success != intake success
 
 A valid intake can survive when AI fails.
+
+### Analysis success != estimate validity
+
+The base analysis can remain successful when an optional estimate is malformed or unavailable.
 
 ### Delivery success != processing success
 

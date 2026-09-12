@@ -61,7 +61,7 @@ Research remains a future optional capability.
 
 ### D-008 — Budget/pricing analysis is deferred
 
-**Status:** Settled for MVP
+**Status:** Superseded by D-102
 
 Budget remains important to the long-term product, but it is not required to prove v0.
 
@@ -667,3 +667,23 @@ The manual GitHub environment approval was removed from the `npm` environment. R
 **Status:** Settled
 
 The framework integration proof is `examples/nextjs` inside this repository: a small App Router consumer that installs the public package by path, calls `precall.submit()` from a server-side Route Handler, and runs a production `next build` in CI through `bun run example:build`. It is not a second published package, not a workspace, and not a browser test suite; the alternative of a separate published example package or a workspace layout was rejected because it would duplicate the release surface for a proof that must track this repository's build. Framework-specific code stays in the example, the published artifact keeps exactly its existing `dist` closure, and deterministic local adapters keep the demo free of credentials, provider cost, and outbound email.
+
+### D-102 — Preliminary cost estimation is part of pre-call preparation
+
+**Status:** Settled
+
+When enough information exists, the internal pre-call brief may include a preliminary price range, an itemized breakdown, reasoning, assumptions, and qualitative confidence. An explicit insufficient-information conclusion is a valid outcome.
+
+The estimate is internal decision support for the professional. It is never a quote, offer, guarantee, client-facing proposal, or replacement for discovery. Professional-specific rates, formulas, margins, minimum-engagement rules, and pricing DSLs remain out of scope for this phase.
+
+The product principle remains unchanged: the professional reviews the brief, and discovery validates assumptions.
+
+### D-103 — Cost estimation is an isolated, core-owned optional enrichment
+
+**Status:** Settled
+
+`PreCallResult.costEstimate?` is a sibling of `analysis` with an explicit state: `estimated`, `insufficient_information`, or `unavailable`. `AnalysisResult` is unchanged. Each request still makes one model invocation, and the estimate is validated independently so malformed estimate data cannot invalidate a valid base analysis. Adapters that do not provide an estimate produce `not_provided` when estimation is enabled.
+
+Currency is trusted snapshot configuration; it is never client-derived or model-chosen. Amounts are whole non-negative units, each item satisfies `minAmount <= maxAmount`, and the core computes the total from the items. A model-provided total is never trusted and is rejected as invalid output. Without the configuration, existing behavior is preserved and `costEstimate` remains absent.
+
+Rendering is deterministic, and delivery and privacy boundaries are unchanged. This is an isolated optional enrichment, not a generic partial-result framework.

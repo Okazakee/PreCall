@@ -128,8 +128,8 @@ function isAllowedConfigValue(value: unknown): boolean {
   );
 }
 
-/** Copy a configuration record without invoking any caller-defined property. */
-function copyConfigRecord(value: unknown): DataRecord {
+/** Copy a trusted configuration record without invoking any caller-defined property. */
+export function copyConfigRecord(value: unknown): DataRecord {
   if (!isPlainRecord(value)) fail("invalid_configuration");
   const result = Object.create(null) as DataRecord;
   for (const key of Reflect.ownKeys(value)) {

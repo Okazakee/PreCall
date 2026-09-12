@@ -40,9 +40,10 @@ A useful pre-call brief should help the professional understand:
 - what should be validated during discovery;
 - which discovery questions have the highest value;
 - how mature or vague the request currently is;
-- how confident the current understanding should be.
+- how confident the current understanding should be;
+- whether the available information supports a meaningful preliminary cost range.
 
-Later capabilities may add focused research, budget decision support, complexity analysis, or other modular analysis.
+Later capabilities may add focused research, budget decision support beyond the implemented preliminary cost estimation, complexity analysis, or other modular analysis.
 
 ## What the product is not
 
@@ -203,13 +204,12 @@ Externally retrieved content is untrusted data and may contain prompt injection.
 
 ## Budget
 
-Budget analysis is future decision support, not a quotation.
+Preliminary cost estimation is part of pre-call preparation when the available information supports a meaningful range. It is uncertainty-aware, itemized, explained with reasoning and assumptions, grounded only in the available intake information, and may explicitly conclude that information is insufficient.
 
-The core must not impose one universal pricing method.
+It is internal decision support for professional review, not a quotation, offer, guarantee, client-facing proposal, or replacement for discovery. The product is not an automatic quotation engine or guaranteed estimator, and the core must not impose one universal pricing method.
+Professionals may eventually use hourly, daily, fixed-price, retainer, minimum engagement, margin, urgency premium, uncertainty buffer, discovery fee, or custom pricing rules; this phase does not impose or configure one of those methods.
 
-Professionals may use hourly, daily, fixed-price, retainer, minimum engagement, margin, urgency premium, uncertainty buffer, discovery fee, or custom pricing rules.
-
-If information is insufficient, the product should say so rather than manufacture a number.
+Future budget decision support may account for professional-specific approaches, but the product must say when information is insufficient rather than manufacture a number.
 
 ## Skills
 
@@ -222,7 +222,7 @@ Analysis capabilities may eventually be modularized into skills such as:
 - discovery-question generation;
 - roadmap generation;
 - research;
-- budget evaluation;
+- preliminary cost estimation and budget decision support;
 - complexity or suitability analysis.
 
 The concept is retained, but a generic plugin ecosystem is **not an MVP requirement**.

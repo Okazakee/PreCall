@@ -17,10 +17,10 @@ Everything else has a better owner:
 
 PreCall is past its first public release. Intake and normalization, privacy filtering, the
 structured analysis contract, deterministic presentation, submission attachment, email
-packaging, provider-neutral delivery, the configured `createPrecall()` facade, and the `submit()`
-convenience flow are implemented and released. The server-side Next.js integration proof exists as
-a repository example and is gated in CI. The next milestone is a capability decision rather than an
-implementation phase.
+packaging, provider-neutral delivery, the configured `createPrecall()` facade, the `submit()`
+convenience flow, and optional preliminary cost estimation are implemented. The server-side
+Next.js integration proof exists as a repository example and is gated in CI. Preliminary cost
+estimation is not part of a published release yet.
 
 ## Externally published release state
 
@@ -53,12 +53,13 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 
 ## Unresolved decisions
 
-- Budget/pricing decision support and modular analysis skills are planned capabilities whose
-  configuration API is not settled. Any future design must remain decision support rather than
-  automatic quotation.
+- Modular analysis skills and richer pricing strategy configuration remain unsettled. Preliminary
+  cost estimation is implemented, but any future pricing extension must remain decision support
+  rather than automatic quotation.
 
 ## Immediate next action
 
-The next feature phase is undecided: budget/pricing decision support and modular analysis skills
-are the recorded candidates, and neither configuration API is settled. The Next.js integration
-proof is complete as a repository example ([`ROADMAP.md`](ROADMAP.md), Phase 12).
+Include the implemented preliminary cost estimation in a future semver release (the npm README
+comes from the published tarball, so README changes reach npm only with a release). After that,
+choose whether to pursue modular analysis skills or richer pricing strategy configuration;
+neither configuration API is settled.

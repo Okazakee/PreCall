@@ -4,7 +4,7 @@ import { type AnalysisResult, AnalysisResultSchema } from "./result.js";
 import {
   type AIAdapter,
   type AIAnalysisRequest,
-  type AnalysisExecutionResult,
+  type AnalysisExecution,
   runAnalysis,
 } from "./run.js";
 
@@ -105,7 +105,7 @@ function adapterReturning(
   };
 }
 
-async function runWith(output: unknown): Promise<AnalysisExecutionResult> {
+async function runWith(output: unknown): Promise<AnalysisExecution> {
   return runAnalysis(adapterReturning(output), input);
 }
 
@@ -113,17 +113,19 @@ describe("runAnalysis", () => {
   test("accepts a representative result and returns the schema-parsed value", async () => {
     const outcome = await runWith(representativeResult);
 
-    expect(outcome.status).toBe("succeeded");
-    if (outcome.status !== "succeeded") return;
-    expect(AnalysisResultSchema.safeParse(outcome.result).success).toBe(true);
-    expect(outcome.result).toEqual(representativeResult);
-    expect(outcome.result).not.toBe(representativeResult);
+    expect(outcome.analysis.status).toBe("succeeded");
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
+    if (outcome.analysis.status !== "succeeded") return;
+    expect(AnalysisResultSchema.safeParse(outcome.analysis.result).success).toBe(true);
+    expect(outcome.analysis.result).toEqual(representativeResult);
+    expect(outcome.analysis.result).not.toBe(representativeResult);
   });
 
   test("accepts a vague but structurally valid result", async () => {
     const outcome = await runWith(vagueResult);
 
-    expect(outcome).toEqual({ status: "succeeded", result: vagueResult });
+    expect(outcome).toEqual({ analysis: { status: "succeeded", result: vagueResult } });
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
   });
 
   test("calls the adapter once and forwards exactly the analysis input", async () => {
@@ -133,7 +135,8 @@ describe("runAnalysis", () => {
       input,
     );
 
-    expect(outcome.status).toBe("succeeded");
+    expect(outcome.analysis.status).toBe("succeeded");
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
     expect(requests).toHaveLength(1);
     expect(requests[0]).toEqual({ input });
     expect(requests[0]?.input).toBe(input);
@@ -156,7 +159,8 @@ describe("runAnalysis", () => {
       input,
     );
 
-    expect(outcome).toEqual({ status: "unavailable", code: "invalid_output" });
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "invalid_output" });
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
     expect(calls).toBe(1);
   });
 
@@ -164,10 +168,12 @@ describe("runAnalysis", () => {
     "rejects unsupported root field %s",
     async (key) => {
       const output = { ...representativeResult, [key]: "unsupported" };
-      await expect(runWith(output)).resolves.toEqual({
+      const outcome = await runWith(output);
+      expect(outcome.analysis).toEqual({
         status: "unavailable",
         code: "invalid_output",
       });
+      expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
     },
   );
 
@@ -182,7 +188,8 @@ describe("runAnalysis", () => {
       input,
     );
 
-    expect(outcome).toEqual({ status: "unavailable", code: "adapter_error" });
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "adapter_error" });
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
     expect(JSON.stringify(outcome)).not.toContain(secret);
   });
 
@@ -195,11 +202,199 @@ describe("runAnalysis", () => {
       { fields: [] },
     );
 
-    expect(outcome).toEqual({ status: "unavailable", code: "no_input" });
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "no_input" });
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
     expect(calls).toBe(0);
   });
 
-  test("propagates a pre-aborted signal and prevents invocation", async () => {
+  test("returns not_provided when estimation is enabled but adapter returns base analysis", async () => {
+    let calls = 0;
+    const outcome = await runAnalysis(
+      adapterReturning(representativeResult, () => {
+        calls += 1;
+      }),
+      input,
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(outcome.analysis).toEqual({ status: "succeeded", result: representativeResult });
+    expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "not_provided" });
+    expect(calls).toBe(1);
+  });
+
+  test("validates and enriches a cost estimate with trusted currency and totals", async () => {
+    const output = {
+      ...representativeResult,
+      costEstimate: {
+        status: "estimated" as const,
+        items: [
+          {
+            name: "Discovery",
+            minAmount: 2500,
+            maxAmount: 3500,
+            reason: "Clarify the booking and membership workflows.",
+          },
+          {
+            name: "Implementation",
+            minAmount: 5500,
+            maxAmount: 8500,
+            reason: "Build the first release around the validated workflow.",
+          },
+        ],
+        rationale: "The range reflects the known goal and unresolved operational details.",
+        assumptions: ["The current booking workflow can be documented during discovery."],
+        confidence: { level: "medium" as const, reason: "The workflow remains partly unknown." },
+      },
+    };
+    const outcome = await runAnalysis(adapterReturning(output), input, undefined, {
+      currency: "EUR",
+    });
+
+    expect(outcome.analysis).toEqual({ status: "succeeded", result: representativeResult });
+    expect(outcome.costEstimate).toEqual({
+      status: "estimated",
+      currency: "EUR",
+      total: { minAmount: 8000, maxAmount: 12000 },
+      items: output.costEstimate.items,
+      rationale: output.costEstimate.rationale,
+      assumptions: output.costEstimate.assumptions,
+      confidence: output.costEstimate.confidence,
+    });
+  });
+
+  test.each([
+    {
+      label: "empty items",
+      costEstimate: { status: "estimated", items: [] },
+    },
+    {
+      label: "reversed item range",
+      costEstimate: {
+        status: "estimated",
+        items: [{ name: "Implementation", minAmount: 9000, maxAmount: 8000, reason: "invalid" }],
+      },
+    },
+  ])(
+    "preserves valid analysis when cost estimate is malformed ($label)",
+    async ({ costEstimate }) => {
+      const outcome = await runAnalysis(
+        adapterReturning({ ...representativeResult, costEstimate }),
+        input,
+        undefined,
+        { currency: "EUR" },
+      );
+
+      expect(outcome.analysis).toEqual({ status: "succeeded", result: representativeResult });
+      expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "invalid_output" });
+    },
+  );
+
+  test("maps invalid analysis to invalid_output when estimation is enabled", async () => {
+    const outcome = await runAnalysis(adapterReturning({ nope: true }), input, undefined, {
+      currency: "EUR",
+    });
+
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "invalid_output" });
+    expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "invalid_output" });
+  });
+
+  test.each(["absent", "undefined"])(
+    "treats an %s costEstimate candidate as not_provided",
+    async (variant) => {
+      const output =
+        variant === "absent"
+          ? representativeResult
+          : { ...representativeResult, costEstimate: undefined };
+      const outcome = await runAnalysis(adapterReturning(output), input, undefined, {
+        currency: "EUR",
+      });
+
+      expect(outcome.analysis).toEqual({ status: "succeeded", result: representativeResult });
+      expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "not_provided" });
+    },
+  );
+
+  test("maps enabled adapter errors without exposing raw error text", async () => {
+    const secret = "adapter credentials and private failure details";
+    const outcome = await runAnalysis(
+      {
+        async generateAnalysis() {
+          throw new Error(secret);
+        },
+      },
+      input,
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "adapter_error" });
+    expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "adapter_error" });
+    expect(JSON.stringify(outcome)).not.toContain(secret);
+  });
+
+  test("does not call the adapter for empty AI-visible input when enabled", async () => {
+    let calls = 0;
+    const outcome = await runAnalysis(
+      adapterReturning(representativeResult, () => {
+        calls += 1;
+      }),
+      { fields: [] },
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(calls).toBe(0);
+    expect(outcome.analysis).toEqual({ status: "unavailable", code: "no_input" });
+    expect(outcome.costEstimate).toEqual({ status: "unavailable", reason: "no_input" });
+  });
+
+  test("passes cost estimation only when enabled and invokes adapter exactly once", async () => {
+    const requests: AIAnalysisRequest[] = [];
+    const enabled = await runAnalysis(
+      adapterReturning(representativeResult, (request) => requests.push(request)),
+      input,
+      undefined,
+      { currency: "EUR" },
+    );
+    expect(enabled.analysis.status).toBe("succeeded");
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toEqual({ input, costEstimation: { currency: "EUR" } });
+    expect(Object.hasOwn(requests[0] ?? {}, "costEstimation")).toBe(true);
+
+    const disabledRequests: AIAnalysisRequest[] = [];
+    const disabled = await runAnalysis(
+      adapterReturning(representativeResult, (request) => disabledRequests.push(request)),
+      input,
+    );
+    expect(disabled.analysis.status).toBe("succeeded");
+    expect(disabledRequests).toHaveLength(1);
+    expect(disabledRequests[0]).toEqual({ input });
+    expect(Object.hasOwn(disabledRequests[0] ?? {}, "costEstimation")).toBe(false);
+  });
+
+  test("preserves enabled cancellation when adapter resolves after abort", async () => {
+    const controller = new AbortController();
+    const reason = new Error("caller cancelled estimation");
+    let calls = 0;
+    const operation = runAnalysis(
+      {
+        async generateAnalysis() {
+          calls += 1;
+          controller.abort(reason);
+          return representativeResult;
+        },
+      },
+      input,
+      controller.signal,
+      { currency: "EUR" },
+    );
+
+    await expect(operation).rejects.toBe(reason);
+    expect(calls).toBe(1);
+  });
+
+  test("propagates a pre-aborted signal and prevents enabled invocation", async () => {
     const controller = new AbortController();
     const reason = { kind: "caller-cancelled" };
     controller.abort(reason);
@@ -211,8 +406,9 @@ describe("runAnalysis", () => {
         adapterReturning(representativeResult, () => {
           calls += 1;
         }),
-        { fields: [] },
+        input,
         controller.signal,
+        { currency: "EUR" },
       );
     } catch (error) {
       thrown = error;
@@ -304,7 +500,7 @@ describe("runAnalysis", () => {
   test("keeps accepted output detached from adapter-owned nested objects", async () => {
     const adapterOutput = structuredClone(representativeResult);
     const outcome = await runWith(adapterOutput);
-    if (outcome.status !== "succeeded") throw new Error("expected successful analysis");
+    if (outcome.analysis.status !== "succeeded") throw new Error("expected successful analysis");
 
     const firstPhase = adapterOutput.roadmap.phases[0];
     const firstFact = adapterOutput.facts[0];
@@ -313,8 +509,10 @@ describe("runAnalysis", () => {
     }
     firstPhase.purpose = "mutated after parsing";
     firstFact.text = "mutated after parsing";
-    expect(outcome.result.roadmap.phases[0]?.purpose).toBe("Clarify workflows and constraints.");
-    expect(outcome.result.facts[0]?.text).toBe("The studio offers classes.");
+    expect(outcome.analysis.result.roadmap.phases[0]?.purpose).toBe(
+      "Clarify workflows and constraints.",
+    );
+    expect(outcome.analysis.result.facts[0]?.text).toBe("The studio offers classes.");
   });
 
   test("accepts malicious semantic strings when the result remains structurally valid", async () => {
@@ -329,6 +527,7 @@ describe("runAnalysis", () => {
 
     const outcome = await runWith(output);
 
-    expect(outcome).toEqual({ status: "succeeded", result: output });
+    expect(outcome).toEqual({ analysis: { status: "succeeded", result: output } });
+    expect(Object.hasOwn(outcome, "costEstimate")).toBe(false);
   });
 });

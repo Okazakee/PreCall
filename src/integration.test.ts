@@ -37,23 +37,55 @@ const analysis: AnalysisResult = {
   confidence: { level: "high", reason: "The fixture is complete." },
 };
 
-function modelWith(
-  output: AnalysisResult,
-  capture?: (input: BaseLanguageModelInput) => void,
-): BaseLanguageModel {
+const costEstimate = {
+  status: "estimated",
+  items: [
+    {
+      name: "Frontend implementation",
+      minAmount: 2500,
+      maxAmount: 3500,
+      reason: "Booking and account flows.",
+    },
+    {
+      name: "Backend and integrations",
+      minAmount: 3000,
+      maxAmount: 4500,
+      reason: "Booking logic and integrations.",
+    },
+    {
+      name: "Testing and deployment",
+      minAmount: 1000,
+      maxAmount: 1500,
+      reason: "Production configuration.",
+    },
+  ],
+  rationale: "Custom application with frontend, backend and integration work.",
+  assumptions: ["No legacy migration is required."],
+  confidence: { level: "medium" as const, reason: "Integration details remain unresolved." },
+};
+
+type TestModelOptions = {
+  capture?: (input: BaseLanguageModelInput) => void;
+  costEstimate?: Record<string, unknown>;
+};
+
+function modelWith(output: AnalysisResult, options: TestModelOptions = {}): BaseLanguageModel {
   const model = fakeModel();
-  model.structuredResponse(output as Record<string, unknown>);
+  const structured =
+    options.costEstimate === undefined ? output : { ...output, costEstimate: options.costEstimate };
+  model.structuredResponse(structured as Record<string, unknown>);
+  const capture = options.capture;
   if (capture === undefined) return model;
   const original = model.withStructuredOutput.bind(model);
   model.withStructuredOutput = ((schema, config) => {
-    const structured = original(schema, config);
+    const runnable = original(schema, config);
     return RunnableLambda.from<
       BaseLanguageModelInput,
       AnalysisResult,
       BaseLanguageModelCallOptions
-    >(async (input, options) => {
+    >(async (input, runnableOptions) => {
       capture(input);
-      return (await structured.invoke(input, options)) as unknown as AnalysisResult;
+      return (await runnable.invoke(input, runnableOptions)) as unknown as AnalysisResult;
     });
   }) as typeof model.withStructuredOutput;
   return model;
@@ -87,8 +119,10 @@ describe("built-in AI and delivery integration", () => {
     let modelInput: BaseLanguageModelInput | undefined;
     const precall = createPrecall({
       ai: createLangChainAIAdapter({
-        model: modelWith(analysis, (input) => {
-          modelInput = input;
+        model: modelWith(analysis, {
+          capture: (input) => {
+            modelInput = input;
+          },
         }),
       }),
       fields,
@@ -165,5 +199,80 @@ describe("built-in AI and delivery integration", () => {
 
     expect(result.analysis.status).toBe("succeeded");
     expect(outcome).toEqual({ status: "failed", reason: "transport_error" });
+  });
+
+  test("carries a validated cost estimate through rendering and fake delivery", async () => {
+    let modelInput: BaseLanguageModelInput | undefined;
+    const precall = createPrecall({
+      ai: createLangChainAIAdapter({
+        model: modelWith(analysis, {
+          capture: (input) => {
+            modelInput = input;
+          },
+          costEstimate,
+        }),
+      }),
+      fields,
+      costEstimation: { currency: "EUR" },
+    });
+    const result = await precall.process({ submission: submission() });
+    let delivered: EmailDeliveryRequest | undefined;
+    const outcome = await precall.deliver({
+      result,
+      recipient: "professional@example.com",
+      transport: {
+        send: async (request) => {
+          delivered = request;
+        },
+      },
+    });
+
+    expect(result.analysis.status).toBe("succeeded");
+    expect(result.costEstimate).toEqual({
+      status: "estimated",
+      currency: "EUR",
+      total: { minAmount: 6500, maxAmount: 9500 },
+      items: costEstimate.items,
+      rationale: costEstimate.rationale,
+      assumptions: costEstimate.assumptions,
+      confidence: costEstimate.confidence,
+    });
+    expect(outcome).toEqual({ status: "sent" });
+    expect(delivered?.email.text).toContain("Preliminary cost estimate");
+    expect(delivered?.email.text).toContain("Estimated total: EUR 6,500–9,500");
+    expect(delivered?.email.text).toContain("Frontend implementation — EUR 2,500–3,500");
+    expect(delivered?.email.attachments).toHaveLength(1);
+    expect(JSON.stringify(modelInput)).not.toContain("private@example.com");
+  });
+
+  test("delivers an isolated estimate fallback when the candidate is malformed", async () => {
+    const precall = createPrecall({
+      ai: createLangChainAIAdapter({
+        model: modelWith(analysis, { costEstimate: { status: "estimated", items: [] } }),
+      }),
+      fields,
+      costEstimation: { currency: "EUR" },
+    });
+    const result = await precall.process({ submission: submission() });
+    const captured: CapturedFetch[] = [];
+    const outcome = await precall.deliver({
+      result,
+      transport: createResendEmailTransportWithFetch(
+        { apiKey: "secret-key", from: "briefs@example.test" },
+        async (input, init) => {
+          captured.push({ input, init });
+          return new Response("accepted", { status: 200 });
+        },
+      ),
+      recipient: "professional@example.com",
+    });
+    const body = JSON.parse(String(captured[0]?.init?.body)) as Record<string, unknown>;
+
+    expect(result.analysis.status).toBe("succeeded");
+    expect(result.costEstimate).toEqual({ status: "unavailable", reason: "invalid_output" });
+    expect(outcome).toEqual({ status: "sent" });
+    expect(String(body.text)).toContain(
+      "Cost estimation returned an unusable result and was not included.",
+    );
   });
 });

@@ -28,6 +28,7 @@ recipient
 limits
 renderer rules
 trusted analysis instructions
+cost-estimation currency when enabled
 
 UNTRUSTED
 client submission
@@ -48,6 +49,12 @@ The public facade enforces the same separation by construction:
 - `deliver()` accepts its recipient and transport explicitly.
 
 The package root does not export normalizers, projection builders, schemas, renderers, packagers, or delivery helpers that could bypass these boundaries. `AIAdapter` output remains `unknown` until strict core validation.
+
+The optional cost-estimation currency is trusted application configuration, validated and snapshotted
+at `createPrecall()` time. It is never derived from client content or model output, and later caller
+or adapter mutation cannot change it. Estimation uses only the fields already authorized by the
+resolved `sendToAI === true` policy; enabling it creates no budget or privacy bypass.
+
 
 ## Threat/owner split
 
@@ -226,6 +233,19 @@ AI-generated structured output remains untrusted until it passes the strict inte
 The internal `runAnalysis()` boundary accepts only the schema-parsed value as succeeded. Malformed output becomes `invalid_output` without exposing raw output, repair, or retry. Ordinary adapter exceptions become `adapter_error` without exposing provider error details.
 
 Empty AI-visible input produces `no_input` without an adapter call. Caller cancellation is checked before invocation, forwarded unchanged, and rechecked after adapter execution and output parsing; it propagates rather than becoming fallback.
+
+## Optional estimate boundary
+
+The estimate is an isolated optional enrichment, not a new trust tier. Item names, item reasons,
+rationale, assumptions, and confidence reasons are AI-derived semantic strings and remain untrusted
+presentation data. The default renderer escapes them before HTML insertion, just as it escapes all
+other AI text; consumers replacing the renderer retain responsibility for escaping their own sinks.
+
+The core validates the estimate independently from the base analysis. Malformed candidate output is
+isolated as an unavailable `invalid_output` state and its details are never retained or leaked.
+Unavailable states expose only provider-neutral reasons, never provider errors or malformed output.
+No new sensitive data reaches provider metadata, tracing, or logs: estimation reuses the existing
+permitted AI input and does not add telemetry or delivery payload data.
 
 ## Default renderer guarantees
 
