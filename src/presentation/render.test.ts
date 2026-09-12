@@ -45,8 +45,51 @@ function result(
   analysisState: PreCallResult["analysis"],
   fields: NormalizedField[] = [],
   original: Record<string, JsonValue> = Object.create(null) as Record<string, JsonValue>,
+  costEstimate?: NonNullable<PreCallResult["costEstimate"]>,
 ): PreCallResult {
-  return { request: { original, fields }, analysis: analysisState };
+  const output: PreCallResult = { request: { original, fields }, analysis: analysisState };
+  if (costEstimate !== undefined) output.costEstimate = costEstimate;
+  return output;
+}
+
+type EstimatedCost = Extract<NonNullable<PreCallResult["costEstimate"]>, { status: "estimated" }>;
+
+function estimatedCost(overrides: Partial<EstimatedCost> = {}): EstimatedCost {
+  return {
+    status: "estimated",
+    currency: "EUR",
+    total: { minAmount: 8_000, maxAmount: 12_000 },
+    items: [
+      {
+        name: "Frontend implementation",
+        minAmount: 2_500,
+        maxAmount: 3_500,
+        reason: "Build the client-facing experience.",
+      },
+      {
+        name: "Backend integration",
+        minAmount: 5_500,
+        maxAmount: 8_500,
+        reason: "Connect the required service boundaries.",
+      },
+    ],
+    rationale: "The range reflects the current discovery context.",
+    assumptions: ["The existing design system can be reused."],
+    confidence: { level: "medium", reason: "The available context is partial." },
+    ...overrides,
+  };
+}
+function resultWithCost(
+  analysisState: PreCallResult["analysis"],
+  costEstimate: NonNullable<PreCallResult["costEstimate"]>,
+  fields: NormalizedField[] = [],
+): PreCallResult {
+  return result(
+    analysisState,
+    fields,
+    Object.create(null) as Record<string, JsonValue>,
+    costEstimate,
+  );
 }
 
 describe("renderPreCallResult", () => {
@@ -365,5 +408,171 @@ describe("renderPreCallResult", () => {
     expect(rendered.text).not.toContain("Submitted information");
     expect(rendered.html).not.toContain("Submitted information");
     expect(rendered.text).not.toContain("not output");
+  });
+
+  test("renders estimated totals, item order, and semantic section order", () => {
+    const fields = [field("goal", "Goal", "Build the product")];
+    const first = renderPreCallResult(
+      resultWithCost({ status: "succeeded", result: analysis() }, estimatedCost(), fields),
+    );
+
+    expect(first.text).toContain("Estimated total: EUR 8,000–12,000");
+    const frontend = "Frontend implementation — EUR 2,500–3,500";
+    const backend = "Backend integration — EUR 5,500–8,500";
+    const frontendPosition = first.text.indexOf(frontend);
+    const backendPosition = first.text.indexOf(backend);
+    expect(frontendPosition).toBeGreaterThan(-1);
+    expect(
+      first.text.indexOf("Build the client-facing experience.", frontendPosition),
+    ).toBeGreaterThan(frontendPosition);
+    expect(backendPosition).toBeGreaterThan(frontendPosition);
+    expect(
+      first.text.indexOf("Connect the required service boundaries.", backendPosition),
+    ).toBeGreaterThan(backendPosition);
+
+    const costPosition = first.text.indexOf("Preliminary cost estimate");
+    expect(costPosition).toBeGreaterThan(first.text.indexOf("Preliminary execution path"));
+    expect(costPosition).toBeLessThan(first.text.indexOf("Confidence / uncertainty"));
+    expect(first.text.indexOf("Submitted information")).toBeGreaterThan(
+      first.text.indexOf("Confidence / uncertainty"),
+    );
+
+    const second = renderPreCallResult(
+      resultWithCost(
+        { status: "succeeded", result: analysis() },
+        estimatedCost({
+          items: [
+            {
+              name: "Discovery",
+              minAmount: 1_500,
+              maxAmount: 2_500,
+              reason: "Clarify the remaining scope.",
+            },
+            {
+              name: "Delivery",
+              minAmount: 5_000,
+              maxAmount: 7_000,
+              reason: "Implement the agreed scope.",
+            },
+          ],
+          total: { minAmount: 6_500, maxAmount: 9_500 },
+        }),
+      ),
+    );
+    expect(second.text).toContain("Estimated total: EUR 6,500–9,500");
+  });
+
+  test("renders insufficient information and every missing-information entry", () => {
+    const rendered = renderPreCallResult(
+      resultWithCost(
+        { status: "succeeded", result: analysis() },
+        {
+          status: "insufficient_information",
+          reason: "The scope is not specific enough.",
+          missingInformation: ["Target platform", "Required integrations", "Expected launch date"],
+        },
+      ),
+    );
+
+    expect(rendered.text).toContain("Preliminary cost estimate");
+    expect(rendered.text).toContain("The scope is not specific enough.");
+    for (const missing of ["Target platform", "Required integrations", "Expected launch date"]) {
+      expect(rendered.text).toContain(`- ${missing}`);
+    }
+    expect(rendered.text).toContain("Missing information to clarify during discovery:");
+  });
+
+  test("renders each exact unavailable cost-estimate message", () => {
+    const messages = {
+      no_input:
+        "Cost estimation was not run because no submitted fields were permitted for AI processing.",
+      adapter_error: "Cost estimation was unavailable for this request.",
+      invalid_output:
+        "Cost estimation returned an unusable result and was not included. The original inquiry has still been preserved.",
+      not_provided: "Cost estimation was not provided by the configured AI implementation.",
+    } as const;
+
+    for (const reason of Object.keys(messages) as Array<keyof typeof messages>) {
+      const rendered = renderPreCallResult(
+        resultWithCost(
+          { status: "succeeded", result: analysis() },
+          { status: "unavailable", reason },
+        ),
+      );
+      expect(rendered.text).toContain(messages[reason]);
+    }
+  });
+
+  test("escapes estimate strings in HTML while preserving them in text", () => {
+    const hostile = `<script>alert(1)</script> & " '`;
+    const rendered = renderPreCallResult(
+      resultWithCost(
+        { status: "succeeded", result: analysis() },
+        estimatedCost({
+          items: [
+            {
+              name: hostile,
+              minAmount: 1,
+              maxAmount: 2,
+              reason: "A safe item reason.",
+            },
+          ],
+          total: { minAmount: 1, maxAmount: 2 },
+          rationale: hostile,
+          assumptions: [hostile],
+        }),
+      ),
+    );
+
+    expect(rendered.html).not.toContain(hostile);
+    expect(rendered.html).not.toContain("<script>");
+    expect(rendered.html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot; &#39;");
+    expect(rendered.text).toContain(hostile);
+  });
+
+  test("omits an empty assumptions list and includes non-empty assumptions", () => {
+    const withoutAssumptions = renderPreCallResult(
+      resultWithCost(
+        { status: "succeeded", result: analysis() },
+        estimatedCost({ assumptions: [] }),
+      ),
+    );
+    expect(withoutAssumptions.text).not.toContain("Assumptions:");
+
+    const withAssumptions = renderPreCallResult(
+      resultWithCost(
+        { status: "succeeded", result: analysis() },
+        estimatedCost({ assumptions: ["The design system is reusable."] }),
+      ),
+    );
+    expect(withAssumptions.text).toContain("Assumptions:");
+    expect(withAssumptions.text).toContain("- The design system is reusable.");
+  });
+
+  test("keeps estimation-disabled rendering byte-identical without a cost section", () => {
+    const disabled = result({ status: "succeeded", result: analysis() }, [
+      field("goal", "Goal", "Build the product"),
+    ]);
+    const sameFixture = result({ status: "succeeded", result: analysis() }, [
+      field("goal", "Goal", "Build the product"),
+    ]);
+    const rendered = renderPreCallResult(disabled);
+    expect(disabled).not.toHaveProperty("costEstimate");
+    expect(rendered).toEqual(renderPreCallResult(sameFixture));
+    expect(rendered.text).not.toContain("Preliminary cost estimate");
+  });
+
+  test("orders cost unavailability after unavailable analysis", () => {
+    const rendered = renderPreCallResult(
+      resultWithCost(
+        { status: "unavailable", reason: "adapter_error" },
+        { status: "unavailable", reason: "invalid_output" },
+        [field("goal", "Goal", "Build the product")],
+      ),
+    );
+    expect(rendered.text.indexOf("Analysis unavailable")).toBeGreaterThan(-1);
+    expect(rendered.text.indexOf("Preliminary cost estimate")).toBeGreaterThan(
+      rendered.text.indexOf("Analysis unavailable"),
+    );
   });
 });

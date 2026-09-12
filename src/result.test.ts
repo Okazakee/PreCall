@@ -49,6 +49,7 @@ describe("processNormalizedSubmission", () => {
     const result = await processNormalizedSubmission(adapterReturning(validResult), normalized);
 
     expect(result.analysis).toEqual({ status: "succeeded", result: validResult });
+    expect(Object.hasOwn(result, "costEstimate")).toBe(false);
     expect(Object.keys(result)).toEqual(["request", "analysis"]);
     expect(result.request).toEqual({
       original: { goal: "Clarify this request" },
@@ -65,6 +66,61 @@ describe("processNormalizedSubmission", () => {
       ],
     });
     expect(Object.getPrototypeOf(result.request.original)).toBeNull();
+  });
+
+  test("exposes a valid enabled estimate alongside detached request and analysis", async () => {
+    const normalized = normalizeSubmission([{ key: "goal", label: "Goal", sendToAI: true }], {
+      goal: "Clarify this request",
+    });
+    const output = {
+      ...validResult,
+      costEstimate: {
+        status: "estimated" as const,
+        items: [
+          {
+            name: "Discovery",
+            minAmount: 1000,
+            maxAmount: 2000,
+            reason: "Clarify the outcome and constraints.",
+          },
+        ],
+        rationale: "The request needs a short discovery phase.",
+        assumptions: ["The request remains bounded to the initial workflow."],
+        confidence: { level: "medium" as const, reason: "Important details remain unknown." },
+      },
+    };
+
+    const result = await processNormalizedSubmission(
+      adapterReturning(output),
+      normalized,
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(result.request).toEqual({
+      original: { goal: "Clarify this request" },
+      fields: [
+        {
+          key: "goal",
+          label: "Goal",
+          value: "Clarify this request",
+          sensitive: false,
+          sendToAI: true,
+          includeInOutput: true,
+        },
+      ],
+    });
+    expect(result.analysis).toEqual({ status: "succeeded", result: validResult });
+    expect(result.costEstimate).toEqual({
+      status: "estimated",
+      currency: "EUR",
+      total: { minAmount: 1000, maxAmount: 2000 },
+      items: output.costEstimate.items,
+      rationale: output.costEstimate.rationale,
+      assumptions: output.costEstimate.assumptions,
+      confidence: output.costEstimate.confidence,
+    });
+    expect(Object.keys(result)).toEqual(["request", "analysis", "costEstimate"]);
   });
 
   test("preserves a vague valid success without inventing processing metadata", async () => {
@@ -100,6 +156,59 @@ describe("processNormalizedSubmission", () => {
     expect(result.analysis).toEqual({ status: "unavailable", reason: "no_input" });
     expect(result.request.fields.map((field) => field.key)).toEqual(["secret", "hidden"]);
     expect(result.request.original).toEqual({ secret: "do not send", hidden: "also private" });
+    expect(Object.hasOwn(result, "costEstimate")).toBe(false);
+  });
+
+  test("preserves request when enabled adapter fails and reports cost failure", async () => {
+    const secret = "private adapter failure details";
+    const normalized = normalizeSubmission([{ key: "goal", label: "Goal", sendToAI: true }], {
+      goal: "test",
+    });
+    const result = await processNormalizedSubmission(
+      {
+        async generateAnalysis() {
+          throw new Error(secret);
+        },
+      },
+      normalized,
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(result.analysis).toEqual({ status: "unavailable", reason: "adapter_error" });
+    expect(result.costEstimate).toEqual({ status: "unavailable", reason: "adapter_error" });
+    expect(result.request.original).toEqual({ goal: "test" });
+    expect(result.request.fields).toEqual([
+      {
+        key: "goal",
+        label: "Goal",
+        value: "test",
+        sensitive: false,
+        sendToAI: true,
+        includeInOutput: true,
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  test("reports enabled no_input without calling the adapter for all-private fields", async () => {
+    let calls = 0;
+    const normalized = normalizeSubmission([{ key: "secret", label: "Secret", sensitive: true }], {
+      secret: "do not send",
+    });
+    const result = await processNormalizedSubmission(
+      adapterReturning(validResult, () => {
+        calls += 1;
+      }),
+      normalized,
+      undefined,
+      { currency: "EUR" },
+    );
+
+    expect(calls).toBe(0);
+    expect(result.analysis).toEqual({ status: "unavailable", reason: "no_input" });
+    expect(result.costEstimate).toEqual({ status: "unavailable", reason: "no_input" });
+    expect(result.request.original).toEqual({ secret: "do not send" });
   });
 
   test("maps adapter errors without exposing their raw details", async () => {

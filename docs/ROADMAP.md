@@ -295,11 +295,29 @@ Completed:
 
 **Milestone:** A developer encountering PreCall can start with one clear working flow while retaining the existing lower-level boundaries.
 
+## Phase 16 — Preliminary cost estimation
+
+**Status: complete**
+
+Implemented:
+
+- optional trusted `costEstimation` configuration;
+- one-call extended candidate that can add an estimate to the base analysis;
+- strict core validation with totals computed from validated items;
+- explicit `estimated`, `insufficient_information`, and `unavailable` estimate states;
+- failure isolation so malformed optional estimates do not invalidate valid analysis;
+- deterministic preliminary cost section inherited unchanged by email packaging and delivery;
+- additive compatibility for existing analysis-only configuration and adapters;
+- documentation and focused tests covering the contract.
+
+**Milestone:** PreCall can optionally add a core-owned, uncertainty-aware preliminary cost estimate to the internal brief without changing the one-call analysis boundary or delivery/privacy boundaries.
+
 ## Next milestone
 
-The core flow is complete and released, and the first framework integration is proven. The next
-capability is not yet decided: budget/pricing decision support and modular analysis skills are the
-candidates recorded below, and neither configuration API is settled.
+The core flow is complete and released, and the first framework integration is proven. Preliminary
+cost estimation is implemented. The next capability remains undecided: professional-specific
+pricing strategy configuration and modular analysis skills are future candidates, and neither
+configuration API is settled.
 
 # After MVP
 
@@ -325,12 +343,11 @@ Requirements:
 
 ## Budget decision support
 
-Potential capability:
+Preliminary cost estimation is implemented in Phase 16. Remaining future work may include:
 
-- compare stated budget with apparent workload/risk;
-- custom professional pricing rules;
-- explicit uncertainty;
-- refusal to manufacture estimates when information is insufficient.
+- professional-specific rates and pricing rules;
+- comparing a stated budget with apparent workload and risk;
+- richer uncertainty handling.
 
 Not a quotation engine.
 

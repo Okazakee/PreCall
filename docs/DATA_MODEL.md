@@ -13,7 +13,7 @@ and are best read through the implementation:
 | AI-visible projection | `src/analysis/input.ts` |
 | Analysis result contract | `src/analysis/result.ts` |
 | Analysis execution boundary | `src/analysis/run.ts` |
-| Result composition | `src/result.ts` |
+| Cost-estimate configuration and result contract | `src/cost/config.ts`, `src/cost/result.ts` |
 | Presentation, attachment, email packaging | `src/presentation/` |
 | Delivery boundary | `src/delivery.ts` |
 | Public facade contracts | `src/precall.ts`, `src/index.ts` |
@@ -151,7 +151,34 @@ Invariants:
   renderer output, or delivery state;
 - caller cancellation propagates and produces no result.
 
-## 9. Presentation, attachment, and email packaging
+## 9. Cost-estimate enrichment
+
+Cost estimation is an optional enrichment of the reusable result. When disabled, `PreCallResult`
+has no `costEstimate` property. When enabled, the property is always an explicit state:
+`estimated`, `insufficient_information`, or `unavailable`.
+
+The adapter returns an untrusted candidate. Its strict contract has no `total` and no `currency`;
+the core attaches the snapshotted configured currency and computes the total by summing the
+validated item amounts. Provider-supplied totals are never trusted.
+
+Invariants:
+
+- estimated amounts are whole, non-negative integers, and every item satisfies
+  `minAmount <= maxAmount`;
+- an `estimated` candidate contains at least one item; an `insufficient_information` candidate
+  contains at least one non-blank `missingInformation` entry;
+- every candidate object is strict and unknown properties are rejected;
+- malformed estimate output becomes an unavailable `invalid_output` state without invalidating a
+  valid base analysis;
+- unavailable uses the existing provider-neutral reasons (`no_input`, `adapter_error`, and
+  `invalid_output`) plus `not_provided` when an enabled adapter returns only the base analysis;
+- provider errors and malformed candidate details are not retained or exposed.
+
+The estimate's item names, reasons, rationale, assumptions, and confidence reason remain
+semantic presentation data, not trusted facts. Exact schemas and derived types live in
+`src/cost/config.ts` and `src/cost/result.ts`.
+
+## 10. Presentation, attachment, and email packaging
 
 These are separate, destination-neutral derivations of the same result. Presentation and
 packaging are deterministic, synchronous, I/O-free, and do not call AI.
@@ -170,7 +197,7 @@ Invariants:
 - output privacy is a direct-output guarantee only. A field deliberately sent to AI may still be
   reflected in free-form AI text; strong non-disclosure requires excluding it from AI input.
 
-## 10. Delivery
+## 11. Delivery
 
 Delivery consumes a valid result and returns a separate outcome; delivery state never becomes
 part of the reusable result.
@@ -186,7 +213,7 @@ Invariants:
 - successful and unavailable analyses are both deliverable, and delivery does not mutate the
   result.
 
-## 11. Schema philosophy
+## 12. Schema philosophy
 
 Prefer:
 

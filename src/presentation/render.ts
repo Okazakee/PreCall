@@ -1,4 +1,5 @@
 import type { AnalysisResult } from "../analysis/result.js";
+import type { CostEstimateState, CostEstimateUnavailableReason } from "../cost/result.js";
 import type { JsonValue, NormalizedField } from "../intake/normalize.js";
 import type { PreCallResult } from "../result.js";
 
@@ -12,6 +13,15 @@ const UNAVAILABLE_REASON: Record<"no_input" | "adapter_error" | "invalid_output"
     "AI analysis was unavailable for this request. The original inquiry has still been preserved.",
   invalid_output:
     "AI analysis returned an unusable result and was not included. The original inquiry has still been preserved.",
+};
+
+const COST_ESTIMATE_UNAVAILABLE_REASON: Record<CostEstimateUnavailableReason, string> = {
+  no_input:
+    "Cost estimation was not run because no submitted fields were permitted for AI processing.",
+  adapter_error: "Cost estimation was unavailable for this request.",
+  invalid_output:
+    "Cost estimation returned an unusable result and was not included. The original inquiry has still been preserved.",
+  not_provided: "Cost estimation was not provided by the configured AI implementation.",
 };
 
 function normalizeLineEndings(value: string): string {
@@ -290,19 +300,20 @@ function successfulSections(analysis: AnalysisResult): RenderableItem[] {
       ],
     }),
   );
-  sections.push(
-    section("Confidence / uncertainty", {
-      html: [
-        `<p><strong>Level:</strong> ${htmlText(humanLabel(analysis.confidence.level))}</p>`,
-        `<p><strong>Reason:</strong> ${htmlText(analysis.confidence.reason)}</p>`,
-      ],
-      text: [
-        `Level: ${humanLabel(analysis.confidence.level)}`,
-        `Reason: ${normalizeLineEndings(analysis.confidence.reason)}`,
-      ],
-    }),
-  );
   return sections;
+}
+
+function confidenceSection(analysis: AnalysisResult): RenderableItem {
+  return section("Confidence / uncertainty", {
+    html: [
+      `<p><strong>Level:</strong> ${htmlText(humanLabel(analysis.confidence.level))}</p>`,
+      `<p><strong>Reason:</strong> ${htmlText(analysis.confidence.reason)}</p>`,
+    ],
+    text: [
+      `Level: ${humanLabel(analysis.confidence.level)}`,
+      `Reason: ${normalizeLineEndings(analysis.confidence.reason)}`,
+    ],
+  });
 }
 
 function unavailableSection(result: PreCallResult): RenderableItem {
@@ -312,11 +323,88 @@ function unavailableSection(result: PreCallResult): RenderableItem {
   return section("Analysis unavailable", paragraph(UNAVAILABLE_REASON[result.analysis.reason]));
 }
 
+/** Deterministic whole-unit grouping; no locale or ICU dependency participates in rendering. */
+function formatAmount(amount: number): string {
+  return String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function amountRange(minAmount: number, maxAmount: number): string {
+  return `${formatAmount(minAmount)}–${formatAmount(maxAmount)}`;
+}
+
+function costEstimateSection(state: CostEstimateState): RenderableItem {
+  if (state.status === "unavailable") {
+    return section(
+      "Preliminary cost estimate",
+      paragraph(COST_ESTIMATE_UNAVAILABLE_REASON[state.reason]),
+    );
+  }
+
+  if (state.status === "insufficient_information") {
+    const missing = list(state.missingInformation.map((item) => paragraph(item)));
+    const heading = "Missing information to clarify during discovery:";
+    return section("Preliminary cost estimate", {
+      html: [
+        `<p>${htmlText(state.reason)}</p>`,
+        `<p><strong>${htmlText(heading)}</strong></p>`,
+        ...missing.html,
+      ],
+      text: [normalizeLineEndings(state.reason), heading, ...missing.text],
+    });
+  }
+
+  const items = list(
+    state.items.map((item) => ({
+      html: [
+        `<p><strong>${htmlText(item.name)}</strong> — ${htmlText(state.currency)} ${htmlText(amountRange(item.minAmount, item.maxAmount))}</p>`,
+        `<p>${htmlText(item.reason)}</p>`,
+      ],
+      text: [
+        `${normalizeLineEndings(item.name)} — ${state.currency} ${amountRange(item.minAmount, item.maxAmount)}`,
+        normalizeLineEndings(item.reason),
+      ],
+    })),
+  );
+  const assumptions =
+    state.assumptions.length === 0
+      ? undefined
+      : list(state.assumptions.map((assumption) => paragraph(assumption)));
+  const total = `${state.currency} ${amountRange(state.total.minAmount, state.total.maxAmount)}`;
+  const confidence = `${humanLabel(state.confidence.level)} — ${normalizeLineEndings(state.confidence.reason)}`;
+
+  return section("Preliminary cost estimate", {
+    html: [
+      `<p><strong>Estimated total:</strong> ${htmlText(total)}</p>`,
+      ...items.html,
+      `<p><strong>Why this range:</strong></p>`,
+      ...paragraph(state.rationale).html,
+      ...(assumptions === undefined
+        ? []
+        : [`<p><strong>Assumptions:</strong></p>`, ...assumptions.html]),
+      `<p><strong>Confidence:</strong> ${htmlText(confidence)}</p>`,
+    ],
+    text: [
+      `Estimated total: ${total}`,
+      ...items.text,
+      "Why this range:",
+      ...paragraph(state.rationale).text,
+      ...(assumptions === undefined ? [] : ["Assumptions:", ...assumptions.text]),
+      `Confidence: ${confidence}`,
+    ],
+  });
+}
+
 export function renderPreCallResult(result: PreCallResult): RenderedBrief {
-  const sections =
-    result.analysis.status === "succeeded"
-      ? successfulSections(result.analysis.result)
-      : [unavailableSection(result)];
+  const sections: RenderableItem[] = [];
+  if (result.analysis.status === "succeeded") {
+    sections.push(...successfulSections(result.analysis.result));
+  } else {
+    sections.push(unavailableSection(result));
+  }
+  if (result.costEstimate !== undefined) sections.push(costEstimateSection(result.costEstimate));
+  if (result.analysis.status === "succeeded") {
+    sections.push(confidenceSection(result.analysis.result));
+  }
   const source = sourceSection(result.request.fields);
   if (source !== undefined) sections.push(source);
 

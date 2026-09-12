@@ -1,4 +1,5 @@
 import type { AIAdapter } from "./analysis/run.js";
+import { type CostEstimationConfig, resolveCostEstimationConfiguration } from "./cost/config.js";
 import type { DeliveryOutcome, EmailTransport } from "./delivery.js";
 import { deliverPreCallResult } from "./delivery.js";
 import {
@@ -13,6 +14,11 @@ export type PrecallConfig = {
   ai: AIAdapter;
   fields: readonly FieldDefinition[];
   limits?: IntakeLimitOverrides;
+  /**
+   * Trusted configuration for the optional preliminary cost estimate. Omitting it preserves the
+   * analysis-only behavior and keeps `PreCallResult.costEstimate` absent.
+   */
+  costEstimation?: CostEstimationConfig;
 };
 
 export type ProcessRequest = {
@@ -58,6 +64,7 @@ export function createPrecall(config: PrecallConfig): Precall {
   }
 
   const intake = resolveIntakeConfiguration(config.fields, config.limits);
+  const costEstimation = resolveCostEstimationConfiguration(config.costEstimation);
 
   const precall: Precall = {
     async process(request: ProcessRequest): Promise<PreCallResult> {
@@ -65,7 +72,7 @@ export function createPrecall(config: PrecallConfig): Precall {
       signal?.throwIfAborted();
       const submission = request.submission;
       const normalized = normalizeSubmissionWithConfiguration(intake, submission);
-      return processNormalizedSubmission(ai, normalized, signal);
+      return processNormalizedSubmission(ai, normalized, signal, costEstimation);
     },
     deliver(request: DeliverRequest): Promise<DeliveryOutcome> {
       return deliverPreCallResult(

@@ -2,12 +2,14 @@ import { describe, expect, test } from "bun:test";
 import * as publicApi from "./index.js";
 import {
   type AIAdapter,
+  type AIAnalysisRequest,
   type AnalysisInput,
   createPrecall,
   type DeliveryOutcome,
   type EmailDeliveryRequest,
   type FieldDefinition,
   IntakeValidationError,
+  type PrecallConfig,
 } from "./index.js";
 
 const validAnalysis = {
@@ -21,6 +23,26 @@ const validAnalysis = {
   discoveryQuestions: [],
   roadmap: { status: "available" as const, phases: [{ name: "Plan", purpose: "Confirm scope." }] },
   confidence: { level: "high" as const, reason: "The submitted information is sufficient." },
+};
+const validCostEstimate = {
+  status: "estimated" as const,
+  items: [
+    {
+      name: "Discovery",
+      minAmount: 1000,
+      maxAmount: 2000,
+      reason: "The workflows and constraints need clarification.",
+    },
+    {
+      name: "Implementation",
+      minAmount: 3000,
+      maxAmount: 5000,
+      reason: "The requested work requires build effort.",
+    },
+  ],
+  rationale: "The range reflects the stated work and remaining uncertainty.",
+  assumptions: ["The first release covers the described workflows."],
+  confidence: { level: "medium" as const, reason: "Some operational details remain unresolved." },
 };
 
 const fields: FieldDefinition[] = [
@@ -129,6 +151,118 @@ describe("public Precall facade", () => {
       () => precall.process({ submission: { unknown: "x" } }),
       "invalid_submission",
     );
+  });
+  test("passes trusted cost estimation configuration and omits it when disabled", async () => {
+    let enabledCostEstimation: unknown;
+    const enabled = createPrecall({
+      ai: {
+        generateAnalysis: async (request) => {
+          enabledCostEstimation = request.costEstimation;
+          return { ...validAnalysis, costEstimate: validCostEstimate };
+        },
+      },
+      fields,
+      costEstimation: { currency: "EUR" },
+    });
+    const estimated = await enabled.process({ submission: { message: "hello" } });
+    expect(enabledCostEstimation).toEqual({ currency: "EUR" });
+    expect(estimated.costEstimate).toMatchObject({
+      status: "estimated",
+      currency: "EUR",
+      total: { minAmount: 4000, maxAmount: 7000 },
+    });
+
+    let disabledCostEstimation: unknown = "sentinel";
+    const disabled = createPrecall({
+      ai: {
+        generateAnalysis: async (request) => {
+          disabledCostEstimation = request.costEstimation;
+          return validAnalysis;
+        },
+      },
+      fields,
+    });
+    const analysisOnly = await disabled.process({ submission: { message: "hello" } });
+    expect(disabledCostEstimation).toBeUndefined();
+    expect(Object.hasOwn(analysisOnly, "costEstimate")).toBe(false);
+  });
+
+  test("rejects invalid cost estimation configuration at creation", async () => {
+    for (const costEstimation of [
+      { currency: "eur" },
+      { currency: "EURO" },
+      {},
+      { currency: "EUR", extra: 1 },
+    ]) {
+      const config = { ai: adapterReturning(), fields, costEstimation } as PrecallConfig;
+      await expectIntakeCode(() => createPrecall(config), "invalid_configuration");
+    }
+  });
+
+  test("snapshots the configured estimate currency", async () => {
+    let seenCostEstimation: unknown;
+    let sent: EmailDeliveryRequest | undefined;
+    const config = {
+      ai: {
+        generateAnalysis: async (request: AIAnalysisRequest) => {
+          seenCostEstimation = request.costEstimation;
+          return { ...validAnalysis, costEstimate: validCostEstimate };
+        },
+      },
+      fields,
+      costEstimation: { currency: "EUR" },
+    };
+    const precall = createPrecall(config);
+    config.costEstimation.currency = "USD";
+    const result = await precall.process({ submission: { message: "hello" } });
+
+    expect(seenCostEstimation).toEqual({ currency: "EUR" });
+    expect(result.costEstimate).toMatchObject({ status: "estimated", currency: "EUR" });
+    await precall.deliver({
+      result,
+      transport: {
+        send: async (request) => {
+          sent = request;
+        },
+      },
+      recipient: "professional@example.com",
+    });
+    expect(sent?.email.text).toContain("EUR");
+    expect(sent?.email.text).not.toContain("USD");
+  });
+
+  test("does not enable estimation from client-submitted currency-looking fields", async () => {
+    const unknownFieldPrecall = createPrecall({ ai: adapterReturning(), fields });
+    await expectIntakeCode(
+      () =>
+        unknownFieldPrecall.process({
+          submission: { costEstimation: { currency: "USD" } },
+        }),
+      "invalid_submission",
+    );
+
+    let seenInput: AnalysisInput | undefined;
+    let seenCostEstimation: unknown = "sentinel";
+    const definedFieldPrecall = createPrecall({
+      ai: {
+        generateAnalysis: async (request) => {
+          seenInput = request.input;
+          seenCostEstimation = request.costEstimation;
+          return validAnalysis;
+        },
+      },
+      fields: [
+        { key: "currency", label: "Currency", sendToAI: true },
+        { key: "costEstimation", label: "Cost estimation", sendToAI: true },
+      ],
+    });
+    const result = await definedFieldPrecall.process({
+      submission: { currency: "USD", costEstimation: { currency: "USD" } },
+    });
+    expect(seenCostEstimation).toBeUndefined();
+    expect(seenInput?.fields.map((field) => field.key)).toEqual(["currency", "costEstimation"]);
+    expect(result.costEstimate).toBeUndefined();
+    expect(Object.hasOwn(result, "costEstimate")).toBe(false);
   });
 
   test("snapshots fields, limits, and the configured adapter reference", async () => {
@@ -274,6 +408,29 @@ describe("public Precall facade", () => {
     expect(sent?.email.subject).toBe("Pre-Call Brief");
     expect(sent?.email.text).toContain("owner@example.com");
     expect(sent?.email.text).not.toContain("do not expose");
+  });
+  test("submit includes the preliminary estimate and preserves sent delivery semantics", async () => {
+    let sent: EmailDeliveryRequest | undefined;
+    const precall = createPrecall({
+      ai: adapterReturning({ ...validAnalysis, costEstimate: validCostEstimate }),
+      fields,
+      costEstimation: { currency: "EUR" },
+    });
+
+    const outcome = await precall.submit({
+      submission: { message: "hello", email: "owner@example.com" },
+      transport: {
+        send: async (request) => {
+          sent = request;
+        },
+      },
+      recipient: "professional@example.com",
+    });
+
+    expect(outcome.result.costEstimate).toMatchObject({ status: "estimated", currency: "EUR" });
+    expect(outcome.delivery).toEqual({ status: "sent" });
+    expect(sent?.email.subject).toBe("Pre-Call Brief");
+    expect(sent?.email.text).toContain("Preliminary cost estimate");
   });
 
   test("submit still delivers a fallback when AI is unavailable", async () => {

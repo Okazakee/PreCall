@@ -45,13 +45,43 @@ function analysis(): AnalysisResult {
 function result(
   analysisState: PreCallResult["analysis"] = { status: "succeeded", result: analysis() },
   fields: NormalizedField[] = [],
+  costEstimate?: NonNullable<PreCallResult["costEstimate"]>,
 ): PreCallResult {
-  return {
+  const output: PreCallResult = {
     request: {
       original: Object.create(null) as Record<string, JsonValue>,
       fields,
     },
     analysis: analysisState,
+  };
+  if (costEstimate !== undefined) output.costEstimate = costEstimate;
+  return output;
+}
+
+type EstimatedCost = Extract<NonNullable<PreCallResult["costEstimate"]>, { status: "estimated" }>;
+
+function estimatedCost(): EstimatedCost {
+  return {
+    status: "estimated",
+    currency: "EUR",
+    total: { minAmount: 8_000, maxAmount: 12_000 },
+    items: [
+      {
+        name: "Frontend implementation",
+        minAmount: 2_500,
+        maxAmount: 3_500,
+        reason: "Build the client-facing experience.",
+      },
+      {
+        name: "Backend integration",
+        minAmount: 5_500,
+        maxAmount: 8_500,
+        reason: "Connect the required service boundaries.",
+      },
+    ],
+    rationale: "The range reflects the current discovery context.",
+    assumptions: ["The existing design system can be reused."],
+    confidence: { level: "medium", reason: "The available context is partial." },
   };
 }
 
@@ -199,5 +229,40 @@ describe("createRenderedEmail", () => {
     expect(firstBytes).not.toBe(firstAttachment(second).bytes);
     firstBytes[0] = (firstBytes[0] ?? 0) ^ 0xff;
     expect(firstAttachment(second).bytes).toEqual(createSubmissionAttachment(input).bytes);
+  });
+
+  test("includes estimated cost content while preserving subject and attachment options", () => {
+    const input = result(undefined, [field("goal", "Clarify the launch goal")], estimatedCost());
+    const packaged = createRenderedEmail(input);
+
+    expect(packaged.subject).toBe("Pre-Call Brief");
+    expect(packaged.html).toContain("Preliminary cost estimate");
+    expect(packaged.html).toContain("EUR 8,000–12,000");
+    expect(packaged.text).toContain("Preliminary cost estimate");
+    expect(packaged.text).toContain("Estimated total: EUR 8,000–12,000");
+    expect(packaged.attachments).toHaveLength(1);
+    expect(firstAttachment(packaged).filename).toBe("submission.json");
+
+    const withoutAttachment = createRenderedEmail(input, { attachRawSubmission: false });
+    expect(withoutAttachment.subject).toBe("Pre-Call Brief");
+    expect(withoutAttachment.html).toBe(packaged.html);
+    expect(withoutAttachment.text).toBe(packaged.text);
+    expect(withoutAttachment.attachments).toEqual([]);
+  });
+
+  test("keeps disabled-estimation emails free of cost wording and byte-identical", () => {
+    const fields = [field("goal", "Clarify the launch goal")];
+    const disabled = createRenderedEmail(result(undefined, fields));
+    const baseline = createRenderedEmail(
+      result(undefined, [field("goal", "Clarify the launch goal")]),
+    );
+
+    expect(disabled.html).toBe(baseline.html);
+    expect(disabled.text).toBe(baseline.text);
+    expect(disabled.subject).toBe("Pre-Call Brief");
+    expect(disabled.html).not.toContain("Preliminary cost estimate");
+    expect(disabled.text).not.toContain("Preliminary cost estimate");
+    expect(disabled.html).not.toContain("Estimated total");
+    expect(disabled.text).not.toContain("Estimated total");
   });
 });

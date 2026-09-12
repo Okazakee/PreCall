@@ -25,6 +25,10 @@ The operation should produce:
 - preliminary execution path;
 - confidence.
 
+When trusted `costEstimation: { currency }` configuration is enabled, that same operation may
+also produce one clearly preliminary internal cost range for the professional. It is not a quote,
+sale, proposal, or replacement for discovery.
+
 Do not split this into multiple model calls or a skill orchestrator until a concrete quality/cost/reliability benefit is demonstrated.
 
 ## Trusted instructions versus untrusted data
@@ -82,7 +86,9 @@ candidate. `Promise<unknown>` is intentional — output is validated by the core
 from the adapter.
 
 The adapter never receives the normalized submission, the authoritative `original`, field-policy
-metadata, prompt configuration, provider, model, tools, schema metadata, or usage data.
+metadata, prompt configuration, provider, model, tools, schema metadata, or usage data. It may
+receive the optional trusted `costEstimation` currency on the semantic request when the consumer
+has enabled estimation; submitted content cannot set or change it.
 
 The execution contract is one attempt with explicit outcomes:
 
@@ -96,6 +102,11 @@ The execution contract is one attempt with explicit outcomes:
 No hidden timeout controller, retry, provider fallback, or provider-specific error taxonomy exists
 in this boundary, and accepted output is the schema-parsed value rather than the adapter-owned
 object.
+
+The extended one-call contract is additive: the adapter may return the canonical analysis plus an
+untrusted `costEstimate` member. Core validation is independent, so a malformed estimate becomes
+an unavailable estimate while a valid analysis remains succeeded. An adapter that returns only
+the base analysis remains compatible and yields `not_provided` when estimation is enabled.
 
 Public delivery consumes the already-composed `PreCallResult` through deterministic packaging; it
 never calls AI, changes analysis state, or makes AI fallback results undeliverable. The email
@@ -197,11 +208,24 @@ The trace-context dependency initializes process-local async context and may ins
 
 ## Analysis prompt and input
 
-The adapter sends a trusted `SystemMessage` containing the internal pre-call role, no-sales/no-quote boundaries, no-research/no-tools rule, facts/inferences/assumptions/unknowns distinction, provenance requirements, discovery-first behavior for vague requests, qualitative confidence, and the prohibition on invented scope, prices, estimates, and deadlines.
+The adapter sends a trusted `SystemMessage` containing the internal pre-call role, no-sales/no-quote
+boundaries, no-research/no-tools rule, facts/inferences/assumptions/unknowns distinction,
+provenance requirements, discovery-first behavior for vague requests, qualitative confidence, and
+the prohibition on invented scope, deadlines, or binding commitments. When cost estimation is
+enabled, only the clauses that prohibit price estimation are replaced: the prompt requests a
+clearly preliminary internal range in the configured currency, not a quote or proposal, and vague
+intake must produce `insufficient_information` rather than fabricated detail. Anti-invention,
+binding-scope, proposal, deadline, and client-budget-as-validated-fact rules remain.
 
-It sends the `AnalysisInput` separately as a JSON-serialized `HumanMessage`. Submitted values remain faithful untrusted data; instructions inside them are not commands. The adapter receives no original submission, privacy metadata, email package, or consumer configuration.
+It sends the `AnalysisInput` separately as a JSON-serialized `HumanMessage`. Submitted values
+remain faithful untrusted data; instructions inside them are not commands. The adapter receives no
+original submission, privacy metadata, email package, or consumer configuration.
 
-The output contract embedded in the trusted prompt is generated from `AnalysisResultSchema`; no duplicate manual schema exists. LangChain's structured-output validation is defense in depth. `runAnalysis()` performs the final canonical schema validation before a result can be trusted.
+The output contract embedded in the trusted prompt is generated from the canonical schemas. The
+provider-side structured-output contract is defense in depth and deliberately tolerates the optional
+cost member so malformed estimation cannot invalidate the base analysis; `runAnalysis()` performs
+the final independent validation at the core trust boundary. Estimation still uses exactly one
+model invocation and introduces no research, tools, or second call.
 
 ## Failure and attempt semantics
 
