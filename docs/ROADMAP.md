@@ -310,15 +310,31 @@ Implemented:
 - additive compatibility for existing analysis-only configuration and adapters;
 - documentation and focused tests covering the contract.
 
-**Milestone:** PreCall can optionally add a core-owned, uncertainty-aware preliminary cost estimate to the internal brief without changing the one-call analysis boundary or delivery/privacy boundaries.
+**Milestone:** PreCall can optionally add a core-owned, uncertainty-aware preliminary cost estimate to the internal brief without changing the one-call analysis boundary or delivery/privacy boundaries. Released as part of `precall@0.2.0` (Phase 17).
+
+## Phase 17 — 0.2.0 release
+
+**Status: complete**
+
+Completed:
+
+- release-preparation PR that bumped the package to `0.2.0`, pointed the release metadata and
+  packed-package assertions at it, extended the packed consumer smoke to the new public
+  cost-estimation surface, and updated mutable release-state documentation;
+- annotated `v0.2.0` tag created on the exact release-preparation merge commit;
+- tag-only workflow validated tag/`HEAD`/`origin/main` identity plus candidate bytes/SHA-512 and
+  published `precall@0.2.0` through npm Trusted Publishing/OIDC with a signed provenance statement;
+- npm `latest` moved to `0.2.0`, `bootstrap` history untouched;
+- GitHub Release `v0.2.0` created.
+
+**Milestone:** Optional preliminary cost estimation is publicly available in the released package.
 
 ## Next milestone
 
-The core flow is complete and released, and the first framework integration is proven. Preliminary
-cost estimation is implemented and prepared for release as `precall@0.2.0`; the immediate next step
-is tagging that release so the tag-only workflow publishes it. The next capability remains
-undecided: professional-specific pricing strategy configuration and modular analysis skills are
-future candidates, and neither configuration API is settled.
+The core flow, its first framework integration, and optional preliminary cost estimation are
+released as `precall@0.2.0`. The next capability remains undecided: professional-specific pricing
+strategy configuration and modular analysis skills are future candidates, and neither
+configuration API is settled.
 
 # After MVP
 
