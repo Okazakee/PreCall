@@ -117,11 +117,12 @@ the repository build. It proves that a server-side consumer resolves, compiles, 
 builds; it is not an end-to-end browser test. Do not claim broad Edge compatibility until a real
 Edge test exists.
 
-Root `bun test` is scoped to `src` and `scripts` (`bun run test`). The example keeps its own suite
-because its tests import the installed `precall` package, which only exists after
-`bun run example:prepare`; running them from the root in a fresh checkout would test a dependency
-that is not installed yet. The example's production build and its suite are therefore one step:
-`bun run example:build` prepares the example, runs `bun test lib` inside it, and then builds it.
+Test discovery at the repository root is normal: `bun run test` runs every test file it finds, and
+no registration step is needed for a new one. The single exception is stated in `bunfig.toml`:
+`examples/nextjs/**` is excluded from the root run because the example's tests import the installed
+`precall` package, which only exists after `bun run example:prepare`, and CI runs the root tests
+before that install. The example therefore owns its suite inside the example's own test command,
+and `bun run example:build` prepares the example, runs `bun test` inside it, and then builds it.
 
 That suite covers the local development playground's boundaries. Configuration: the
 `.precall-playground/` directory is gitignored, the provider file is written with restrictive
