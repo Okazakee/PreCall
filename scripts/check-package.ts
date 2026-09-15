@@ -25,7 +25,7 @@ type PackageMetadata = {
 const packageName = "precall";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const npmCli = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
-const packageVersion = "0.2.0";
+const packageVersion = "0.3.0";
 const description =
   "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.";
 const keywords = ["precall", "service-intake", "intake", "ai", "typescript", "email"];

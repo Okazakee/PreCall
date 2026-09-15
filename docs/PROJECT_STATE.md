@@ -1,6 +1,6 @@
 # Project State
 
-**Last verified:** 2026-09-12
+**Last verified:** 2026-09-15
 
 This file is deliberately small. It records only mutable state that cannot be derived reliably
 from the working tree: external release state, external configuration, unresolved decisions, and
@@ -22,20 +22,28 @@ convenience flow, optional preliminary cost estimation, and the bounded custom a
 seam are implemented in the current checkout. The server-side Next.js integration proof exists as
 a repository example and is gated in CI.
 
-`precall@0.2.0` was released on 2026-09-12 and carries preliminary cost estimation. The tag-only
-release workflow validated the source binding, published the inspected candidate through npm
-Trusted Publishing/OIDC, and created GitHub Release `v0.2.0`.
+`precall@0.2.0` was released on 2026-09-12 and remains the currently published release. It carries
+preliminary cost estimation. The tag-only release workflow validated the source binding, published
+the inspected candidate through npm Trusted Publishing/OIDC, and created GitHub Release `v0.2.0`.
+
+`0.3.0` is prepared but **not yet tagged or published**. The release-preparation change on `main`
+raises the package version and the release metadata assertions to `0.3.0` and adds no behavior
+change; the release workflow, Trusted Publishing/OIDC path, and tag/main protection assumptions are
+unchanged. `0.3.0` adds the bounded custom analysis-section capability from Phase 18 on top of the
+published behavior.
 
 ## Externally published release state
 
-Verified against the public npm registry and GitHub on 2026-09-12:
+Verified against the public npm registry and GitHub on 2026-09-15:
 
-- `precall` dist-tags: `latest` → `0.2.0`, `bootstrap` → `0.1.0-bootstrap.0`.
+- `precall` dist-tags: `latest` → `0.2.0`, `bootstrap` → `0.1.0-bootstrap.0`; the published versions
+  are `0.1.0-bootstrap.0`, `0.1.0`, and `0.2.0`.
 - Stable `precall@0.2.0` was published through npm Trusted Publishing (GitHub Actions/OIDC) from
   this repository's tag-only release workflow, with a signed provenance statement.
 - GitHub Release `v0.2.0` exists and is the latest release; GitHub Release `v0.1.0` remains the
   first stable release.
 - Stable `precall@0.1.0` was the first published version, released the same way.
+- No `v0.3.0` tag and no `0.3.0` registry version exist.
 - The historical scoped name `@okazakee/precall` no longer resolves on the public registry. It is
   registry history only; do not recreate or mutate it.
 
@@ -65,6 +73,8 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 
 ## Immediate next action
 
-Prepare the next release validation for the custom-section capability without changing the
-published package version until release admission is explicitly requested. Future pricing remains
-decision support rather than automatic quotation.
+After the `0.3.0` release-preparation change is merged, tag that exact release-preparation merge
+commit on `main` as `v0.3.0` and push the tag; the existing tag-only workflow then validates,
+publishes, and creates the GitHub Release. Do not tag any other commit, because the workflow admits
+a release only when the tag commit, the checked-out `HEAD`, and `origin/main` are identical. Future
+pricing remains decision support rather than automatic quotation.

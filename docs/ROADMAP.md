@@ -332,9 +332,11 @@ Completed:
 ## Next milestone
 
 The core flow, its first framework integration, and optional preliminary cost estimation are
-released as `precall@0.2.0`. The next capability remains undecided: professional-specific pricing
-strategy configuration and modular analysis skills are future candidates, and neither
-configuration API is settled.
+released as `precall@0.2.0`, which remains the latest published release. The bounded custom
+analysis-section capability is merged into `main` and prepared for release as `precall@0.3.0`.
+After that release, the next capability remains undecided: professional-specific pricing strategy
+configuration and modular analysis skills are future candidates, and neither configuration API is
+settled.
 
 # After MVP
 
@@ -432,7 +434,7 @@ This is valuable but deliberately outside the initial version.
 
 ## Phase 18 — Bounded custom analysis sections
 
-**Status: implemented in the current checkout**
+**Status: implemented and merged into `main`; release pending in `0.3.0`**
 
 The advanced `analysis.sections` seam adds declaration-ordered, Zod-defined outputs to the same
 single analysis operation while preserving the simple default flow and the specialized
@@ -443,3 +445,23 @@ unavailable sections isolated.
 
 This phase deliberately does not introduce a generic skill/plugin registry, agent or workflow
 engine, tools/research, retries, repair, provider routing, or arbitrary render callbacks.
+
+## Phase 19 — 0.3.0 release
+
+**Status: release preparation in progress; not yet tagged or published**
+
+Prepared:
+
+- release-preparation branch `release/0.3.0` from `main` that raises the package version and the
+  release metadata assertions to `0.3.0` and updates mutable release-state documentation;
+- packed consumer smoke keeps its coverage of the custom analysis-section public API, types, and
+  runtime behavior, including a consumer-owned Zod installation and another Zod 4 entrypoint;
+- release workflow semantics, npm Trusted Publishing/OIDC, and tag/main protection assumptions are
+  unchanged;
+- no tag, publish, or GitHub Release has been created.
+
+Next: after the release-preparation change merges into `main`, tag that exact merge commit as
+`v0.3.0` and push the tag to run the existing tag-only validation, publish, and GitHub Release path.
+
+**Milestone:** The bounded custom analysis-section capability from Phase 18 becomes publicly
+available as `precall@0.3.0`.
