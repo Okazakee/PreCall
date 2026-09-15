@@ -115,7 +115,12 @@ const ai: AIAdapter = {
         value: field.value,
       })),
       currency: costEstimation?.currency ?? null,
-      sections: analysis?.sections.map((section) => section.key) ?? [],
+      sections:
+        analysis?.sections.map(({ key, instructions, outputSchema }) => ({
+          key,
+          instructions,
+          outputSchema,
+        })) ?? [],
     });
 
     const options: { signal?: AbortSignal } = {};
@@ -130,28 +135,40 @@ const ai: AIAdapter = {
 A transport is one method. Return normally for success; a thrown error becomes the existing
 `{ status: "failed", reason: "transport_error" }` delivery outcome and never discards the result.
 
+Forward the optional caller `AbortSignal` to the provider call whenever the provider supports
+cancellation, so a cancelled request stops the underlying send rather than only the PreCall step.
+PreCall still observes the caller's signal at its own boundary, so an aborted delivery surfaces as
+cancellation instead of a delivery failure.
+
 ```ts
 import type { EmailTransport, SubmissionAttachment } from "precall";
 
 /** Replace this with the mail provider your application owns. */
-declare function sendEmail(message: {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  attachments: readonly SubmissionAttachment[];
-}): Promise<void>;
+declare function sendEmail(
+  message: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+    attachments: readonly SubmissionAttachment[];
+  },
+  options: { signal?: AbortSignal },
+): Promise<void>;
 
 const transport: EmailTransport = {
   async send({ recipient, email, signal }) {
-    signal?.throwIfAborted();
-    await sendEmail({
-      to: recipient,
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      attachments: email.attachments,
-    });
+    const options: { signal?: AbortSignal } = {};
+    if (signal !== undefined) options.signal = signal;
+    await sendEmail(
+      {
+        to: recipient,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        attachments: email.attachments,
+      },
+      options,
+    );
   },
 };
 ```
@@ -161,10 +178,12 @@ ready-made integrations without changing the rest of the pipeline.
 
 ## 5. Privacy: `sendToAI` versus `includeInOutput`
 
-The two flags answer two different questions. `sendToAI` decides what the AI boundary may see;
-`includeInOutput` decides what the professional-facing brief and the `submission.json` attachment
-may show. Nothing is filtered by omission — each flag defaults to `true` unless the field is marked
-`sensitive`, which defaults `sendToAI` to `false`.
+The two flags answer two different questions and resolve independently. `sendToAI` decides which
+fields exist at the AI boundary: a field denied to AI is omitted from the adapter input entirely
+rather than redacted, masked, or replaced with a placeholder. `includeInOutput` decides what the
+professional-facing brief and the `submission.json` attachment may show. Each flag has its own
+default — both resolve to `true` — and `sensitive: true` only defaults `sendToAI` to `false`; it
+never changes `includeInOutput`, which stays independently controlled.
 
 ```ts
 import type { AIAdapter } from "precall";
