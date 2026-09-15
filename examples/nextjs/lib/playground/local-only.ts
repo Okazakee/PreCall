@@ -1,15 +1,17 @@
 /**
  * Local-only request guard.
  *
- * The playground is developer tooling for `localhost`: it can read and write provider
- * configuration and can spend the developer's model quota. It is not a production service and it
- * has no authentication, so anything that is obviously not a local browser request is rejected
- * instead of being served.
+ * The real network boundary is the loopback bind in this example's `dev` and `start` scripts
+ * (`next dev|start --hostname 127.0.0.1`), so the workbench is not reachable from the network at
+ * all. This header check is defense in depth for browser-shaped attacks that would still arrive
+ * over loopback, such as a cross-origin request or DNS rebinding: it rejects a request whose
+ * `Host` or `Origin` is not a genuine loopback name.
  *
- * This is a boundary check, not an authentication system.
+ * It is not authentication, and it must not be treated as the boundary that protects the
+ * credential: binding to loopback is.
  */
 
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"]);
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 function hostnameOf(value: string | null): string | null {
   if (value === null || value.trim().length === 0) return null;

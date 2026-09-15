@@ -145,14 +145,20 @@ never influence it.
 `app/playground` is a local development workbench for PreCall. It replaces ad-hoc terminal scripts:
 configure a model, build an arbitrary dummy intake, run the real library, and inspect exactly what
 happened. It is developer tooling, not a product — no accounts, no database, no run history, no
-deployment story — and it is **localhost only**: every playground route refuses a request whose
-`Host`/`Origin` is not local, because it can read and write a credential and spend model quota.
+deployment story.
+
+It is **localhost only**, enforced by the network boundary rather than by a header: the example's
+`dev` and `start` scripts bind Next.js to `127.0.0.1` (`next dev|start --hostname 127.0.0.1`), so the
+workbench is not reachable from another host at all. On top of that, every playground route refuses a
+request whose `Host` or `Origin` is not a genuine loopback name, which is defense in depth for
+browser-shaped attacks that would still arrive over loopback (cross-origin requests, DNS rebinding).
+That header check is not authentication and must not be treated as the boundary.
 
 ```sh
 # from the repository root
 bun run example:prepare
 cd examples/nextjs && bun run dev
-# http://localhost:3000/playground
+# http://127.0.0.1:3000/playground
 ```
 
 ### Execution modes
@@ -173,6 +179,16 @@ headers. A provider that needs none of them configures none of them; there is no
 
 Any OpenAI-compatible endpoint works: a hosted gateway, a local server such as llama.cpp or Ollama,
 or a vendor whose OpenAI-compatible path lives at a different base URL.
+
+The base URL is validated as a credential destination, not as an arbitrary URL:
+
+- embedded credentials, query strings, and fragments are rejected, and the rejected value is never
+  echoed back;
+- plain `http://` is accepted only for loopback hosts (`127.0.0.1`, `localhost`, `::1`), because the
+  bearer credential would otherwise travel unencrypted — a remote provider must use `https://`;
+- an empty API-key field retains the stored key **only while the provider origin (scheme, hostname,
+  and port) is unchanged**. Changing the host, the port, or `https` → `http` requires a new key, so
+  a saved credential can never be silently sent to a different provider.
 
 `Fetch models` calls the provider's `/models` endpoint with the stored key, server-side. A provider
 without `/models` produces a non-fatal note, and manual model-id entry is always available.

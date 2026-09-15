@@ -85,6 +85,18 @@ export type ConfigWriteResult =
   | { readonly ok: true; readonly metadata: ProviderConfigMetadata }
   | { readonly ok: false; readonly code: string; readonly message: string };
 
+/** Hostnames that mean "this machine" for the plain-HTTP exception. */
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  if (normalized === "localhost" || normalized === "::1" || normalized === "[::1]") return true;
+  // 127.0.0.0/8 is entirely loopback.
+  return /^127(?:\.\d{1,3}){3}$/u.test(normalized);
+}
+
+type BaseUrlCheck =
+  | { readonly ok: true; readonly value: string }
+  | { readonly ok: false; readonly reason: "invalid" | "insecure" };
+
 /**
  * Normalize a provider base URL, or reject it.
  *
@@ -92,26 +104,45 @@ export type ConfigWriteResult =
  * carry a secret is refused rather than stripped: userinfo (`https://user:pass@host`), query
  * strings (`?token=…`), and fragments (`#…`) never reach the config file, the metadata response,
  * a log line, or a provider request. The raw value is deliberately not echoed anywhere.
+ *
+ * Plain HTTP is allowed only for loopback hosts, because the configured bearer credential is sent
+ * to this URL: `http://127.0.0.1:8080/v1` is a local model server, while
+ * `http://remote-provider.example/v1` would leak the credential in transit.
  */
-function normalizeBaseUrl(value: string): string | null {
+function normalizeBaseUrl(value: string): BaseUrlCheck {
   const trimmed = value.trim();
   // Checked on the raw input as well: an empty query or fragment (`…/v1?`, `…/v1#`) has no parsed
   // component to inspect, and the field represents an API base URL, not an arbitrary request URL.
-  if (trimmed.includes("?") || trimmed.includes("#")) return null;
+  if (trimmed.includes("?") || trimmed.includes("#")) return { ok: false, reason: "invalid" };
 
   let parsed: URL;
   try {
     parsed = new URL(trimmed);
   } catch {
-    return null;
+    return { ok: false, reason: "invalid" };
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-  if (parsed.username !== "" || parsed.password !== "") return null;
-  if (parsed.search !== "" || parsed.hash !== "") return null;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, reason: "invalid" };
+  }
+  if (parsed.username !== "" || parsed.password !== "") return { ok: false, reason: "invalid" };
+  if (parsed.search !== "" || parsed.hash !== "") return { ok: false, reason: "invalid" };
+  if (parsed.protocol === "http:" && !isLoopbackHostname(parsed.hostname)) {
+    return { ok: false, reason: "insecure" };
+  }
 
   // Rebuilt from validated parts, so the result can only ever be scheme, host, and path.
   const path = parsed.pathname.replace(/\/+$/u, "");
-  return `${parsed.protocol}//${parsed.host}${path}`;
+  return { ok: true, value: `${parsed.protocol}//${parsed.host}${path}` };
+}
+
+const BASE_URL_ERROR =
+  "baseUrl must be an http(s) API base URL without credentials, query parameters, or fragments.";
+const INSECURE_BASE_URL_ERROR =
+  "baseUrl must use https unless the host is loopback; a credential must not be sent over plain HTTP to a remote provider.";
+
+/** Origin comparison key: scheme, hostname, and port only. */
+function originOf(baseUrl: string): string {
+  return new URL(baseUrl).origin;
 }
 
 function normalizeHeaders(value: unknown): Record<string, string> | null {
@@ -141,8 +172,8 @@ function readStoredConfigSync(): StoredProviderConfig | null {
     const baseUrl = typeof record.baseUrl === "string" ? record.baseUrl : "";
     const model = typeof record.model === "string" ? record.model : "";
     const apiKey = typeof record.apiKey === "string" ? record.apiKey : "";
-    const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-    if (normalizedBaseUrl === null || model.trim().length === 0 || apiKey.trim().length === 0) {
+    const checked = normalizeBaseUrl(baseUrl);
+    if (!checked.ok || model.trim().length === 0 || apiKey.trim().length === 0) {
       return null;
     }
     const structuredOutput = STRUCTURED_OUTPUT_METHODS.includes(
@@ -155,7 +186,7 @@ function readStoredConfigSync(): StoredProviderConfig | null {
       : "chat-completions";
     return {
       provider: "openai-compatible",
-      baseUrl: normalizedBaseUrl,
+      baseUrl: checked.value,
       model: model.trim(),
       apiKey,
       structuredOutput,
@@ -193,16 +224,16 @@ export async function readProviderMetadata(): Promise<ProviderConfigMetadata> {
 
 /** Validate and persist provider configuration with restrictive permissions. */
 export async function saveProviderConfig(input: ConfigWriteInput): Promise<ConfigWriteResult> {
-  const baseUrl = normalizeBaseUrl(input.baseUrl ?? "");
-  if (baseUrl === null) {
+  const checked = normalizeBaseUrl(input.baseUrl ?? "");
+  if (!checked.ok) {
     return {
       ok: false,
       code: "invalid_configuration",
       // The rejected value is never echoed: it may itself contain a credential.
-      message:
-        "baseUrl must be an http(s) API base URL without credentials, query parameters, or fragments.",
+      message: checked.reason === "insecure" ? INSECURE_BASE_URL_ERROR : BASE_URL_ERROR,
     };
   }
+  const baseUrl = checked.value;
   const model = (input.model ?? "").trim();
   if (model.length === 0) {
     return { ok: false, code: "invalid_configuration", message: "model must not be empty." };
@@ -235,13 +266,25 @@ export async function saveProviderConfig(input: ConfigWriteInput): Promise<Confi
 
   const existing = await readStoredProviderConfig();
   const submittedKey = typeof input.apiKey === "string" ? input.apiKey.trim() : "";
-  const apiKey = submittedKey.length > 0 ? submittedKey : (existing?.apiKey ?? "");
+  let apiKey = submittedKey;
   if (apiKey.length === 0) {
-    return {
-      ok: false,
-      code: "invalid_configuration",
-      message: "apiKey is required the first time a provider is configured.",
-    };
+    if (existing === null) {
+      return {
+        ok: false,
+        code: "invalid_configuration",
+        message: "apiKey is required the first time a provider is configured.",
+      };
+    }
+    // An empty field may retain the stored credential only while the destination stays the same:
+    // scheme, hostname, and port. Otherwise the saved key would be sent to a different provider.
+    if (originOf(existing.baseUrl) !== originOf(baseUrl)) {
+      return {
+        ok: false,
+        code: "invalid_configuration",
+        message: "A new API key is required when the provider origin changes.",
+      };
+    }
+    apiKey = existing.apiKey;
   }
 
   const stored: StoredProviderConfig = {

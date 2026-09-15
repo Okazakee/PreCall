@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { POST as MODELS_POST } from "@/app/api/playground/models/route";
 import { POST as RUN_POST } from "@/app/api/playground/run/route";
 import { saveProviderConfig } from "@/lib/playground/config";
 import { buildDeterministicAnalysis } from "@/lib/playground/deterministic-adapter";
@@ -71,12 +72,14 @@ function startStub(options: { readonly failWith?: number } = {}): Stub {
     hostname: "127.0.0.1",
     async fetch(request) {
       const url = new URL(request.url);
-      const body: unknown = await request.json();
+      const authorization = request.headers.get("authorization");
 
       if (url.pathname.endsWith("/models")) {
+        requests.push({ authorization, body: null });
         return Response.json({ data: [{ id: "stub-model" }, { id: "second-model" }] });
       }
-      requests.push({ authorization: request.headers.get("authorization"), body });
+      const body: unknown = await request.json();
+      requests.push({ authorization, body });
 
       if (options.failWith !== undefined) {
         return Response.json(
@@ -436,6 +439,36 @@ test("live mode runs the configured model, and the adapter input stays privacy-f
   }
 });
 
+test("the models route uses the stored credential server-side and returns identifiers only", async () => {
+  const stub = startStub();
+  try {
+    await saveProviderConfig({
+      baseUrl: stub.baseUrl,
+      model: "stub-model",
+      apiKey: "stub-secret-key",
+    });
+
+    const response = await MODELS_POST(
+      new Request("http://localhost:3000/api/playground/models", {
+        method: "POST",
+        headers: { Host: "localhost:3000" },
+      }),
+    );
+    const text = await response.text();
+
+    expect(response.status).toBe(200);
+    expect((JSON.parse(text) as { models: string[] }).models).toContain("stub-model");
+    // The provider saw the stored credential; the browser never does.
+    expect(stub.requests.some((entry) => entry.authorization === "Bearer stub-secret-key")).toBe(
+      true,
+    );
+    expect(text).not.toContain("stub-secret-key");
+    expect(text).not.toContain("Bearer");
+  } finally {
+    stub.stop();
+  }
+});
+
 test("a provider error is sanitized and classified as an adapter error", async () => {
   const stub = startStub({ failWith: 500 });
   try {
@@ -468,9 +501,9 @@ test("a provider error is sanitized and classified as an adapter error", async (
 
 test("credentials in the server environment never appear in a response", async () => {
   const sentinels = {
-    PRECALL_OPENCODE_GO_API_KEY: "sentinel-go-key",
-    OPENCODE_API_KEY: "sentinel-opencode-key",
-    OPENAI_API_KEY: "sentinel-openai-key",
+    MODEL_GATEWAY_API_KEY: "sentinel-gateway-key",
+    PROVIDER_API_TOKEN: "sentinel-provider-token",
+    EXAMPLE_SERVICE_SECRET: "sentinel-service-secret",
   };
   const previous = Object.fromEntries(Object.keys(sentinels).map((key) => [key, process.env[key]]));
   Object.assign(process.env, sentinels);

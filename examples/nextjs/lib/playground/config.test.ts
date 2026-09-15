@@ -216,6 +216,119 @@ test("a hand-edited config file with a credential-bearing base URL is not reflec
   expect(await readStoredProviderConfig()).toBeNull();
 });
 
+test("a stored credential is reused only while the provider origin is unchanged", async () => {
+  await saveProviderConfig({
+    baseUrl: "https://provider-a.example/v1",
+    model: "model-one",
+    apiKey: "secret-for-provider-a",
+  });
+
+  // Same origin, different model.
+  expect(
+    await saveProviderConfig({ baseUrl: "https://provider-a.example/v1", model: "model-two" }),
+  ).toMatchObject({ ok: true });
+  expect((await readStoredProviderConfig())?.apiKey).toBe("secret-for-provider-a");
+  expect((await readStoredProviderConfig())?.model).toBe("model-two");
+
+  // Same origin, different API path.
+  expect(
+    await saveProviderConfig({
+      baseUrl: "https://provider-a.example/v1/openai",
+      model: "model-two",
+    }),
+  ).toMatchObject({ ok: true });
+  expect((await readStoredProviderConfig())?.apiKey).toBe("secret-for-provider-a");
+
+  // Different hostname.
+  const otherHost = await saveProviderConfig({
+    baseUrl: "https://provider-b.example/v1",
+    model: "model-two",
+  });
+  expect(otherHost).toMatchObject({ ok: false, code: "invalid_configuration" });
+  if (!otherHost.ok) {
+    expect(otherHost.message).toBe("A new API key is required when the provider origin changes.");
+    expect(otherHost.message).not.toContain("provider-b");
+    expect(otherHost.message).not.toContain("secret-for-provider-a");
+  }
+
+  // Different port.
+  expect(
+    await saveProviderConfig({ baseUrl: "https://provider-a.example:8443/v1", model: "model-two" }),
+  ).toMatchObject({
+    ok: false,
+    code: "invalid_configuration",
+  });
+
+  // Same host and port, different scheme (https -> http would unencrypted-send the credential).
+  expect(
+    await saveProviderConfig({ baseUrl: "http://127.0.0.1:8443/v1", model: "model-two" }),
+  ).toMatchObject({
+    ok: false,
+    code: "invalid_configuration",
+  });
+
+  // Every rejection left the stored credential and destination intact.
+  const stored = await readStoredProviderConfig();
+  expect(stored?.baseUrl).toBe("https://provider-a.example/v1/openai");
+  expect(stored?.apiKey).toBe("secret-for-provider-a");
+});
+
+test("supplying a new key is always accepted, including on a new origin", async () => {
+  await saveProviderConfig({
+    baseUrl: "https://provider-a.example/v1",
+    model: "model-one",
+    apiKey: "secret-for-provider-a",
+  });
+
+  const moved = await saveProviderConfig({
+    baseUrl: "https://provider-b.example/v1",
+    model: "model-one",
+    apiKey: "secret-for-provider-b",
+  });
+  expect(moved.ok).toBe(true);
+  expect((await readStoredProviderConfig())?.apiKey).toBe("secret-for-provider-b");
+});
+
+test("plain HTTP is accepted only for loopback providers", async () => {
+  const loopback = ["http://127.0.0.1:8080/v1", "http://localhost:8080/v1", "http://[::1]:8080/v1"];
+  for (const baseUrl of loopback) {
+    expect(
+      await saveProviderConfig({ baseUrl, model: "local-model", apiKey: "local-key" }),
+    ).toMatchObject({ ok: true });
+    expect((await readStoredProviderConfig())?.baseUrl).toBe(baseUrl);
+  }
+
+  const remoteHttp = [
+    "http://remote-provider.example/v1",
+    "http://10.1.2.3:8080/v1",
+    "http://192.168.1.10:1234/v1",
+  ];
+  for (const baseUrl of remoteHttp) {
+    const result = await saveProviderConfig({
+      baseUrl,
+      model: "remote-model",
+      apiKey: "remote-key",
+    });
+    expect(result).toMatchObject({ ok: false, code: "invalid_configuration" });
+    if (!result.ok) {
+      expect(result.message).toBe(
+        "baseUrl must use https unless the host is loopback; a credential must not be sent over plain HTTP to a remote provider.",
+      );
+      expect(result.message).not.toContain("remote-provider");
+      expect(result.message).not.toContain("10.1.2.3");
+    }
+  }
+
+  // HTTPS to a remote host stays allowed — with a credential, because the origin changes.
+  expect(
+    await saveProviderConfig({
+      baseUrl: "https://remote-provider.example/v1",
+      model: "remote-model",
+      apiKey: "remote-key",
+    }),
+  ).toMatchObject({ ok: true });
+});
+
 test("the config GET never returns the API key", async () => {
   await saveProviderConfig({
     baseUrl: "https://gateway.example.com/v1",
@@ -280,6 +393,34 @@ test("non-local requests are refused, including on the models route", async () =
     }),
   );
   expect(modelsPost.status).toBe(403);
+
+  // Values that are not genuine loopback names are refused, including wildcard binds.
+  for (const host of [
+    "0.0.0.0:3000",
+    "[::]:3000",
+    "192.168.1.10:3000",
+    "playground.example",
+    "127.0.0.1.evil.example:3000",
+  ]) {
+    const guarded = await GET(
+      new Request("http://localhost:3000/api/playground/config", {
+        method: "GET",
+        headers: { Host: host },
+      }),
+    );
+    expect(guarded.status).toBe(403);
+  }
+
+  // Genuine loopback names are served.
+  for (const host of ["localhost:3000", "127.0.0.1:3000", "[::1]:3000"]) {
+    const allowed = await GET(
+      new Request("http://localhost:3000/api/playground/config", {
+        method: "GET",
+        headers: { Host: host },
+      }),
+    );
+    expect(allowed.status).toBe(200);
+  }
 });
 
 test("the models route reports a missing configuration instead of guessing", async () => {
