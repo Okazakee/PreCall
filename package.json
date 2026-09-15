@@ -56,6 +56,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "build": "tsdown",
+    "recipes:check": "bun scripts/check-recipes.ts",
     "package:check": "bun scripts/check-package.ts",
     "example:build": "bun scripts/build-example.ts",
     "example:prepare": "bun scripts/build-example.ts --prepare",
@@ -64,7 +65,7 @@
     "live-ai:check": "bun scripts/live-ai.ts",
     "live-email:check": "bun scripts/live-email.ts",
     "check:repo": "bun scripts/check-repo.ts",
-    "check": "bun run check:repo && bun run format:check && bun run lint:ci && bun run typecheck && bun run test && bun run build && bun run package:check"
+    "check": "bun run check:repo && bun run format:check && bun run lint:ci && bun run typecheck && bun run recipes:check && bun run test && bun run build && bun run package:check"
   },
   "dependencies": {
     "zod": "^4.0.0"
