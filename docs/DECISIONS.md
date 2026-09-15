@@ -693,10 +693,22 @@ Rendering is deterministic, and delivery and privacy boundaries are unchanged. T
 **Status:** Settled
 
 Advanced consumers may configure a bounded declaration-ordered set of custom sections, each with a
-stable key, trusted title and instructions, and a Zod 4 schema. Configuration is validated and
-snapshotted at `createPrecall()`; adapters receive only a detached semantic projection without
-titles or parsers. The privacy-filtered input, canonical analysis, optional core-owned estimate,
-and custom candidates share exactly one adapter operation.
+stable key, trusted title and instructions, and a Zod 4 schema. Configuration is validated at
+`createPrecall()`: keys, titles and instructions are copied into frozen resolved state and the
+provider-facing JSON contract is generated once and detached. The configured schema is trusted
+application configuration that remains the caller's object and is applied at the core parse
+boundary — it is deliberately **not** cloned, because cloning Zod internals would couple this
+package to another library's private definition graphs. Adapters receive only a detached semantic
+projection without titles or parsers. The privacy-filtered input, canonical analysis, optional
+core-owned estimate, and custom candidates share exactly one adapter operation.
+
+Schemas are recognized structurally instead of by class identity: a configured schema is accepted
+when it exposes the Standard Schema interface Zod 4 publishes (`vendor: "zod"`, `version: 1`) or
+Zod's own type tag, so a second installed Zod copy, `zod/mini`, or a different Zod 4 version works
+without sharing this package's classes. `instanceof` is not part of the acceptance test, and a
+validator lookalike that satisfies neither signal is still rejected as `invalid_configuration`.
+The typed configuration surface stays `AnalysisSectionConfig.schema: ZodType` from the `zod` root
+export; other Zod 4 entrypoints are accepted at runtime but are not part of the declared types.
 
 Custom candidates are independently validated and detached. A malformed section does not invalidate
 canonical analysis, cost estimation, or another section; unavailable states expose only stable

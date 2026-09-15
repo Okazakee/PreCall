@@ -29,7 +29,9 @@ type ResolvedAnalysisSection = {
   readonly key: string;
   readonly title: string;
   readonly instructions: string;
+  /** Trusted caller configuration retained by reference and applied at the core parse boundary. */
   readonly schema: ZodType;
+  /** Detached provider-facing contract generated once from the schema at configuration time. */
   readonly outputSchema: JsonValue;
 };
 
@@ -177,142 +179,44 @@ function deepFreezeJson(value: JsonValue): JsonValue {
   return value;
 }
 
-type ZodCloneNode = z.core.$ZodType;
+/**
+ * Recognize a configured Zod schema without asserting class identity.
+ *
+ * Zod 4 exposes the Standard Schema v1 interface on every schema of every installation, so that
+ * public library-author boundary is checked first. A schema whose interface cannot be read (for
+ * example a frozen schema) is recognized by Zod's own `_zod` type tag instead. `instanceof` is
+ * deliberately not used: it asserts that the caller's Zod class objects are the ones this package
+ * was built against, which a second installation, a different version, or `zod/mini` violates.
+ */
+function hasStandardZodInterface(value: object): boolean {
+  try {
+    const standard = Reflect.get(value, "~standard");
+    if (typeof standard !== "object" || standard === null) return false;
+    return (
+      Reflect.get(standard, "vendor") === "zod" &&
+      Reflect.get(standard, "version") === 1 &&
+      typeof Reflect.get(standard, "validate") === "function"
+    );
+  } catch {
+    return false;
+  }
+}
 
-type ZodCloneState = {
-  readonly nodes: Map<object, ZodCloneNode>;
-  readonly values: Map<object, unknown>;
-  readonly activeNodes: Set<object>;
-};
-
-function isZodCloneNode(value: unknown): value is ZodCloneNode {
-  if (!(value instanceof z.ZodType) || !("_zod" in value)) return false;
+function hasZodTypeTag(value: object): boolean {
   const internals = Reflect.get(value, "_zod");
   if (typeof internals !== "object" || internals === null) return false;
-  if (!("def" in internals) || !("constr" in internals)) return false;
-  const definition = internals.def;
-  const zodConstructor = internals.constr;
+  const definition = Reflect.get(internals, "def");
   return (
-    definition !== null && typeof definition === "object" && typeof zodConstructor === "function"
+    typeof definition === "object" &&
+    definition !== null &&
+    typeof Reflect.get(definition, "type") === "string"
   );
 }
 
-function definitionPropertyValue(source: object, descriptor: PropertyDescriptor): unknown {
-  if (Object.hasOwn(descriptor, "value")) return descriptor.value;
-  if (typeof descriptor.get === "function") return descriptor.get.call(source);
-  return invalidConfiguration();
-}
-
-function cloneDefinitionValue(value: unknown, state: ZodCloneState): unknown {
-  if (isZodCloneNode(value)) return cloneZodNode(value, state);
-  if (value === null || typeof value !== "object" || typeof value === "function") return value;
-
-  const cached = state.values.get(value);
-  if (cached !== undefined) return cached;
-
-  if (value instanceof RegExp) {
-    const result = new RegExp(value.source, value.flags);
-    result.lastIndex = value.lastIndex;
-    state.values.set(value, result);
-    return result;
-  }
-  if (value instanceof Date) {
-    const result = new Date(value.getTime());
-    state.values.set(value, result);
-    return result;
-  }
-  if (value instanceof Map) {
-    const result = new Map<unknown, unknown>();
-    state.values.set(value, result);
-    for (const [key, entry] of value) {
-      result.set(cloneDefinitionValue(key, state), cloneDefinitionValue(entry, state));
-    }
-    return result;
-  }
-  if (value instanceof Set) {
-    const result = new Set<unknown>();
-    state.values.set(value, result);
-    for (const entry of value) result.add(cloneDefinitionValue(entry, state));
-    return result;
-  }
-  if (Array.isArray(value)) {
-    const result: unknown[] = [];
-    state.values.set(value, result);
-    for (const key of Reflect.ownKeys(value)) {
-      if (key === "length") continue;
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (descriptor === undefined) return invalidConfiguration();
-      Object.defineProperty(result, key, {
-        configurable: true,
-        enumerable: descriptor.enumerable === true,
-        value: cloneDefinitionValue(definitionPropertyValue(value, descriptor), state),
-        writable: true,
-      });
-    }
-    return result;
-  }
-
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) return invalidConfiguration();
-  const result = Object.create(prototype) as Record<PropertyKey, unknown>;
-  state.values.set(value, result);
-  const type = "type" in value && typeof value.type === "string" ? value.type : undefined;
-  for (const key of Reflect.ownKeys(value)) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor === undefined) return invalidConfiguration();
-    const propertyValue = definitionPropertyValue(value, descriptor);
-    const clonedValue =
-      type === "lazy" && key === "getter" && typeof propertyValue === "function"
-        ? (() => {
-            let clonedTarget: ZodCloneNode | undefined;
-            let resolved = false;
-            return () => {
-              if (!resolved) {
-                const target = propertyValue();
-                if (!isZodCloneNode(target)) return invalidConfiguration();
-                clonedTarget = cloneZodNode(target, state);
-                resolved = true;
-              }
-              return clonedTarget ?? invalidConfiguration();
-            };
-          })()
-        : cloneDefinitionValue(propertyValue, state);
-    Object.defineProperty(result, key, {
-      configurable: true,
-      enumerable: descriptor.enumerable === true,
-      value: clonedValue,
-      writable: true,
-    });
-  }
-  return result;
-}
-
-function cloneZodNode(source: ZodCloneNode, state: ZodCloneState): ZodCloneNode {
-  const cached = state.nodes.get(source);
-  if (cached !== undefined) return cached;
-  if (state.activeNodes.has(source)) return invalidConfiguration();
-  state.activeNodes.add(source);
-  try {
-    const internals = Reflect.get(source, "_zod");
-    if (typeof internals !== "object" || internals === null || !("def" in internals)) {
-      return invalidConfiguration();
-    }
-    const definition = cloneDefinitionValue(internals.def, state);
-    const cloned = z.clone(source, definition as ZodCloneNode["_zod"]["def"]);
-    state.nodes.set(source, cloned);
-    return cloned;
-  } finally {
-    state.activeNodes.delete(source);
-  }
-}
-
-function cloneZodSchema(schema: ZodType): ZodType {
-  const state: ZodCloneState = {
-    nodes: new Map(),
-    values: new Map(),
-    activeNodes: new Set(),
-  };
-  return cloneZodNode(schema as unknown as ZodCloneNode, state) as unknown as ZodType;
+function isSectionSchema(value: unknown): value is ZodType {
+  if (typeof value !== "object" || value === null) return false;
+  if (typeof Reflect.get(value, "safeParse") !== "function") return false;
+  return hasStandardZodInterface(value) || hasZodTypeTag(value);
 }
 
 function createOutputSchema(schema: ZodType): JsonValue {
@@ -382,16 +286,13 @@ export function resolveAnalysisConfiguration(
         typeof instructions !== "string" ||
         !/\S/u.test(instructions) ||
         countCodePoints(instructions) > MAX_INSTRUCTIONS_CODE_POINTS ||
-        !(schema instanceof z.ZodType)
+        !isSectionSchema(schema)
       ) {
         return invalidConfiguration();
       }
       keys.add(key);
-      const clonedSchema = cloneZodSchema(schema);
-      const outputSchema = createOutputSchema(clonedSchema);
-      sections.push(
-        Object.freeze({ key, title, instructions, schema: clonedSchema, outputSchema }),
-      );
+      const outputSchema = createOutputSchema(schema);
+      sections.push(Object.freeze({ key, title, instructions, schema, outputSchema }));
     }
     const adapterSections = sections.map(({ key, instructions, outputSchema }) =>
       Object.freeze({ key, instructions, outputSchema }),

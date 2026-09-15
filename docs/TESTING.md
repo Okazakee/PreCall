@@ -132,7 +132,9 @@ GitHub Release.
 ## Custom section coverage
 
 Focused tests cover the advanced seam without weakening default-flow compatibility: trusted
-configuration rejection and snapshots, privacy-filtered requests, one-call behavior, independent
+configuration rejection and snapshots, schema detection that does not rely on class identity
+(including a schema from an isolated Zod installation and a schema from another Zod 4 entrypoint in
+the packed consumer smoke), privacy-filtered requests, one-call behavior, independent
 candidate validation, detached JSON values, no-input/adapter-error/cancellation states, safe
 deterministic rendering, LangChain prompt and runnable guarantees, and packed public type/config
 consumption. The cost-estimation tests remain separate because cost is a specialized core-owned

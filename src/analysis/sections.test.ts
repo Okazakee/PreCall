@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
+import { z as mini } from "zod/mini";
 import { IntakeValidationError } from "../intake/normalize.js";
 import { createPrecall, type Precall } from "../precall.js";
 import { renderPreCallResult } from "../presentation/render.js";
@@ -54,6 +55,14 @@ function expectInvalid(value: unknown): void {
   }
 }
 
+/** A Zod 4 schema built by a documented entrypoint whose classes are not this package's. */
+function consumerOwnedSchema(): z.ZodType {
+  return mini.object({
+    status: mini.enum(["compatible", "uncertain", "incompatible"]),
+    reason: mini.string(),
+  }) as unknown as z.ZodType;
+}
+
 describe("custom analysis sections", () => {
   test("rejects duplicate, reserved, malformed, and oversized metadata", () => {
     const base = { title: "Title", instructions: "Instructions", schema: z.string() };
@@ -104,27 +113,77 @@ describe("custom analysis sections", () => {
     expect(seen?.analysis?.sections[0]?.key).toBe("shortTake");
     expect(Object.hasOwn(seen?.analysis ?? {}, "title")).toBe(false);
   });
-  test("detaches nested Zod schemas from caller mutation", async () => {
-    const schema = z.object({ value: z.string() });
-    const { precall } = makeCustomPrecall(
-      { ...analysis, sections: { detached: { value: "still valid" } } },
+  test("accepts a consumer-owned Zod schema that shares no class identity", async () => {
+    const schema = consumerOwnedSchema();
+    expect(schema instanceof z.ZodType).toBe(false);
+    const { precall, requests } = makeCustomPrecall(
+      { ...analysis, sections: { budgetFit: { status: "compatible", reason: "Bounded scope." } } },
       [
         {
-          key: "detached",
-          title: "Detached",
-          instructions: "Return the value.",
+          key: "budgetFit",
+          title: "Budget fit",
+          instructions: "Assess compatibility.",
           schema,
         },
       ],
     );
-    Reflect.set(schema.shape, "value", z.number());
     const result = await precall.process({ submission: { message: "hello" } });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.analysis?.sections[0]?.outputSchema).toMatchObject({
+      type: "object",
+      required: ["status", "reason"],
+    });
     expect(result.sections).toEqual({
-      detached: {
-        title: "Detached",
+      budgetFit: {
+        title: "Budget fit",
         status: "succeeded",
-        value: { value: "still valid" },
+        value: { status: "compatible", reason: "Bounded scope." },
       },
+    });
+  });
+
+  test("rejects schema lookalikes that are not Zod schemas", () => {
+    expectInvalid({
+      sections: [
+        {
+          key: "lookalike",
+          title: "Lookalike",
+          instructions: "Validate nothing.",
+          schema: { safeParse: () => ({ success: true }) },
+        },
+      ],
+    });
+    expectInvalid({
+      sections: [
+        {
+          key: "vendor",
+          title: "Vendor",
+          instructions: "Validate nothing.",
+          schema: {
+            safeParse: () => ({ success: true }),
+            "~standard": { version: 1, vendor: "other", validate: () => ({ value: 1 }) },
+          },
+        },
+      ],
+    });
+  });
+
+  test("validates a consumer-owned schema independently from canonical analysis", async () => {
+    const { precall } = makeCustomPrecall(
+      { ...analysis, sections: { budgetFit: "not an object" } },
+      [
+        {
+          key: "budgetFit",
+          title: "Budget fit",
+          instructions: "Assess compatibility.",
+          schema: consumerOwnedSchema(),
+        },
+      ],
+    );
+    const result = await precall.process({ submission: { message: "hello" } });
+    expect(result.analysis).toEqual({ status: "succeeded", result: analysis });
+    expect(result.sections).toEqual({
+      budgetFit: { title: "Budget fit", status: "unavailable", reason: "invalid_output" },
     });
   });
 

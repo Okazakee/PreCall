@@ -234,7 +234,8 @@ Avoid:
 ## 13. Custom analysis section states
 
 When configured, each section has an explicit reusable state in declaration order. A successful
-state carries its snapshotted trusted title and detached JSON value; an unavailable state exposes
+state carries its copied trusted title and detached JSON value; an unavailable state exposes
 only `no_input`, `adapter_error`, `invalid_output`, or `not_provided`. Section candidates are
-independently Zod-validated and cannot invalidate canonical analysis, cost estimation, or other
-sections. With no configured sections, `PreCallResult` has no `sections` property.
+independently validated with the configured schema — trusted configuration retained by reference —
+and cannot invalidate canonical analysis, cost estimation, or other sections. With no configured
+sections, `PreCallResult` has no `sections` property.
