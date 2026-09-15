@@ -138,9 +138,12 @@ The core should not become a universal anti-abuse platform.
 The core still owns:
 
 - structural validation;
-- request limits;
+- per-request resource bounds (field count, value size, submission size, nesting);
 - AI/cost boundaries;
 - safe failure behavior.
+
+Those bounds protect a single request and give processing one-attempt semantics; they provide no
+protection against request volume or velocity. Cross-request abuse controls remain consumer-owned.
 
 ### CSRF/origin protection
 

@@ -19,6 +19,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
 
+  // Consumer-owned abuse controls belong here, before PreCall runs any AI-backed work: rate
+  // limiting, bot protection, authentication, or a CAPTCHA as appropriate for this public
+  // endpoint. PreCall bounds a single request and makes one AI attempt, so traffic that should be
+  // rejected must be rejected before runDemoSubmission() rather than after paying for AI work.
   try {
     return Response.json(await runDemoSubmission(submission));
   } catch (error) {
