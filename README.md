@@ -297,6 +297,13 @@ createPrecall({
 | Pricing strategy, rates, margins, or FX | Not implemented yet |
 | Research | Not implemented yet |
 | Custom analysis skills | Not implemented yet |
+| Rate limiting / bot / abuse protection | Consumer-owned by design |
+
+Consumer-owned rows are deliberately outside the provider-neutral core rather than pending work.
+PreCall bounds a single request — structure, field count, value and submission size, nesting — and
+makes one attempt per operation. Those bounds do not protect an endpoint from request volume or
+velocity, so rate limiting, bot protection, authentication, and CAPTCHA belong to the consuming
+application's public endpoint, ahead of PreCall.
 
 ## Use the lower-level API
 
@@ -328,6 +335,8 @@ The root package is provider-neutral. Implement `AIAdapter` and `EmailTransport`
 - [`precall/resend`](src/resend.ts) sends the existing rendered email through Resend's fixed API endpoint. It adds no Resend SDK dependency to the core package.
 
 The consumer owns the form, validation around its endpoint, trusted recipient, credentials, storage, and abuse controls. PreCall owns intake validation, field-policy enforcement, AI-output validation, deterministic fallback presentation, and provider-neutral delivery semantics.
+
+PreCall's intake validation provides per-request structural and resource bounds — field count, value and submission size, and nesting — and processing makes one attempt per operation. Those bounds protect a single request: they provide no protection against request-volume or velocity abuse, so cross-request abuse controls remain consumer-owned.
 
 ## Framework example
 
