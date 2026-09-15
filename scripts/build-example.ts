@@ -29,9 +29,10 @@ export async function prepareExample(): Promise<void> {
   await run(["bun", "install", "--frozen-lockfile"], EXAMPLE_ROOT);
 }
 
-/** Prepare the example and run its production Next.js build. */
+/** Prepare the example and run its own test suite plus the production Next.js build. */
 export async function buildExample(): Promise<void> {
   await prepareExample();
+  await run(["bun", "run", "test"], EXAMPLE_ROOT);
   await run(["bun", "run", "build"], EXAMPLE_ROOT);
 }
 

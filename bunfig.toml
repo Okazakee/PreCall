@@ -1,0 +1,5 @@
+# The Next.js example owns its own suite: its tests import the installed `precall` package, which
+# only exists after `bun run example:prepare`, so it runs from `bun run example:build` instead of
+# from the root run. Everything outside the example is discovered normally.
+[test]
+pathIgnorePatterns = ["examples/nextjs/**"]
