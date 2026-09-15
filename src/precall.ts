@@ -1,4 +1,6 @@
 import type { AIAdapter } from "./analysis/run.js";
+import type { AnalysisConfig } from "./analysis/sections.js";
+import { resolveAnalysisConfiguration } from "./analysis/sections.js";
 import { type CostEstimationConfig, resolveCostEstimationConfiguration } from "./cost/config.js";
 import type { DeliveryOutcome, EmailTransport } from "./delivery.js";
 import { deliverPreCallResult } from "./delivery.js";
@@ -9,11 +11,14 @@ import {
 import type { FieldDefinition, IntakeLimitOverrides } from "./intake/schema.js";
 import type { EmailPackagingOptions } from "./presentation/email.js";
 import { type PreCallResult, processNormalizedSubmission } from "./result.js";
-
 export type PrecallConfig = {
   ai: AIAdapter;
   fields: readonly FieldDefinition[];
   limits?: IntakeLimitOverrides;
+  /**
+   * Optional trusted custom analysis sections; omission preserves the simple default flow.
+   */
+  analysis?: AnalysisConfig;
   /**
    * Trusted configuration for the optional preliminary cost estimate. Omitting it preserves the
    * analysis-only behavior and keeps `PreCallResult.costEstimate` absent.
@@ -65,6 +70,7 @@ export function createPrecall(config: PrecallConfig): Precall {
 
   const intake = resolveIntakeConfiguration(config.fields, config.limits);
   const costEstimation = resolveCostEstimationConfiguration(config.costEstimation);
+  const analysis = resolveAnalysisConfiguration(config.analysis);
 
   const precall: Precall = {
     async process(request: ProcessRequest): Promise<PreCallResult> {
@@ -72,7 +78,7 @@ export function createPrecall(config: PrecallConfig): Precall {
       signal?.throwIfAborted();
       const submission = request.submission;
       const normalized = normalizeSubmissionWithConfiguration(intake, submission);
-      return processNormalizedSubmission(ai, normalized, signal, costEstimation);
+      return processNormalizedSubmission(ai, normalized, signal, costEstimation, analysis);
     },
     deliver(request: DeliverRequest): Promise<DeliveryOutcome> {
       return deliverPreCallResult(

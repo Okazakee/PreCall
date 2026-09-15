@@ -12,6 +12,7 @@ import { z } from "zod";
 import { type AnalysisResult, AnalysisResultSchema } from "./analysis/result.js";
 import {
   type AIAdapter,
+  type AIAnalysisConfiguration,
   type AIAnalysisRequest,
   type AnalysisWithCostEstimateCandidate,
   AnalysisWithCostEstimateCandidateSchema,
@@ -79,6 +80,42 @@ function costEstimationSystemMessage(currency: string): string {
   ].join("\n\n");
 }
 
+function customSystemMessage(
+  configuration: AIAnalysisConfiguration,
+  currency: string | undefined,
+): string {
+  const sectionInstructions = configuration.sections.flatMap((section) => [
+    `For the custom section "${section.key}", follow these trusted instructions:`,
+    section.instructions,
+    `Emit its candidate at sections.${section.key}.`,
+    `Custom section "${section.key}" input contract:`,
+    JSON.stringify(section.outputSchema, null, 2),
+  ]);
+  const outputDescription =
+    currency === undefined
+      ? "Return exactly one structured object containing the canonical analysis and a sections record. Do not include commentary, reasoning traces, usage, provider metadata, or another envelope."
+      : "Return exactly one structured object containing the canonical analysis, a costEstimate member, and a sections record. Do not include commentary, reasoning traces, usage, provider metadata, or another envelope.";
+  return [
+    ...ANALYSIS_INSTRUCTIONS,
+    ...(currency === undefined ? ANALYSIS_ONLY_INSTRUCTIONS : COST_ESTIMATION_INSTRUCTIONS),
+    ...CLOSING_INSTRUCTIONS,
+    ...(currency === undefined
+      ? []
+      : [`The configured currency for the cost estimate is ${currency}.`]),
+    ...sectionInstructions,
+    outputDescription,
+    "Canonical analysis output contract (generated from AnalysisResultSchema):",
+    OUTPUT_CONTRACT,
+    ...(currency === undefined
+      ? []
+      : [
+          "Cost estimate contract (generated from the cost estimate schema):",
+          COST_ESTIMATE_CONTRACT,
+        ]),
+    "The sections member is an object keyed by the configured section keys. Each configured section candidate is validated independently by PreCall.",
+  ].join("\n\n");
+}
+
 const TELEMETRY_ENVIRONMENT_KEYS = [
   "LANGSMITH_TRACING",
   "LANGSMITH_TRACING_V2",
@@ -119,6 +156,7 @@ export function createLangChainAIAdapter(options: LangChainAIAdapterOptions): AI
   ) {
     throw new TypeError("model.withStructuredOutput must be callable");
   }
+  const configureStructuredOutput = model.withStructuredOutput;
   if (model.verbose === true) {
     throw new TypeError("model.verbose must be false for the PreCall adapter");
   }
@@ -143,6 +181,39 @@ export function createLangChainAIAdapter(options: LangChainAIAdapterOptions): AI
 
   const analysisRunnable = analysisStructured as StructuredRunnable;
   const costEstimationRunnable = costEstimationStructured as StructuredRunnable;
+  const customRunnableCache = new WeakMap<object, Map<boolean, StructuredRunnable>>();
+  const customRunnable = (
+    configuration: AIAnalysisConfiguration,
+    costEstimation: boolean,
+  ): StructuredRunnable => {
+    const cacheKey = configuration as object;
+    let byCost = customRunnableCache.get(cacheKey);
+    if (byCost === undefined) {
+      byCost = new Map<boolean, StructuredRunnable>();
+      customRunnableCache.set(cacheKey, byCost);
+    }
+    const cached = byCost.get(costEstimation);
+    if (cached !== undefined) return cached;
+    const schema = costEstimation
+      ? AnalysisResultSchema.safeExtend({
+          costEstimate: z.unknown().optional(),
+          sections: z.unknown().optional(),
+        })
+      : AnalysisResultSchema.safeExtend({ sections: z.unknown().optional() });
+    const structured = configureStructuredOutput.call(model, schema, {
+      method: "functionCalling",
+      includeRaw: true,
+    }) as StructuredRunnable;
+    if (
+      (typeof structured !== "object" && typeof structured !== "function") ||
+      structured === null ||
+      typeof structured.invoke !== "function"
+    ) {
+      throw new TypeError("model.withStructuredOutput must return an invokable runnable");
+    }
+    byCost.set(costEstimation, structured);
+    return structured;
+  };
 
   return {
     async generateAnalysis(request: AIAnalysisRequest): Promise<unknown> {
@@ -150,15 +221,26 @@ export function createLangChainAIAdapter(options: LangChainAIAdapterOptions): AI
         throw new Error("model.verbose must be false for the PreCall adapter");
       }
       const costEstimation = request.costEstimation;
+      const analysisConfiguration = request.analysis;
       const messages = [
         new SystemMessage(
-          costEstimation === undefined
-            ? ANALYSIS_SYSTEM_MESSAGE
-            : costEstimationSystemMessage(costEstimation.currency),
+          analysisConfiguration === undefined
+            ? costEstimation === undefined
+              ? ANALYSIS_SYSTEM_MESSAGE
+              : costEstimationSystemMessage(costEstimation.currency)
+            : customSystemMessage(
+                analysisConfiguration,
+                costEstimation === undefined ? undefined : costEstimation.currency,
+              ),
         ),
         new HumanMessage(JSON.stringify(request.input)),
       ];
-      const runnable = costEstimation === undefined ? analysisRunnable : costEstimationRunnable;
+      const runnable =
+        analysisConfiguration === undefined
+          ? costEstimation === undefined
+            ? analysisRunnable
+            : costEstimationRunnable
+          : customRunnable(analysisConfiguration, costEstimation !== undefined);
       const callOptions: Partial<BaseLanguageModelCallOptions> = { maxRetries: 0, callbacks: [] };
       if (request.signal !== undefined) callOptions.signal = request.signal;
       if (ambientLangChainTelemetryEnabled()) {

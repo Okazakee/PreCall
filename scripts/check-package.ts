@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -183,7 +183,7 @@ function assertArchive(tarball: string, localDistEntries: readonly string[]): Pa
 function consumerSource(name: string): string {
   return `
 const { createPrecall } = await import(${JSON.stringify(name)});
-const analysis = {
+const canonicalAnalysis = {
   summary: "A useful summary",
   clarity: { level: "high", reason: "The request is clear" },
   facts: [], inferences: [], assumptions: [], unknowns: [], risks: [], discoveryQuestions: [],
@@ -192,7 +192,7 @@ const analysis = {
 };
 const ai = { generateAnalysis: async ({ input }) => {
   if (input.fields.length !== 1 || input.fields[0].value !== "hello") throw new Error("unexpected input");
-  return analysis;
+  return canonicalAnalysis;
 } };
 const precall = createPrecall({ ai, fields: [{ key: "message", label: "Message" }] });
 let sent = false;
@@ -211,7 +211,7 @@ if (
   submitted.delivery.status !== "sent"
 ) throw new Error("submit did not succeed");
 const costPrecall = createPrecall({
-  ai: { generateAnalysis: async () => ({ ...analysis, costEstimate: {
+  ai: { generateAnalysis: async () => ({ ...canonicalAnalysis, costEstimate: {
     status: "estimated",
     items: [{ name: "Implementation", minAmount: 1000, maxAmount: 1500, reason: "Build the workflow." }],
     rationale: "One bounded piece of work.",
@@ -228,13 +228,76 @@ if (
   costResult.costEstimate.total.minAmount !== 1000 ||
   costResult.costEstimate.total.maxAmount !== 1500
 ) throw new Error("cost estimation did not work from the packed package");
+import { z } from "zod";
+import { z as alienZod } from "zod-copy";
+import { z as mini } from "zod/mini";
+const customPrecall = createPrecall({
+  ai: { generateAnalysis: async ({ input, analysis: requestAnalysis }) => {
+    if (requestAnalysis?.sections[0]?.key !== "shortTake" || input.fields[0].key !== "message") throw new Error("unexpected custom request");
+    return { ...canonicalAnalysis, sections: { shortTake: "A concise take." } };
+  } },
+  fields: [{ key: "message", label: "Message" }],
+  analysis: { sections: [{ key: "shortTake", title: "Short take", instructions: "Be concise.", schema: z.string() }] },
+});
+const customResult = await customPrecall.process({ submission: { message: "hello" } });
+if (customResult.sections?.shortTake?.status !== "succeeded" || customResult.sections.shortTake.value !== "A concise take.") {
+  throw new Error("custom analysis section did not work from the packed package");
+}
+// A consumer-owned Zod schema must not have to come from this package's own Zod installation.
+if (alienZod.ZodType === z.ZodType) throw new Error("the isolated Zod copy was not isolated");
+const alienSchema = alienZod.object({ status: alienZod.enum(["ok", "unknown"]), reason: alienZod.string() });
+let alienCalls = 0;
+const alienPrecall = createPrecall({
+  ai: { generateAnalysis: async ({ analysis: requestAnalysis }) => {
+    alienCalls += 1;
+    if (requestAnalysis?.sections[0]?.key !== "budgetFit") throw new Error("unexpected isolated request");
+    return { ...canonicalAnalysis, sections: { budgetFit: { status: "ok", reason: "Bounded scope." } } };
+  } },
+  fields: [{ key: "message", label: "Message" }],
+  analysis: { sections: [{ key: "budgetFit", title: "Budget fit", instructions: "Assess it.", schema: alienSchema }] },
+});
+const alienResult = await alienPrecall.process({ submission: { message: "hello" } });
+if (
+  alienCalls !== 1 ||
+  alienResult.sections?.budgetFit?.status !== "succeeded" ||
+  alienResult.sections.budgetFit.value.reason !== "Bounded scope."
+) throw new Error("a consumer-owned Zod installation was not usable");
+const malformedAlien = createPrecall({
+  ai: { generateAnalysis: async () => ({ ...canonicalAnalysis, sections: { budgetFit: "not an object" } }) },
+  fields: [{ key: "message", label: "Message" }],
+  analysis: { sections: [{ key: "budgetFit", title: "Budget fit", instructions: "Assess it.", schema: alienSchema }] },
+});
+const malformedAlienResult = await malformedAlien.process({ submission: { message: "hello" } });
+if (
+  malformedAlienResult.analysis.status !== "succeeded" ||
+  malformedAlienResult.sections?.budgetFit?.reason !== "invalid_output"
+) throw new Error("an independent schema boundary was not applied to a consumer-owned Zod schema");
+// Another documented Zod 4 entrypoint with the same runtime contract but no class identity here.
+const miniSchema = mini.object({ status: mini.enum(["ok", "unknown"]), reason: mini.string() });
+if (miniSchema instanceof z.ZodType) throw new Error("the mini schema unexpectedly shares this package's classes");
+const miniPrecall = createPrecall({
+  ai: { generateAnalysis: async () => ({ ...canonicalAnalysis, sections: { budgetFit: { status: "ok", reason: "Bounded scope." } } }) },
+  fields: [{ key: "message", label: "Message" }],
+  analysis: { sections: [{ key: "budgetFit", title: "Budget fit", instructions: "Assess it.", schema: miniSchema }] },
+});
+const miniResult = await miniPrecall.process({ submission: { message: "hello" } });
+if (miniResult.sections?.budgetFit?.status !== "succeeded") {
+  throw new Error("a Zod 4 schema from another entrypoint was not usable");
+}
 `;
 }
 
 function typeConsumerSource(name: string): string {
   return `
+import { z } from "zod";
 import type {
   AIAdapter,
+  AIAnalysisConfiguration,
+  AIAnalysisRequest,
+  AnalysisConfig,
+  AnalysisSectionConfig,
+  AnalysisSectionState,
+  AnalysisSectionUnavailableReason,
   CostEstimateState,
   CostEstimationConfig,
   DeliveryOutcome,
@@ -245,10 +308,24 @@ import type {
   SubmitOutcome,
   SubmitRequest,
 } from ${JSON.stringify(name)};
+const sectionSchema = z.object({ status: z.enum(["ok", "unknown"]), reason: z.string() });
+const section: AnalysisSectionConfig = {
+  key: "budgetFit",
+  title: "Budget fit",
+  instructions: "Assess compatibility.",
+  schema: sectionSchema,
+};
+const analysisConfig: AnalysisConfig = { sections: [section] };
+const aiAnalysisConfig: AIAnalysisConfiguration = {
+  sections: [{ key: "budgetFit", instructions: "Assess compatibility.", outputSchema: {} }],
+};
+declare const aiRequest: AIAnalysisRequest;
+declare const sectionState: AnalysisSectionState;
+declare const unavailableReason: AnalysisSectionUnavailableReason;
 const ai: AIAdapter = { generateAnalysis: async () => ({}) };
 const transport: EmailTransport = { send: async (request) => { request.recipient; request.email.subject; } };
 const costEstimation: CostEstimationConfig = { currency: "EUR" };
-const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }], costEstimation };
+const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }], costEstimation, analysis: analysisConfig };
 declare const estimate: CostEstimateState;
 const estimateTotal: { minAmount: number; maxAmount: number } | undefined =
   estimate.status === "estimated" ? estimate.total : undefined;
@@ -269,6 +346,7 @@ const deliveryResult: Promise<DeliveryOutcome> = precall.deliver({
 });
 const submitResult: Promise<SubmitOutcome> = precall.submit(submitRequest);
 processResult; deliveryResult; submitResult; config.fields; transport.send; costEstimation.currency; estimateTotal;
+aiRequest.input; aiRequest.analysis = aiAnalysisConfig; sectionState; unavailableReason;
 `;
 }
 
@@ -360,6 +438,13 @@ async function checkPackage(suppliedTarball?: string): Promise<void> {
     await writeFile(join(consumerDirectory, "consumer.mjs"), consumerSource(name));
     await writeFile(join(consumerDirectory, "types.ts"), typeConsumerSource(name));
     run("bun", ["install", "--offline", "--ignore-scripts"], consumerDirectory);
+    // The runtime consumer also proves a consumer-owned Zod installation is usable, so the
+    // installed dependency is copied to an isolated package directory before it runs.
+    await cp(
+      join(root, "node_modules", "zod"),
+      join(consumerDirectory, "node_modules", "zod-copy"),
+      { recursive: true },
+    );
     run("node", ["consumer.mjs"], consumerDirectory);
     run("bun", ["consumer.mjs"], consumerDirectory);
     run(

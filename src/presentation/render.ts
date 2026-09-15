@@ -1,4 +1,8 @@
 import type { AnalysisResult } from "../analysis/result.js";
+import type {
+  AnalysisSectionState,
+  AnalysisSectionUnavailableReason,
+} from "../analysis/sections.js";
 import type { CostEstimateState, CostEstimateUnavailableReason } from "../cost/result.js";
 import type { JsonValue, NormalizedField } from "../intake/normalize.js";
 import type { PreCallResult } from "../result.js";
@@ -393,6 +397,42 @@ function costEstimateSection(state: CostEstimateState): RenderableItem {
     ],
   });
 }
+const ANALYSIS_SECTION_UNAVAILABLE_REASON: Record<AnalysisSectionUnavailableReason, string> = {
+  no_input:
+    "This section was not generated because no submitted fields were permitted for AI processing.",
+  adapter_error: "This section was unavailable for this request.",
+  invalid_output: "This section returned an unusable result and was not included.",
+  not_provided: "This section was not provided by the configured AI implementation.",
+};
+
+function customSectionValue(value: JsonValue): RenderableItem {
+  if (typeof value === "string") return paragraph(value);
+  if (Array.isArray(value)) {
+    const scalar = value.every(
+      (item) =>
+        item === null ||
+        typeof item === "string" ||
+        typeof item === "boolean" ||
+        (typeof item === "number" && Number.isFinite(item)),
+    );
+    if (scalar) return list(value.map((item) => paragraph(formatValue(item))));
+    const formatted = formatStructuredValue(value);
+    return { html: [`<pre>${htmlText(formatted)}</pre>`], text: [formatted] };
+  }
+  if (typeof value === "object" && value !== null) {
+    const formatted = formatStructuredValue(value);
+    return { html: [`<pre>${htmlText(formatted)}</pre>`], text: [formatted] };
+  }
+  return paragraph(formatValue(value));
+}
+
+function customSections(states: Record<string, AnalysisSectionState>): RenderableItem[] {
+  return Object.values(states).map((state) =>
+    state.status === "succeeded"
+      ? section(state.title, customSectionValue(state.value))
+      : section(state.title, paragraph(ANALYSIS_SECTION_UNAVAILABLE_REASON[state.reason])),
+  );
+}
 
 export function renderPreCallResult(result: PreCallResult): RenderedBrief {
   const sections: RenderableItem[] = [];
@@ -402,6 +442,7 @@ export function renderPreCallResult(result: PreCallResult): RenderedBrief {
     sections.push(unavailableSection(result));
   }
   if (result.costEstimate !== undefined) sections.push(costEstimateSection(result.costEstimate));
+  if (result.sections !== undefined) sections.push(...customSections(result.sections));
   if (result.analysis.status === "succeeded") {
     sections.push(confidenceSection(result.analysis.result));
   }

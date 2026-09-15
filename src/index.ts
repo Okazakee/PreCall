@@ -5,8 +5,16 @@ export type {
 export type { AnalysisResult } from "./analysis/result.js";
 export type {
   AIAdapter,
+  AIAnalysisConfiguration,
   AIAnalysisRequest,
+  AIAnalysisSection,
 } from "./analysis/run.js";
+export type {
+  AnalysisConfig,
+  AnalysisSectionConfig,
+  AnalysisSectionState,
+  AnalysisSectionUnavailableReason,
+} from "./analysis/sections.js";
 export type { CostEstimationConfig } from "./cost/config.js";
 export type {
   CostEstimateConfidence,

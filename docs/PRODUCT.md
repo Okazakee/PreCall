@@ -274,3 +274,14 @@ Preserve future extensibility when it is cheap and sensible, but do not add abst
 ## Concise definition
 
 **An open-source service-intake engine that turns raw client inquiries into uncertainty-aware internal pre-call briefs while preserving the original request and degrading safely when optional AI processing fails.**
+
+## Narrow advanced analysis sections
+
+The simple two-field `createPrecall({ ai, fields })` API remains the default product experience.
+Advanced applications may configure a small, trusted set of additional analysis sections with
+their own stable keys, professional-facing titles, instructions, and Zod-defined JSON shapes.
+Sections are additive outputs of the same analysis operation, not separate skills, agents, plugins,
+tools, research, retries, or workflows. Cost estimation remains a distinct core-owned capability.
+
+The professional reviews all generated sections during discovery; custom sections do not quote,
+sell, commit scope, or replace the call.

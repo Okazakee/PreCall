@@ -421,7 +421,20 @@ The live AI harness is not a security or quality guarantee for model behavior. I
 
 The adapter rejects enabled LangChain/LangSmith tracing/verbose modes and consumer models with `verbose: true` before sending intake, then runs the invocation in an isolated callback context. Consumer-installed model callbacks remain an explicit consumer trust decision.
 
+Custom sections use the same trust boundary. Their keys, titles, and instructions are trusted
+configuration copied into frozen state during facade creation, and the provider JSON contract is
+generated once and detached; submitted content cannot alter them. The configured Zod schema is
+trusted configuration retained by reference and applied at the core parse boundary, and it is
+recognized structurally rather than by class identity so a consumer-owned Zod installation is not
+rejected. The adapter receives no original submission, hidden fields, title metadata, renderer
+state, callbacks, or provider metadata. The core rejects malformed contracts at configuration time,
+validates each untrusted section candidate independently, and retains only detached JSON-compatible
+values. Rendering escapes titles and values and exposes only provider-neutral unavailable reasons.
+Fixed section count, metadata, contract-size, and output-depth limits reduce amplification risk
+without introducing a quota or plugin framework.
+
 The Resend transport is also isolated behind `./resend`. It validates and snapshots explicit `apiKey`/`from` configuration, rejects sender line breaks, never reads environment variables, uses only `https://api.resend.com/emails`, forwards the trusted delivery recipient and `AbortSignal`, makes one fetch attempt, encodes existing attachment bytes once, and exposes only opaque transport errors. Its deterministic fetch seam is internal and does not mutate global network state.
+
 ## Package and release security
 
 The public package is **`precall`**, Apache-2.0, ESM-only, with Node.js and Bun runtime floors
