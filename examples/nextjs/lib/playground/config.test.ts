@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GET, POST } from "@/app/api/playground/config/route";
@@ -126,6 +126,94 @@ test("invalid configuration values are rejected with actionable codes", async ()
       extraHeaders: { "x-test": "line\r\ninjection" },
     }),
   ).toMatchObject({ ok: false, code: "invalid_configuration" });
+});
+
+test("a base URL carrying credentials, a query, or a fragment can never be persisted", async () => {
+  const rejected = [
+    "https://user:pass@example.com/v1",
+    "https://user@example.com/v1",
+    "https://example.com/v1?token=secret",
+    "https://example.com/v1?",
+    "https://example.com/v1#fragment",
+    "https://example.com/v1#",
+  ];
+
+  for (const baseUrl of rejected) {
+    const result = await saveProviderConfig({
+      baseUrl,
+      model: "some-model",
+      apiKey: "some-key",
+    });
+
+    expect(result).toMatchObject({ ok: false, code: "invalid_configuration" });
+    // The rejection never echoes the value: it may itself contain a credential.
+    if (!result.ok) {
+      expect(result.message).toBe(
+        "baseUrl must be an http(s) API base URL without credentials, query parameters, or fragments.",
+      );
+      // Nothing from the rejected input is echoed back.
+      expect(result.message).not.toContain("example.com");
+      expect(result.message).not.toContain("user:pass");
+      expect(result.message).not.toContain("token=secret");
+    }
+
+    // Nothing was written, so nothing can be reflected through the metadata projection.
+    const metadata = await readProviderMetadata();
+    expect(metadata.configured).toBe(false);
+    expect(metadata.baseUrl).toBeUndefined();
+    expect(JSON.stringify(metadata)).not.toContain("pass@");
+    expect(JSON.stringify(metadata)).not.toContain("token=secret");
+  }
+
+  // A valid configuration still saves afterwards.
+  const saved = await saveProviderConfig({
+    baseUrl: "https://example.com/v1",
+    model: "some-model",
+    apiKey: "some-key",
+  });
+  expect(saved.ok).toBe(true);
+});
+
+test("a rejected save leaves an existing configuration untouched", async () => {
+  await saveProviderConfig({
+    baseUrl: "https://gateway.example.com/v1",
+    model: "kept-model",
+    apiKey: "kept-key",
+  });
+
+  const rejected = await saveProviderConfig({
+    baseUrl: "https://attacker.invalid/v1?token=secret",
+    model: "replacement-model",
+    apiKey: "replacement-key",
+  });
+  expect(rejected).toMatchObject({ ok: false, code: "invalid_configuration" });
+
+  const stored = await readStoredProviderConfig();
+  expect(stored?.baseUrl).toBe("https://gateway.example.com/v1");
+  expect(stored?.model).toBe("kept-model");
+  expect(stored?.apiKey).toBe("kept-key");
+});
+
+test("a hand-edited config file with a credential-bearing base URL is not reflected as metadata", async () => {
+  await writeFile(
+    join(directory, "config.json"),
+    `${JSON.stringify(
+      {
+        provider: "openai-compatible",
+        baseUrl: "https://user:pass@example.com/v1",
+        model: "hand-edited",
+        apiKey: "hand-edited-key",
+      },
+      null,
+      2,
+    )}\n`,
+    { mode: 0o600 },
+  );
+
+  const metadata = await readProviderMetadata();
+  expect(metadata.configured).toBe(false);
+  expect(JSON.stringify(metadata)).not.toContain("pass@");
+  expect(await readStoredProviderConfig()).toBeNull();
 });
 
 test("the config GET never returns the API key", async () => {
