@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assertTagMatchesVersion } from "./check-release-tag.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_VERSION = "0.2.0";
+const EXPECTED_VERSION = "0.3.0";
 const EXPECTED_NAME = "precall";
 const EXPECTED_DESCRIPTION =
   "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.";
