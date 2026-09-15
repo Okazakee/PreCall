@@ -25,6 +25,7 @@ export const REQUIRED_SCRIPTS = [
 ] as const;
 export const REQUIRED_FILES = [
   "biome.json",
+  "bunfig.toml",
   ".oxlintrc.json",
   "tsconfig.json",
   "tsdown.config.ts",

@@ -140,6 +140,79 @@ One optional environment variable exists for the demo: `PRECALL_EXAMPLE_RECIPIEN
 placeholder recipient for the simulated delivery. It is read on the server only, and the client can
 never influence it.
 
+## Developer playground
+
+`app/playground` is a local development workbench for PreCall. It replaces ad-hoc terminal scripts:
+configure a model, build an arbitrary dummy intake, run the real library, and inspect exactly what
+happened. It is developer tooling, not a product — no accounts, no database, no run history, no
+deployment story — and it is **localhost only**: every playground route refuses a request whose
+`Host`/`Origin` is not local, because it can read and write a credential and spend model quota.
+
+```sh
+# from the repository root
+bun run example:prepare
+cd examples/nextjs && bun run dev
+# http://localhost:3000/playground
+```
+
+### Execution modes
+
+- **Deterministic fake** (default): rule-based adapter in the Next.js process. No network call, no
+  credential, milliseconds per run. Use it for UI, renderer, and privacy-filter development.
+- **Live configured model**: the saved provider is called through the public `precall/langchain`
+  adapter. The page warns that the dummy intake leaves the machine, and the run fails with a clear
+  configuration error if nothing is configured — live mode never silently falls back to fake mode.
+
+### Model configuration
+
+The workbench writes `.precall-playground/config.json` at the repository root (gitignored, written
+with `0600` where the platform supports it). Fields: provider (`openai-compatible`), base URL, API
+key, model id, plus three advanced escape hatches — API surface (`chat-completions` or
+`responses`), structured-output method (`functionCalling` or `jsonSchema`), and extra request
+headers. A provider that needs none of them configures none of them; there is no provider registry.
+
+Any OpenAI-compatible endpoint works: a hosted gateway, a local server such as llama.cpp or Ollama,
+or a vendor whose OpenAI-compatible path lives at a different base URL.
+
+`Fetch models` calls the provider's `/models` endpoint with the stored key, server-side. A provider
+without `/models` produces a non-fatal note, and manual model-id entry is always available.
+
+The API key is sent to the localhost server when you press *Save configuration*. After that it stays
+server-side: the config `GET` returns provider, base URL, model, and whether a key is stored — never
+the key — and no key is written to the page, the result payload, diagnostics, or logs.
+
+### Dummy intake builder
+
+The primary interface is a form builder, not a JSON blob: add and remove fields, and edit each
+field's key, label, value, `sensitive`, `sendToAI`, and `includeInOutput`. Five fixtures populate it
+as a starting point (detailed, vague, contradictory, prompt injection, privacy canary), and the
+result is editable immediately. A "use PreCall defaults" switch omits the flags entirely so PreCall
+resolves them itself (`sendToAI` follows `sensitive`). Raw JSON stays available as an advanced
+option for the submission body.
+
+### Inspection
+
+Six tabs after a run: **Brief** (summary, clarity, facts, inferences, assumptions, unknowns, risks,
+discovery questions, roadmap, confidence, cost, sections), **Email preview** (the real deterministic
+renderer's HTML in a sandboxed frame, its text version, and the `submission.json` attachment),
+**Structured result** (the complete `PreCallResult`), **Original request** (the authoritative
+submission plus the resolved per-field policy), **AI input** (exactly the fields that reached the
+adapter, with withheld fields named), and **Diagnostics** (mode, provider, elapsed time, timeout,
+analysis status, adapter failure classification, rendering/delivery state — never credentials).
+
+Errors stay distinct and recoverable: invalid intake, PreCall intake rejection, missing playground
+configuration, adapter/provider failure, timeout, invalid model output, rendering failure, and
+server failure each get their own message, with no stack traces in the browser.
+
+### Tests
+
+`bun test lib` inside this directory covers the configuration and execution boundaries: the config
+directory is gitignored, fake mode performs no network call, config reads never return the key, the
+file is written with restrictive permissions, live mode refuses a missing configuration, privacy
+flags map onto PreCall's resolved policy, a withheld field never reaches the adapter, the real
+renderer produces the preview, malformed intakes fail safely, and provider errors are sanitized.
+Live behaviour is tested against a local OpenAI-compatible stub — no test reaches a real provider.
+
 ## Deploy with Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOkazakee%2FPreCall&root-directory=examples%2Fnextjs&project-name=precall-nextjs-example&repository-name=precall-nextjs-example&install-command=cd%20..%2F..%20%26%26%20bun%20install%20--frozen-lockfile%20%26%26%20bun%20run%20example%3Aprepare)

@@ -111,10 +111,26 @@ root export does not eagerly load either optional integration.
 ## Runtime smoke tests
 
 The packed-package matrix remains Bun and Node. The Next.js example is a separate source-checkout
-smoke: `bun run example:build` builds the package, prepares the example, and runs a production
-`next build`, and the pull-request workflow runs it after the repository build. It proves that a
-server-side consumer resolves, compiles, bundles, and builds; it is not an end-to-end browser test.
-Do not claim broad Edge compatibility until a real Edge test exists.
+smoke: `bun run example:build` builds the package, prepares the example, runs the example's own
+`bun:test` suite, and runs a production `next build`, and the pull-request workflow runs it after
+the repository build. It proves that a server-side consumer resolves, compiles, bundles, and
+builds; it is not an end-to-end browser test. Do not claim broad Edge compatibility until a real
+Edge test exists.
+
+Root `bun test` is scoped to `src` and `scripts` (`bun run test`). The example keeps its own suite
+because its tests import the installed `precall` package, which only exists after
+`bun run example:prepare`; running them from the root in a fresh checkout would test a dependency
+that is not installed yet. The example's production build and its suite are therefore one step:
+`bun run example:build` prepares the example, runs `bun test lib` inside it, and then builds it.
+
+That suite covers the local development playground's boundaries. Configuration: the
+`.precall-playground/` directory is gitignored, the provider file is written with restrictive
+permissions, reads never return the API key, invalid values are rejected, and non-local requests are
+refused. Execution: fake mode performs no network call, live mode refuses a missing configuration
+instead of falling back, privacy flags map onto PreCall's resolved field policy, a withheld field
+never reaches the adapter, the real renderer produces the preview HTML and text, malformed intakes
+fail safely, and provider errors are sanitized. Live behaviour is exercised against a local
+OpenAI-compatible stub, so no test in the suite reaches a real provider.
 
 ## Repository contract
 

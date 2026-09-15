@@ -368,6 +368,11 @@ export default function Home() {
           One Route Handler, one form, and the public <code>precall</code> package. The browser
           submits a structured inquiry and the server turns it into an internal pre-call brief.
         </p>
+        <p className="muted">
+          Looking for the inspection surface? Open the{" "}
+          <a href="/playground">developer playground</a> to run fixtures and compare the brief, the
+          rendered email, the structured result, the AI-visible fields, and the original submission.
+        </p>
       </header>
 
       <section className="card">
