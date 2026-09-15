@@ -232,13 +232,13 @@ Packed-package verification must prove:
 `live-email:check` is excluded from `check`, CI, and package validation. It requires explicit opt-in and credentials and was not run as part of ordinary validation.
 ## Public release contract
 
-The currently published release is **`precall` 0.2.0**; **`precall` 0.3.0** is prepared on `main` and is not yet tagged or published. The package is hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
+The current published release is **`precall` 0.3.0**, released on 2026-09-15 from tag `v0.3.0` on release commit `a12b6a1908b87e56a1ed21a480f8791ce59b7f69` via release workflow run `34988488632`. The package is hosted by the `Okazakee/PreCall` repository and licensed Apache-2.0. The package is ESM-only and declares Node.js >=22.14.0 and Bun >=1.3.14; development remains pinned to `bun@1.3.14`.
 
 `package:check` uses npm's packing view and validates one candidate tarball containing `package.json`, `README.md`, `LICENSE`, and the complete generated `dist` runtime/declaration closure. It rejects source, tests, docs, scripts, `.github`, environment/secrets, temporary files, and media. It then installs that candidate into clean offline Node/Bun consumers and compiles NodeNext declarations for the root, `./langchain`, and `./resend` exports. Optional LangChain peers remain isolated, and the Resend subpath includes no Resend SDK.
 
 Run `bun run release:check` for metadata, Apache-2.0 license, version, and optional tag checks. `bun run release:dry-run` builds and validates one npm-generated candidate, then invokes npm's actual dry-run publish command with an empty temporary npm user config and explicit public registry. It never authenticates, publishes, tags, or creates a GitHub Release.
 
-The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. The `v0.1.0` and `v0.2.0` releases completed through this workflow. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14.
+The release workflow runs only for pushed `vX.Y.Z` tags. It asserts exact tag/package-version equality without bumping, runs all checks, inspects and dry-runs the same candidate, then publishes it with npm trusted publishing/OIDC (`id-token: write`, no `NPM_TOKEN`) and creates a notes-only GitHub Release. The `v0.1.0`, `v0.2.0`, and `v0.3.0` releases completed through this workflow. It uses immutable GitHub Action SHAs plus GitHub-hosted Node 22.22.0/npm 11.14.1 and pinned Bun 1.3.14.
 
 ## Hardened candidate and source contract
 
@@ -257,7 +257,7 @@ The repository owner configured these controls through GitHub's owner-controlled
 - main pull requests do not require an approving review or latest-push approval;
 - environment `npm` remains associated with the release workflow and no longer requires manual reviewer approval.
 
-The npm trusted-publisher association is configured and verified for the release workflow. The bootstrap package remains under the `bootstrap` dist-tag, while `latest` points to stable `0.2.0` and the prepared `0.3.0` is unpublished; the historical scoped bootstrap package is not mutated.
+The npm trusted-publisher association is configured and verified for the release workflow. The bootstrap package remains under the `bootstrap` dist-tag, while `latest` points to stable `0.3.0`; the historical scoped bootstrap package is not mutated.
 
-The `v0.1.0` and `v0.2.0` releases are complete. The next release is `v0.3.0`, tagged on the exact `0.3.0` release-preparation merge commit on `main`. Future tag releases publish automatically after validation through the protected workflow and npm Trusted Publishing/OIDC, without token fallback or manual GitHub environment approval.
+The `v0.1.0`, `v0.2.0`, and `v0.3.0` releases are complete. No further release is prepared or scheduled. Future tag releases publish automatically after validation through the protected workflow and npm Trusted Publishing/OIDC, without token fallback or manual GitHub environment approval.
 

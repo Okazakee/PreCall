@@ -331,12 +331,12 @@ Completed:
 
 ## Next milestone
 
-The core flow, its first framework integration, and optional preliminary cost estimation are
-released as `precall@0.2.0`, which remains the latest published release. The bounded custom
-analysis-section capability is merged into `main` and prepared for release as `precall@0.3.0`.
-After that release, the next capability remains undecided: professional-specific pricing strategy
-configuration and modular analysis skills are future candidates, and neither configuration API is
-settled.
+The core flow, its first framework integration, optional preliminary cost estimation, and the
+bounded custom analysis-section capability are released as `precall@0.3.0`, which is the latest
+published release. The next product capability is **not settled**. Professional-specific pricing
+strategy configuration beyond the implemented preliminary cost estimate and broader modular
+analysis/skills are candidates, but neither configuration API is agreed and no choice is made here.
+Future pricing remains decision support rather than automatic quotation.
 
 # After MVP
 
@@ -434,7 +434,7 @@ This is valuable but deliberately outside the initial version.
 
 ## Phase 18 — Bounded custom analysis sections
 
-**Status: implemented and merged into `main`; release pending in `0.3.0`**
+**Status: complete; publicly released in `precall@0.3.0`**
 
 The advanced `analysis.sections` seam adds declaration-ordered, Zod-defined outputs to the same
 single analysis operation while preserving the simple default flow and the specialized
@@ -448,20 +448,21 @@ engine, tools/research, retries, repair, provider routing, or arbitrary render c
 
 ## Phase 19 — 0.3.0 release
 
-**Status: release preparation in progress; not yet tagged or published**
+**Status: complete**
 
-Prepared:
+Completed:
 
-- release-preparation branch `release/0.3.0` from `main` that raises the package version and the
-  release metadata assertions to `0.3.0` and updates mutable release-state documentation;
-- packed consumer smoke keeps its coverage of the custom analysis-section public API, types, and
-  runtime behavior, including a consumer-owned Zod installation and another Zod 4 entrypoint;
-- release workflow semantics, npm Trusted Publishing/OIDC, and tag/main protection assumptions are
-  unchanged;
-- no tag, publish, or GitHub Release has been created.
+- release-preparation PR that raised the package version and the release metadata assertions to
+  `0.3.0` and updated mutable release-state documentation;
+- tagged release commit `a12b6a1908b87e56a1ed21a480f8791ce59b7f69` on `main` as annotated tag
+  `v0.3.0`;
+- tag-only release workflow run `34988488632` succeeded: validation bound one candidate to the
+  tag/`HEAD`/`origin/main` identity and its manifest bytes/SHA-512, the publish job published that
+  exact candidate through npm Trusted Publishing/OIDC (no token fallback) with a signed provenance
+  statement, and the release job created a notes-only GitHub Release `v0.3.0`;
+- npm `latest` moved to `0.3.0`, `bootstrap` remains `0.1.0-bootstrap.0`, and the `0.1.0`/`0.2.0`
+  release history is untouched;
+- GitHub Release `v0.3.0` created and is the latest release.
 
-Next: after the release-preparation change merges into `main`, tag that exact merge commit as
-`v0.3.0` and push the tag to run the existing tag-only validation, publish, and GitHub Release path.
-
-**Milestone:** The bounded custom analysis-section capability from Phase 18 becomes publicly
-available as `precall@0.3.0`.
+**Milestone:** The bounded custom analysis-section capability from Phase 18 became publicly
+available as `precall@0.3.0` on 2026-09-15.
