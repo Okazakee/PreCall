@@ -326,3 +326,15 @@ MVP does not need:
 - provider SDK in the root bundle;
 - retry/fallback graph;
 - workflow engine.
+
+## Advanced analysis sections
+
+`analysis.sections` is a deliberately narrow extension at the analysis boundary. The core snapshots
+trusted metadata and private Zod parsers, sends only a detached semantic projection alongside the
+privacy-filtered `AnalysisInput`, and performs one adapter invocation. Each configured candidate is
+validated and detached independently before entering `PreCallResult`; the canonical `AnalysisResult`
+schema is unchanged. Titles remain trusted result metadata for deterministic presentation.
+
+No generic plugin registry, provider metadata, skill lifecycle, per-section call, retry/repair loop,
+or renderer callback is introduced. Omitting the configuration preserves the existing request,
+result, cost, and delivery behavior.

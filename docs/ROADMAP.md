@@ -429,3 +429,15 @@ pre-call brief
 ```
 
 This is valuable but deliberately outside the initial version.
+
+## Phase 18 — Bounded custom analysis sections
+
+**Status: implemented in the current checkout**
+
+The advanced `analysis.sections` seam adds declaration-ordered, Zod-defined outputs to the same
+single analysis operation while preserving the simple default flow and the specialized
+core-owned cost estimate. Configuration is trusted and snapshotted, candidates are independently
+validated, and deterministic rendering keeps unavailable sections isolated.
+
+This phase deliberately does not introduce a generic skill/plugin registry, agent or workflow
+engine, tools/research, retries, repair, provider routing, or arbitrary render callbacks.

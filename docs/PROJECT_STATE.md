@@ -18,8 +18,9 @@ Everything else has a better owner:
 PreCall is past its first public release. Intake and normalization, privacy filtering, the
 structured analysis contract, deterministic presentation, submission attachment, email
 packaging, provider-neutral delivery, the configured `createPrecall()` facade, the `submit()`
-convenience flow, and optional preliminary cost estimation are implemented and released. The
-server-side Next.js integration proof exists as a repository example and is gated in CI.
+convenience flow, optional preliminary cost estimation, and the bounded custom analysis-section
+seam are implemented in the current checkout. The server-side Next.js integration proof exists as
+a repository example and is gated in CI.
 
 `precall@0.2.0` was released on 2026-09-12 and carries preliminary cost estimation. The tag-only
 release workflow validated the source binding, published the inspected candidate through npm
@@ -58,13 +59,12 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 
 ## Unresolved decisions
 
-- Modular analysis skills and richer pricing strategy configuration remain unsettled. Preliminary
-  cost estimation is implemented, but any future pricing extension must remain decision support
-  rather than automatic quotation.
+- Modular analysis skills and richer pricing strategy configuration remain unsettled. Custom
+  analysis sections are intentionally a narrow one-call enrichment and do not settle either
+  broader architecture.
 
 ## Immediate next action
 
-Choose the next capability: optionally modularize analysis skills, or extend pricing beyond the
-preliminary estimate toward professional-specific configuration. Neither configuration API is
-settled, and any future pricing extension must remain decision support rather than automatic
-quotation.
+Prepare the next release validation for the custom-section capability without changing the
+published package version until release admission is explicitly requested. Future pricing remains
+decision support rather than automatic quotation.

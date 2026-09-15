@@ -687,3 +687,19 @@ The product principle remains unchanged: the professional reviews the brief, and
 Currency is trusted snapshot configuration; it is never client-derived or model-chosen. Amounts are whole non-negative units, each item satisfies `minAmount <= maxAmount`, and the core computes the total from the items. A model-provided total is never trusted and is rejected as invalid output. Without the configuration, existing behavior is preserved and `costEstimate` remains absent.
 
 Rendering is deterministic, and delivery and privacy boundaries are unchanged. This is an isolated optional enrichment, not a generic partial-result framework.
+
+### D-104 — Custom analysis sections are a narrow one-call enrichment
+
+**Status:** Settled
+
+Advanced consumers may configure a bounded declaration-ordered set of custom sections, each with a
+stable key, trusted title and instructions, and a Zod 4 schema. Configuration is validated and
+snapshotted at `createPrecall()`; adapters receive only a detached semantic projection without
+titles or parsers. The privacy-filtered input, canonical analysis, optional core-owned estimate,
+and custom candidates share exactly one adapter operation.
+
+Custom candidates are independently validated and detached. A malformed section does not invalidate
+canonical analysis, cost estimation, or another section; unavailable states expose only stable
+provider-neutral reasons. The default flow and `AnalysisResult` remain unchanged. This is not a
+generic plugin/skill registry, per-section model architecture, workflow, tools/research, retries,
+repair/fallback, or arbitrary rendering callback.

@@ -1,10 +1,10 @@
 import { cloneJsonValue, createAnalysisInput } from "./analysis/input.js";
 import type { AnalysisResult } from "./analysis/result.js";
 import { type AIAdapter, runAnalysis } from "./analysis/run.js";
+import type { AnalysisSectionState, ResolvedAnalysisConfiguration } from "./analysis/sections.js";
 import type { CostEstimationConfig } from "./cost/config.js";
 import type { CostEstimateState } from "./cost/result.js";
 import type { JsonValue, NormalizedField, NormalizedSubmission } from "./intake/normalize.js";
-
 export type RequestSnapshot = {
   original: Record<string, JsonValue>;
   fields: NormalizedField[];
@@ -19,6 +19,7 @@ export type PreCallResult = {
   analysis: AnalysisState;
   /** Present only when the configured facade enabled preliminary cost estimation. */
   costEstimate?: CostEstimateState;
+  sections?: Record<string, AnalysisSectionState>;
 };
 
 function defineData(target: object, key: string, value: JsonValue): void {
@@ -62,11 +63,18 @@ export async function processNormalizedSubmission(
   normalized: NormalizedSubmission,
   signal?: AbortSignal,
   costEstimation?: CostEstimationConfig,
+  analysisConfiguration?: ResolvedAnalysisConfiguration,
 ): Promise<PreCallResult> {
   signal?.throwIfAborted();
   const request = snapshotRequest(normalized);
   const input = createAnalysisInput(request);
-  const execution = await runAnalysis(adapter, input, signal, costEstimation);
+  const execution = await runAnalysis(
+    adapter,
+    input,
+    signal,
+    costEstimation,
+    analysisConfiguration,
+  );
 
   const analysis: AnalysisState =
     execution.analysis.status === "succeeded"
@@ -75,5 +83,6 @@ export async function processNormalizedSubmission(
 
   const result: PreCallResult = { request, analysis };
   if (execution.costEstimate !== undefined) result.costEstimate = execution.costEstimate;
+  if (execution.sections !== undefined) result.sections = execution.sections;
   return result;
 }

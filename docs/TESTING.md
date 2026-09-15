@@ -128,3 +128,12 @@ project-specific infrastructure.
 Release validation and dry-run behavior are release policy and are documented in
 [`RELEASING.md`](RELEASING.md). They are credential-free and never publish, tag, or create a
 GitHub Release.
+
+## Custom section coverage
+
+Focused tests cover the advanced seam without weakening default-flow compatibility: trusted
+configuration rejection and snapshots, privacy-filtered requests, one-call behavior, independent
+candidate validation, detached JSON values, no-input/adapter-error/cancellation states, safe
+deterministic rendering, LangChain prompt and runnable guarantees, and packed public type/config
+consumption. The cost-estimation tests remain separate because cost is a specialized core-owned
+enrichment rather than a generic section mechanism.

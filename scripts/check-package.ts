@@ -183,7 +183,7 @@ function assertArchive(tarball: string, localDistEntries: readonly string[]): Pa
 function consumerSource(name: string): string {
   return `
 const { createPrecall } = await import(${JSON.stringify(name)});
-const analysis = {
+const canonicalAnalysis = {
   summary: "A useful summary",
   clarity: { level: "high", reason: "The request is clear" },
   facts: [], inferences: [], assumptions: [], unknowns: [], risks: [], discoveryQuestions: [],
@@ -192,7 +192,7 @@ const analysis = {
 };
 const ai = { generateAnalysis: async ({ input }) => {
   if (input.fields.length !== 1 || input.fields[0].value !== "hello") throw new Error("unexpected input");
-  return analysis;
+  return canonicalAnalysis;
 } };
 const precall = createPrecall({ ai, fields: [{ key: "message", label: "Message" }] });
 let sent = false;
@@ -211,7 +211,7 @@ if (
   submitted.delivery.status !== "sent"
 ) throw new Error("submit did not succeed");
 const costPrecall = createPrecall({
-  ai: { generateAnalysis: async () => ({ ...analysis, costEstimate: {
+  ai: { generateAnalysis: async () => ({ ...canonicalAnalysis, costEstimate: {
     status: "estimated",
     items: [{ name: "Implementation", minAmount: 1000, maxAmount: 1500, reason: "Build the workflow." }],
     rationale: "One bounded piece of work.",
@@ -228,13 +228,33 @@ if (
   costResult.costEstimate.total.minAmount !== 1000 ||
   costResult.costEstimate.total.maxAmount !== 1500
 ) throw new Error("cost estimation did not work from the packed package");
+import { z } from "zod";
+const customPrecall = createPrecall({
+  ai: { generateAnalysis: async ({ input, analysis: requestAnalysis }) => {
+    if (requestAnalysis?.sections[0]?.key !== "shortTake" || input.fields[0].key !== "message") throw new Error("unexpected custom request");
+    return { ...canonicalAnalysis, sections: { shortTake: "A concise take." } };
+  } },
+  fields: [{ key: "message", label: "Message" }],
+  analysis: { sections: [{ key: "shortTake", title: "Short take", instructions: "Be concise.", schema: z.string() }] },
+});
+const customResult = await customPrecall.process({ submission: { message: "hello" } });
+if (customResult.sections?.shortTake?.status !== "succeeded" || customResult.sections.shortTake.value !== "A concise take.") {
+  throw new Error("custom analysis section did not work from the packed package");
+}
 `;
 }
 
 function typeConsumerSource(name: string): string {
   return `
+import { z } from "zod";
 import type {
   AIAdapter,
+  AIAnalysisConfiguration,
+  AIAnalysisRequest,
+  AnalysisConfig,
+  AnalysisSectionConfig,
+  AnalysisSectionState,
+  AnalysisSectionUnavailableReason,
   CostEstimateState,
   CostEstimationConfig,
   DeliveryOutcome,
@@ -245,10 +265,24 @@ import type {
   SubmitOutcome,
   SubmitRequest,
 } from ${JSON.stringify(name)};
+const sectionSchema = z.object({ status: z.enum(["ok", "unknown"]), reason: z.string() });
+const section: AnalysisSectionConfig = {
+  key: "budgetFit",
+  title: "Budget fit",
+  instructions: "Assess compatibility.",
+  schema: sectionSchema,
+};
+const analysisConfig: AnalysisConfig = { sections: [section] };
+const aiAnalysisConfig: AIAnalysisConfiguration = {
+  sections: [{ key: "budgetFit", instructions: "Assess compatibility.", outputSchema: {} }],
+};
+declare const aiRequest: AIAnalysisRequest;
+declare const sectionState: AnalysisSectionState;
+declare const unavailableReason: AnalysisSectionUnavailableReason;
 const ai: AIAdapter = { generateAnalysis: async () => ({}) };
 const transport: EmailTransport = { send: async (request) => { request.recipient; request.email.subject; } };
 const costEstimation: CostEstimationConfig = { currency: "EUR" };
-const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }], costEstimation };
+const config: PrecallConfig = { ai, fields: [{ key: "message", label: "Message" }], costEstimation, analysis: analysisConfig };
 declare const estimate: CostEstimateState;
 const estimateTotal: { minAmount: number; maxAmount: number } | undefined =
   estimate.status === "estimated" ? estimate.total : undefined;
@@ -269,6 +303,7 @@ const deliveryResult: Promise<DeliveryOutcome> = precall.deliver({
 });
 const submitResult: Promise<SubmitOutcome> = precall.submit(submitRequest);
 processResult; deliveryResult; submitResult; config.fields; transport.send; costEstimation.currency; estimateTotal;
+aiRequest.input; aiRequest.analysis = aiAnalysisConfig; sectionState; unavailableReason;
 `;
 }
 

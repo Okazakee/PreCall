@@ -141,6 +141,38 @@ becomes unavailable analysis; a malformed optional estimate is isolated from a v
 does not erase the request or prevent the email attempt. A transport error remains a delivery
 failure and is not silently replaced with another transport.
 
+### Advanced custom analysis sections
+
+The normal `createPrecall({ ai, fields })` flow is unchanged. Advanced consumers may opt into a
+narrow `analysis.sections` configuration with a stable key, trusted title and instructions, and a
+Zod 4 schema for one additional JSON-compatible result. All enabled analysis remains one AI
+operation; section candidates are validated independently, and unavailable sections never erase the
+request or canonical analysis. This is not a plugin registry, agent loop, tools/research system,
+per-section model call, retry mechanism, or arbitrary rendering callback.
+
+```ts
+import { z } from "zod";
+
+const precall = createPrecall({
+  ai,
+  fields,
+  analysis: {
+    sections: [
+      {
+        key: "shortTake",
+        title: "Short take",
+        instructions: "Give one concise paragraph about this opportunity.",
+        schema: z.string(),
+      },
+    ],
+  },
+});
+```
+
+Titles are trusted presentation metadata and section instructions are trusted application
+configuration. Only the privacy-filtered `AnalysisInput` reaches the adapter. See the normative
+architecture and security documents for the validation, snapshot, and rendering boundaries.
+
 ## What can I customize?
 
 PreCall owns the intake-to-brief boundaries, but your application owns the form, endpoint, credentials, storage, and business context.
@@ -155,6 +187,7 @@ PreCall owns the intake-to-brief boundaries, but your application owns the form,
 - sensitive-field policy;
 - intake limits;
 - optional preliminary cost estimation with a trusted three-letter currency;
+- optional schema-defined custom analysis sections with `analysis.sections`;
 - the AI implementation through `AIAdapter`;
 - the delivery implementation through `EmailTransport`;
 - the trusted delivery recipient;
@@ -209,7 +242,7 @@ PreCall has already created the HTML/text brief and permitted submission attachm
 
 PreCall does **not** currently expose first-class configuration for:
 
-- custom system prompts or arbitrary analysis instructions;
+- custom canonical system prompts or arbitrary canonical analysis instructions;
 - pricing strategy, hourly/day/fixed-price rules, minimum project size, rates, margins, uncertainty
   buffers, or foreign-exchange conversion;
 - research strategy;
@@ -255,7 +288,8 @@ createPrecall({
 | Change recipient | `submit()` / `deliver()` |
 | Change intake limits | `createPrecall({ limits })` |
 | Change attachment behavior | `email.attachRawSubmission` |
-| Custom prompt/instructions | Not first-class yet |
+| Add schema-defined analysis sections | `createPrecall({ analysis: { sections } })` |
+| Custom canonical prompt/instructions | Not first-class yet |
 | Preliminary cost estimation | `createPrecall({ costEstimation: { currency } })` |
 | Pricing strategy, rates, margins, or FX | Not implemented yet |
 | Research | Not implemented yet |

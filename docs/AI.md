@@ -311,7 +311,19 @@ Early prompt configurability would weaken:
 - security assumptions;
 - beginner experience.
 
-Advanced customization can be reconsidered later.
+Broader canonical prompt customization can be reconsidered later.
+
+## Custom section seam
+
+The optional `analysis.sections` seam adds trusted instructions and detached input JSON contracts to
+the same structured model operation as canonical analysis (and optional cost estimation). The
+provider-facing envelope leaves section candidates unknown so one malformed member cannot discard
+canonical output or another section; the core validates each configured Zod parser independently.
+Section titles are not sent to the model because they are presentation metadata.
+
+This seam does not expose arbitrary prompts or callbacks and does not add tools, research, agents,
+per-section calls, retries, repair, or provider routing. The adapter still receives only
+privacy-filtered `AnalysisInput`, with caller cancellation forwarded unchanged.
 
 ## Streaming, agents, tools, reasoning controls
 

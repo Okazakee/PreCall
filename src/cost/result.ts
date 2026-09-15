@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { type ZodSafeParseResult, z } from "zod";
 import { NonBlankStringSchema } from "../analysis/result.js";
 
 /**
@@ -111,7 +111,12 @@ export function evaluateCostEstimateCandidate(
   candidate: unknown,
   currency: string,
 ): CostEstimateState {
-  const parsed = CostEstimateCandidateSchema.safeParse(candidate);
+  let parsed: ZodSafeParseResult<CostEstimateCandidate>;
+  try {
+    parsed = CostEstimateCandidateSchema.safeParse(candidate);
+  } catch {
+    return { status: "unavailable", reason: "invalid_output" };
+  }
   if (!parsed.success) return { status: "unavailable", reason: "invalid_output" };
 
   if (parsed.data.status === "insufficient_information") {
