@@ -14,6 +14,7 @@ export const REQUIRED_SCRIPTS = [
   "test:watch",
   "test:coverage",
   "build",
+  "recipes:check",
   "package:check",
   "example:build",
   "example:prepare",

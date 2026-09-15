@@ -173,6 +173,9 @@ Titles are trusted presentation metadata and section instructions are trusted ap
 configuration. Only the privacy-filtered `AnalysisInput` reaches the adapter. See the normative
 architecture and security documents for the validation, snapshot, and rendering boundaries.
 
+More copyable recipes — a custom `AIAdapter`, a custom `EmailTransport`, privacy flags, cost
+estimation, and custom sections — live in [`docs/RECIPES.md`](docs/RECIPES.md).
+
 ## What can I customize?
 
 PreCall owns the intake-to-brief boundaries, but your application owns the form, endpoint, credentials, storage, and business context.

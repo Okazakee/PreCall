@@ -53,6 +53,8 @@ rather than inventories of current modules, APIs, or tests.
 - **[`AI.md`](AI.md)** — the role of AI, its trust boundary, provider decisions, and
   structured-output rules.
 - **[`TESTING.md`](TESTING.md)** — test philosophy, required invariants, and repository gates.
+- **[`RECIPES.md`](RECIPES.md)** — copyable integration recipes for the public API; every TypeScript
+  block is compiled by `bun run recipes:check`.
 
 ## Precedence
 
