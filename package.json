@@ -1,6 +1,6 @@
 {
   "name": "precall",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Provider-neutral TypeScript library for privacy-filtered service-intake pre-call briefs.",
   "keywords": [
     "precall",

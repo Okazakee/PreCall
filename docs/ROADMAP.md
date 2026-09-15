@@ -333,8 +333,9 @@ Completed:
 
 The core flow, its first framework integration, optional preliminary cost estimation, and the
 bounded custom analysis-section capability are released as `precall@0.3.0`, which is the latest
-published release. The next product capability is **not settled**. Professional-specific pricing
-strategy configuration beyond the implemented preliminary cost estimate and broader modular
+published release; the integration recipes and abuse-boundary documentation are prepared for
+release as `precall@0.3.1`. The next product capability is **not settled**. Professional-specific
+pricing strategy configuration beyond the implemented preliminary cost estimate and broader modular
 analysis/skills are candidates, but neither configuration API is agreed and no choice is made here.
 Future pricing remains decision support rather than automatic quotation.
 
@@ -466,3 +467,24 @@ Completed:
 
 **Milestone:** The bounded custom analysis-section capability from Phase 18 became publicly
 available as `precall@0.3.0` on 2026-09-15.
+
+## Phase 20 — 0.3.1 release
+
+**Status: release preparation in progress; not yet tagged or published**
+
+A patch/DX release with no intended runtime, public-API, or dependency change:
+
+- integration recipes with a compilation gate (`docs/RECIPES.md`, `bun run recipes:check`) from
+  PR #16;
+- the explicit consumer-owned abuse-control boundary in the README capability map, the normative
+  security ownership section, and the Next.js Route Handler example from PR #17;
+- a release-preparation change that raises the package version and the release metadata assertions
+  to `0.3.1` and updates mutable release-state documentation;
+- release workflow semantics, npm Trusted Publishing/OIDC, and tag/main protection assumptions are
+  unchanged; no tag, publish, or GitHub Release has been created.
+
+Next: after the release-preparation change merges into `main`, tag that exact merge commit as
+`v0.3.1` and push the tag to run the existing tag-only validation, publish, and GitHub Release path.
+
+**Milestone:** The documentation and DX improvements from Phase 18's follow-up work reach the
+published package as `precall@0.3.1`.

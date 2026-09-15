@@ -34,6 +34,12 @@ release contains no other behavior change. Tag `v0.3.0` resolves to release comm
 the publish job published the exact inspected candidate through npm Trusted Publishing/OIDC, and the
 release job created GitHub Release `v0.3.0`.
 
+`precall@0.3.1` is prepared but **not yet tagged or published**. It is a patch/DX release: it ships
+the integration-recipe documentation and its compilation gate (PR #16) and the explicit
+abuse-control boundary clarification (PR #17). It contains no intended runtime, public-API, or
+dependency change. The release workflow, Trusted Publishing/OIDC path, and tag/main protection
+assumptions are unchanged.
+
 ## Externally published release state
 
 Verified against the public npm registry and GitHub on 2026-09-15:
@@ -75,8 +81,11 @@ Package identity, version, exports, license, runtime floors, and toolchain pins 
 
 ## Immediate next action
 
-The `0.3.0` release is complete: no release action is pending, and no version is prepared or
-scheduled. The next product capability is **not settled**. Professional-specific pricing strategy
+After the `0.3.1` release-preparation change is merged, tag that exact release-preparation merge
+commit on `main` as `v0.3.1` and push the tag; the existing tag-only workflow then validates,
+publishes, and creates the GitHub Release. Do not tag any other commit, because the workflow admits
+a release only when the tag commit, the checked-out `HEAD`, and `origin/main` are identical. After
+that, the next product capability is **not settled**: professional-specific pricing strategy
 configuration beyond the implemented preliminary cost estimate and broader modular analysis/skills
-remain candidates rather than committed work; no configuration API for either is agreed. Choosing
-one is the open decision. Future pricing remains decision support rather than automatic quotation.
+remain candidates rather than committed work, and no configuration API for either is agreed. Future
+pricing remains decision support rather than automatic quotation.
